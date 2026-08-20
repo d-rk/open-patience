@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../core/game_registry.dart';
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
@@ -13,20 +12,7 @@ import 'records_screen.dart';
 import 'stat_bar.dart';
 import 'theme/widgets.dart';
 import 'top_bar.dart';
-
-/// A human-readable title for a variant id, for app bars and records screens.
-String variantTitle(String id) {
-  switch (id) {
-    case GameRegistry.klondikeDraw1:
-      return 'Klondike (Draw 1)';
-    case GameRegistry.klondikeDraw3:
-      return 'Klondike (Draw 3)';
-    case GameRegistry.freecell:
-      return 'FreeCell';
-    default:
-      return id;
-  }
-}
+import 'variant_labels.dart';
 
 /// The play screen: a slim top bar, [Board], and a bottom stat bar. It wires
 /// the two cross-cutting concerns a dumb board can't own itself — advancing
