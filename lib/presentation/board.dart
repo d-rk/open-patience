@@ -63,6 +63,7 @@ class Board extends StatelessWidget {
               maxPileLength: maxPileLength,
               shortestSide: shortestSide,
               isLandscape: isLandscape,
+              sideStackCount: math.max(upper.length, foundations.length),
             );
 
             switch (metrics.layout) {
@@ -183,8 +184,10 @@ class Board extends StatelessWidget {
     );
   }
 
-  /// The right-hand column for tablet landscape: stock/waste then foundations,
-  /// flowing two slots per row to match the reserved [sideColumnWidth].
+  /// The right-hand column for tablet landscape: two clean vertical stacks side
+  /// by side — the upper piles (free cells / stock+waste) on the left, the
+  /// foundations on the far right — so a player can tell park-here from aces-here
+  /// at a glance instead of reading a mixed grid.
   Widget _sideColumn(
     BuildContext context,
     GameState game,
@@ -194,14 +197,33 @@ class Board extends StatelessWidget {
   ) {
     return Align(
       alignment: Alignment.topCenter,
-      child: Wrap(
-        spacing: _pad,
-        runSpacing: _pad,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          for (final int index in <int>[...upper, ...foundations])
-            _slot(context, game, index, cardSize),
+          _sideStack(context, game, upper, cardSize),
+          const SizedBox(width: _pad),
+          _sideStack(context, game, foundations, cardSize),
         ],
       ),
+    );
+  }
+
+  /// One vertical stack of slots within the side column, [_pad] apart.
+  Widget _sideStack(
+    BuildContext context,
+    GameState game,
+    List<int> indices,
+    Size cardSize,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        for (int i = 0; i < indices.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(height: _pad),
+          _slot(context, game, indices[i], cardSize),
+        ],
+      ],
     );
   }
 

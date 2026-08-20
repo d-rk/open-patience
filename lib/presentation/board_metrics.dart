@@ -52,6 +52,10 @@ class BoardMetrics {
   final double sideColumnWidth;
 
   /// Resolve the layout and card size for the given board space.
+  ///
+  /// [sideStackCount] is the number of slots the tallest side-column stack holds
+  /// in tablet landscape (free cells or foundations, whichever is taller). Cards
+  /// are shrunk so that stack fits the height too, not just the tableau fan.
   factory BoardMetrics.resolve({
     required double width,
     required double height,
@@ -59,6 +63,7 @@ class BoardMetrics {
     required int maxPileLength,
     required double shortestSide,
     required bool isLandscape,
+    int sideStackCount = 4,
   }) {
     final int cols = math.max(columns, 1);
     final int fanLen = math.max(maxPileLength, 1);
@@ -72,9 +77,17 @@ class BoardMetrics {
     // fitting. The stacked layouts carry a top row above the tableau (two card
     // heights); the tablet layout gives the tableau the full height (one).
     final double fanUnits = minFanFactor * (fanLen - 1);
-    final double heightCardHeight = layout == BoardLayout.tabletLandscape
+    double heightCardHeight = layout == BoardLayout.tabletLandscape
         ? (height - 2 * pad) / (1 + fanUnits)
         : (height - 3 * pad) / (2 + fanUnits);
+    // In tablet landscape the side column stacks its slots vertically; the
+    // tallest stack must fit the height too, or a short fan would size cards too
+    // tall for the four free cells / foundations to sit in one column.
+    if (layout == BoardLayout.tabletLandscape) {
+      final int rows = math.max(sideStackCount, 1);
+      final double sideCardHeight = (height - (rows + 1) * pad) / rows;
+      heightCardHeight = math.min(heightCardHeight, sideCardHeight);
+    }
     final double widthFromHeight = heightCardHeight / aspect;
 
     // Horizontal budget for a card.
