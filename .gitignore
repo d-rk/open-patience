@@ -27,3 +27,5 @@ android/key.properties
 *.keystore
 *.jks
 *.p12
+
+.superpowers/
