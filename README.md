@@ -67,3 +67,11 @@ Icon settings (image paths, adaptive background colour) live under the
 `flutter_launcher_icons:` key in `pubspec.yaml`. Headless Blender prints an
 OpenColorIO config-version warning — it's harmless and colours render
 correctly.
+
+## License
+
+Open Patience is free software licensed under the **GNU Affero General
+Public License v3.0** (AGPL-3.0-only) — see [`LICENSE`](LICENSE). You are
+free to use, study, share and modify it; if you run a modified version as a
+network service, the AGPL requires you to offer that version's source to its
+users.
