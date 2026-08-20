@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/core/card.dart';
-import 'package:solitaire/core/game_state.dart';
-import 'package:solitaire/core/games/freecell.dart';
-import 'package:solitaire/core/pile.dart';
+import 'package:open_patience/core/card.dart';
+import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/core/games/freecell.dart';
+import 'package:open_patience/core/pile.dart';
 
 Card _c(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
 

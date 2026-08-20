@@ -30,7 +30,7 @@ class MainMenuScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const FeltHeader(title: '♠ Solitaire ♥'),
+              const FeltHeader(title: '♠ Open Patience ♥'),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(16),

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/core/card.dart';
-import 'package:solitaire/core/game_state.dart';
-import 'package:solitaire/core/games/klondike.dart';
-import 'package:solitaire/core/move.dart';
-import 'package:solitaire/core/pile.dart';
+import 'package:open_patience/core/card.dart';
+import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/core/games/klondike.dart';
+import 'package:open_patience/core/move.dart';
+import 'package:open_patience/core/pile.dart';
 
 Card _c(Suit s, int r, {bool up = true}) => Card(suit: s, rank: r, faceUp: up);
 

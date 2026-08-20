@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/core/card.dart';
-import 'package:solitaire/core/deck.dart';
+import 'package:open_patience/core/card.dart';
+import 'package:open_patience/core/deck.dart';
 
 void main() {
   group('Deck', () {

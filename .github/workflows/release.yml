@@ -72,9 +72,9 @@ jobs:
           FDROID_KEYSTORE_PASSWORD: ${{ secrets.FDROID_KEYSTORE_PASSWORD }}
         run: |
           cat > config.yml <<EOF
-          repo_url: "https://d-rk.github.io/solitaire/repo"
-          repo_name: "d-rk's Solitaire repo"
-          repo_description: "Self-hosted F-Droid repo for the Solitaire app, published automatically from GitHub Actions."
+          repo_url: "https://d-rk.github.io/open-patience/repo"
+          repo_name: "d-rk's Open Patience repo"
+          repo_description: "Self-hosted F-Droid repo for Open Patience, published automatically from GitHub Actions."
           repo_keyalias: "repokey"
           keystore: "keystore.p12"
           keystorepass: "${FDROID_KEYSTORE_PASSWORD}"
@@ -87,7 +87,7 @@ jobs:
           mkdir -p fdroid-repo/repo
           rm -f fdroid-repo/repo/*.apk
           cp build/app/outputs/flutter-apk/app-release.apk \
-            "fdroid-repo/repo/solitaire-${GITHUB_RUN_NUMBER}.apk"
+            "fdroid-repo/repo/open-patience-${GITHUB_RUN_NUMBER}.apk"
 
       - name: Regenerate the F-Droid repo index
         working-directory: fdroid-repo

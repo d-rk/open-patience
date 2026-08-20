@@ -49,7 +49,7 @@ GitHub Actions: new "release" workflow (separate job from existing ci.yml)
      └─ commit + push the updated repo back to gh-pages
               │
               ▼
-     GitHub Pages serves https://d-rk.github.io/solitaire/
+     GitHub Pages serves https://d-rk.github.io/open-patience/
               │
               ▼
      F-Droid app on the phone (repo added once, one-time setup) polls this
@@ -79,13 +79,13 @@ secrets — never committed to the repo.
 | Repo visibility | Public, unlisted URL (source repo itself stays private) |
 | Build trigger | Push to `main` only |
 | Versioning | `versionCode` auto-set to `$GITHUB_RUN_NUMBER` on every build; `versionName` stays from `pubspec.yaml` |
-| Application ID | `io.github.d_rk.solitaire` (F-Droid's own convention for repos without a custom domain; hyphen in the GitHub handle `d-rk` becomes `_` since Android package segments disallow hyphens) |
+| Application ID | `io.github.d_rk.openpatience` (F-Droid's own convention for repos without a custom domain; hyphen in the GitHub handle `d-rk` becomes `_` since Android package segments disallow hyphens) |
 
 ## Changes to this repo
 
 1. **`android/app/build.gradle.kts`**
    - `applicationId` changes from the placeholder `com.example.solitaire`
-     to `io.github.d_rk.solitaire`.
+     to `io.github.d_rk.openpatience`.
    - `namespace` updated to match.
    - Release `signingConfig` reads keystore path + passwords from a
      `key.properties` file (gitignored). CI writes this file from secrets
@@ -119,7 +119,7 @@ secrets — never committed to the repo.
   app signing (keystore + key alias + key password + store password) and
   repo signing (keystore + password).
 - Enable GitHub Pages on the repo, serving from the `gh-pages` branch
-  (Settings → Pages, or `gh api repos/d-rk/solitaire/pages`). This is the
+  (Settings → Pages, or `gh api repos/d-rk/open-patience/pages`). This is the
   step that makes the `gh-pages` branch content publicly reachable —
   done with explicit confirmation at implementation time, since the
   source repo itself is private.
