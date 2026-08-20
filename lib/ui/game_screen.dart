@@ -8,8 +8,10 @@ import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
 import '../presentation/board.dart';
-import 'hud.dart';
 import 'records_screen.dart';
+import 'stat_bar.dart';
+import 'theme/widgets.dart';
+import 'top_bar.dart';
 
 /// A human-readable title for a variant id, for app bars and records screens.
 String variantTitle(String id) {
@@ -25,10 +27,11 @@ String variantTitle(String id) {
   }
 }
 
-/// The play screen: HUD on top, [Board] below. It wires the two cross-cutting
-/// concerns a dumb board can't own itself — advancing the play timer once a
-/// second and persisting on app pause — plus navigating to the records screen
-/// the moment the game is won. The [GameBloc] is provided by the caller.
+/// The play screen: a slim top bar, [Board], and a bottom stat bar. It wires
+/// the two cross-cutting concerns a dumb board can't own itself — advancing
+/// the play timer once a second and persisting on app pause — plus
+/// navigating to the records screen the moment the game is won. The
+/// [GameBloc] is provided by the caller.
 class GameScreen extends StatefulWidget {
   const GameScreen({this.autoTick, super.key});
 
@@ -78,26 +81,26 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final GameBloc bloc = context.read<GameBloc>();
     return Scaffold(
-      backgroundColor: const Color(0xFF1B5E20),
-      appBar: AppBar(title: Text(variantTitle(bloc.variant))),
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            const Hud(),
-            Expanded(
-              child: BlocListener<GameBloc, GameBlocState>(
-                listenWhen: (GameBlocState previous, GameBlocState current) =>
-                    current is GameWon && previous is! GameWon,
-                listener: (BuildContext context, GameBlocState state) {
-                  final GameWon won = state as GameWon;
-                  _showWin(context, bloc, won);
-                },
-                child: const Board(),
+      body: FeltBackground(
+        child: SafeArea(
+          child: Column(
+            children: <Widget>[
+              TopBar(onMenu: () {}),
+              Expanded(
+                child: BlocListener<GameBloc, GameBlocState>(
+                  listenWhen: (GameBlocState previous, GameBlocState current) =>
+                      current is GameWon && previous is! GameWon,
+                  listener: (BuildContext context, GameBlocState state) {
+                    final GameBloc bloc = context.read<GameBloc>();
+                    _showWin(context, bloc, state as GameWon);
+                  },
+                  child: const Board(),
+                ),
               ),
-            ),
-          ],
+              const StatBar(),
+            ],
+          ),
         ),
       ),
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../persistence/records_repository.dart';
 import '../persistence/stats.dart';
-import 'hud.dart';
+import 'theme/game_palette.dart';
 
 /// Per-variant records / leaderboard. Reads [Stats] from the repository and
 /// renders them read-only. No game logic — just a view of stored results.
@@ -42,7 +42,7 @@ class RecordsScreen extends StatelessWidget {
                 label: 'Best time',
                 value: stats.bestTimeSeconds == null
                     ? '—'
-                    : Hud.formatDuration(stats.bestTimeSeconds!),
+                    : formatDuration(stats.bestTimeSeconds!),
               ),
               _RecordTile(
                 label: 'Fewest moves',
