@@ -1,0 +1,43 @@
+import 'package:flutter/material.dart';
+
+/// Emerald Felt design tokens — the single source of truth for the game's
+/// palette. Widgets reference these instead of hardcoding colors.
+class GamePalette {
+  GamePalette._();
+
+  // Felt table.
+  static const Color feltGreenLight = Color(0xFF2E8B57);
+  static const Color feltGreenMid = Color(0xFF1C6B3C);
+  static const Color feltGreenDark = Color(0xFF14532D);
+  static const RadialGradient feltGradient = RadialGradient(
+    center: Alignment(0, -0.8),
+    radius: 1.2,
+    colors: <Color>[feltGreenLight, feltGreenDark],
+  );
+
+  // Accent + cards.
+  static const Color gold = Color(0xFFF6C65B);
+  static const Color cardFace = Color(0xFFFFF8EC);
+  static const Color cardRed = Color(0xFFC0392B);
+  static const Color cardInk = Color(0xFF1C2833);
+
+  // Empty pile slot outline (gold at ~50%).
+  static const Color pileSlotOutline = Color(0x80F6C65B);
+
+  // Menu action tiles.
+  static const Color actionRestartBg = Color(0xFFD6F0DD);
+  static const Color actionRestartFg = Color(0xFF14532D);
+  static const Color actionShuffleBg = Color(0xFFFFE6A8);
+  static const Color actionShuffleFg = Color(0xFF7A5A00);
+  static const Color actionExitBg = Color(0xFFF6D2CE);
+  static const Color actionExitFg = Color(0xFF8A2B22);
+}
+
+/// Formats a whole number of [seconds] as `mm:ss`.
+String formatDuration(int seconds) {
+  final int minutes = seconds ~/ 60;
+  final int secs = seconds % 60;
+  final String mm = minutes.toString().padLeft(2, '0');
+  final String ss = secs.toString().padLeft(2, '0');
+  return '$mm:$ss';
+}

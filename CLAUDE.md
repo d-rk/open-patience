@@ -166,6 +166,22 @@ methods grouped with what they override. Public before private.
   rebuild avoidance, and the analyzer will flag missed opportunities.
 - Guard clauses at the top of functions for invalid input.
 
+## Design language
+
+This is a **game, not an enterprise app** — the UI is playful, colorful and
+rounded (the "Emerald Felt" look: green felt table, cream cards, gold
+accents).
+
+- All colors and shared shapes come from `lib/ui/theme/`:
+  `game_palette.dart` (tokens + `formatDuration`), `app_theme.dart`
+  (the `ThemeData` on the root `MaterialApp`), `widgets.dart`
+  (`FeltBackground`, `FeltHeader`, `GamePill`, `GameActionTile`).
+- Widgets never hardcode `Color(0x…)` or ad-hoc style colors — reference a
+  token. New screens compose from the shared widgets and inherit `AppTheme`.
+- Prefer rounded, tactile controls (stadium buttons, pill stats, tiles).
+  Avoid stock enterprise-flat Material chrome (bare `AppBar` titles, plain
+  list rows) on player-facing screens.
+
 ## Project layout
 
 ```

@@ -1,0 +1,142 @@
+import 'package:flutter/material.dart' hide Card;
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:solitaire/core/card.dart';
+import 'package:solitaire/core/game_state.dart';
+import 'package:solitaire/core/pile.dart';
+import 'package:solitaire/persistence/records_repository.dart';
+import 'package:solitaire/persistence/shared_prefs_records_repository.dart';
+import 'package:solitaire/presentation/bloc/game_bloc.dart';
+import 'package:solitaire/presentation/bloc/game_event.dart';
+import 'package:solitaire/ui/game_screen.dart';
+
+class _RecordingBloc extends GameBloc {
+  _RecordingBloc(RecordsRepository repo, GameState state)
+    : super(variant: 'klondike-draw1', repository: repo, seed: 5, state: state);
+
+  final List<GameEvent> recorded = <GameEvent>[];
+
+  @override
+  void add(GameEvent event) {
+    recorded.add(event);
+    super.add(event);
+  }
+}
+
+GameState _oneCard() => GameState(
+  piles: <Pile>[
+    Pile(kind: PileKind.stock),
+    Pile(kind: PileKind.waste),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(
+      kind: PileKind.tableau,
+      cards: const <Card>[Card(suit: Suit.spades, rank: 7, faceUp: true)],
+    ),
+    Pile(kind: PileKind.tableau),
+    Pile(kind: PileKind.tableau),
+    Pile(kind: PileKind.tableau),
+    Pile(kind: PileKind.tableau),
+    Pile(kind: PileKind.tableau),
+    Pile(kind: PileKind.tableau),
+  ],
+);
+
+Future<_RecordingBloc> _repoBloc() async {
+  SharedPreferences.setMockInitialValues(<String, Object>{});
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  return _RecordingBloc(SharedPrefsRecordsRepository(prefs), _oneCard());
+}
+
+Future<void> _pump(WidgetTester tester, GameBloc bloc) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: BlocProvider<GameBloc>.value(
+        value: bloc,
+        child: const GameScreen(),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openMenu(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('Menu'));
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  testWidgets('menu opens and shows the variant title', (
+    WidgetTester tester,
+  ) async {
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+    await _openMenu(tester);
+    expect(find.text('Klondike (Draw 1)'), findsOneWidget);
+  });
+
+  testWidgets('Restart tile dispatches RestartDealRequested and closes', (
+    WidgetTester tester,
+  ) async {
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+    await _openMenu(tester);
+    await tester.tap(find.text('Restart'));
+    await tester.pumpAndSettle();
+    expect(bloc.recorded.whereType<RestartDealRequested>(), isNotEmpty);
+    expect(find.text('Restart'), findsNothing); // dialog closed
+  });
+
+  testWidgets('Shuffle tile dispatches NewDealRequested and closes', (
+    WidgetTester tester,
+  ) async {
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+    await _openMenu(tester);
+    await tester.tap(find.text('Shuffle'));
+    await tester.pumpAndSettle();
+    expect(bloc.recorded.whereType<NewDealRequested>(), isNotEmpty);
+    expect(find.text('Shuffle'), findsNothing);
+  });
+
+  testWidgets('Exit closes the dialog and pops back to the previous screen', (
+    WidgetTester tester,
+  ) async {
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (BuildContext context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => BlocProvider<GameBloc>.value(
+                      value: bloc,
+                      child: const GameScreen(),
+                    ),
+                  ),
+                ),
+                child: const Text('play'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('play'));
+    await tester.pumpAndSettle();
+    await _openMenu(tester);
+    await tester.tap(find.text('Exit to menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('play'), findsOneWidget); // back on the launcher screen
+    expect(find.byType(GameScreen), findsNothing);
+  });
+}

@@ -8,6 +8,7 @@ import '../persistence/records_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
 import 'game_screen.dart';
 import 'records_screen.dart';
+import 'theme/widgets.dart';
 
 /// The entry screen: one card per variant with Play, Resume (when a save
 /// exists) and Records. Building a game here is just constructing a [GameBloc]
@@ -23,17 +24,28 @@ class MainMenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Solitaire')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: <Widget>[
-          for (final String id in GameRegistry.ids)
-            _VariantCard(
-              variant: id,
-              repository: repository,
-              autoTick: autoTick,
-            ),
-        ],
+      body: FeltBackground(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const FeltHeader(title: '♠ Solitaire ♥'),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: <Widget>[
+                    for (final String id in GameRegistry.ids)
+                      _VariantCard(
+                        variant: id,
+                        repository: repository,
+                        autoTick: autoTick,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

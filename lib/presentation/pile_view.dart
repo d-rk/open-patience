@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Card;
 
 import '../core/card.dart';
 import '../core/pile.dart';
+import '../ui/theme/game_palette.dart';
 import 'card_view.dart';
 
 /// Renders one [Pile] and forwards input as callbacks. Tableau piles fan their
@@ -76,11 +77,11 @@ class PileView extends StatelessWidget {
       width: cardSize.width,
       height: cardSize.height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(cardSize.width * 0.1),
-        border: Border.all(color: Colors.white38, width: 1.5),
+        borderRadius: BorderRadius.circular(cardSize.width * 0.12),
+        border: Border.all(color: GamePalette.pileSlotOutline, width: 1.5),
       ),
       child: pile.kind == PileKind.stock
-          ? const Center(child: Icon(Icons.refresh, color: Colors.white38))
+          ? const Center(child: Icon(Icons.refresh, color: GamePalette.gold))
           : null,
     );
     if (onPileTap == null) {

@@ -235,6 +235,24 @@ void main() {
     expect(stats.gamesWon, 1);
   });
 
+  testWidgets('play screen shows a menu button and no AppBar', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    final GameBloc bloc = _bloc(
+      repo,
+      GameState.newGame(KlondikeRules(), seed: 42),
+    );
+    addTearDown(bloc.close);
+
+    await _pump(tester, bloc);
+
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byTooltip('Menu'), findsOneWidget);
+    expect(find.text('0 moves'), findsOneWidget);
+    expect(find.text('00:00'), findsOneWidget);
+  });
+
   testWidgets('save then simulated relaunch resumes the in-progress game', (
     WidgetTester tester,
   ) async {
