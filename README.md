@@ -39,3 +39,28 @@ flutter run           # run the app locally
 
 Full contributor guidance — architecture, TDD workflow, style — is in
 `CLAUDE.md`.
+
+## App icon
+
+The launcher icon is a 3D render of three fanned playing cards. The editable
+source is a Blender scene at `tools/logo/solitaire_logo.blend` — open it to
+tweak the cards, suit emblems, camera, lighting or the felt background by
+hand. It is the single source of truth for the artwork.
+
+To regenerate the icons after editing the `.blend`:
+
+```bash
+# 1. Render the scene into assets/icon/icon.png (opaque tile) and
+#    assets/icon/icon_foreground.png (Android adaptive foreground).
+#    Blender here is installed as a Flatpak:
+flatpak run org.blender.Blender --background --python tools/logo/build_logo.py
+# (plain install: blender --background --python tools/logo/build_logo.py)
+
+# 2. Rebuild the platform launcher icons from those PNGs.
+dart run flutter_launcher_icons
+```
+
+Icon settings (image paths, adaptive background colour) live under the
+`flutter_launcher_icons:` key in `pubspec.yaml`. Headless Blender prints an
+OpenColorIO config-version warning — it's harmless and colours render
+correctly.
