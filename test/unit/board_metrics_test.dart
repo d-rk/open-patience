@@ -17,6 +17,15 @@ double _tabletFootprint(double cardHeight, int maxPileLength) {
   return 2 * BoardMetrics.pad + cardHeight + minGap * (maxPileLength - 1);
 }
 
+/// The tablet side column stacks [rows] slots vertically, [pad] apart, inside
+/// the outer padding. If the resolved card height keeps this within the
+/// viewport, the side column cannot overflow vertically.
+double _sideColumnFootprint(double cardHeight, int rows) {
+  return 2 * BoardMetrics.pad +
+      rows * cardHeight +
+      (rows - 1) * BoardMetrics.pad;
+}
+
 void main() {
   group('layout selection', () {
     test('portrait orientation is always the portrait layout', () {
@@ -133,6 +142,28 @@ void main() {
         expect(
           tableauWidth + m.sideColumnWidth,
           lessThanOrEqualTo(width + 0.5),
+        );
+      },
+    );
+
+    test(
+      'tablet landscape shrinks cards so the side stack cannot overflow',
+      () {
+        // A short tableau fan leaves the tableau budget generous, so the
+        // four-tall side column (free cells / foundations) is what must bind.
+        const double height = 520;
+        final BoardMetrics m = BoardMetrics.resolve(
+          width: 1200,
+          height: height,
+          columns: 8,
+          maxPileLength: 5,
+          shortestSide: 800,
+          isLandscape: true,
+          sideStackCount: 4,
+        );
+        expect(
+          _sideColumnFootprint(m.cardSize.height, 4),
+          lessThanOrEqualTo(height + 0.5),
         );
       },
     );

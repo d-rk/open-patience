@@ -24,6 +24,13 @@ class GamePalette {
   // Empty pile slot outline (gold at ~50%).
   static const Color pileSlotOutline = Color(0x80F6C65B);
 
+  // Role-distinguishing empty-slot fills and marker glyph. Foundations (where
+  // aces go) get a faint warm-gold wash; free cells (where cards park) get a
+  // cool, darker green wash. The ghost marker glyph is gold at ~40%.
+  static const Color foundationSlotFill = Color(0x1AF6C65B);
+  static const Color freecellSlotFill = Color(0xA60B321E);
+  static const Color slotGlyph = Color(0x66F6C65B);
+
   // Menu action tiles.
   static const Color actionRestartBg = Color(0xFFD6F0DD);
   static const Color actionRestartFg = Color(0xFF14532D);

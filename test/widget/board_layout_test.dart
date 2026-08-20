@@ -45,6 +45,24 @@ GameState _board() {
   );
 }
 
+/// A FreeCell board with a distinctive card parked in the first free cell and a
+/// distinctive ace on the first foundation, to locate the two side sub-columns.
+GameState _freecellBoard() {
+  return GameState(
+    piles: <Pile>[
+      Pile(kind: PileKind.freecell, cards: <Card>[_up(Suit.spades, 7)]),
+      Pile(kind: PileKind.freecell),
+      Pile(kind: PileKind.freecell),
+      Pile(kind: PileKind.freecell),
+      Pile(kind: PileKind.foundation, cards: <Card>[_up(Suit.clubs, aceRank)]),
+      Pile(kind: PileKind.foundation),
+      Pile(kind: PileKind.foundation),
+      Pile(kind: PileKind.foundation),
+      for (int i = 0; i < 8; i++) Pile(kind: PileKind.tableau),
+    ],
+  );
+}
+
 Future<RecordsRepository> _repo() async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   return SharedPrefsRecordsRepository(await SharedPreferences.getInstance());
@@ -142,6 +160,21 @@ void main() {
       greaterThan(tester.getCenter(_cardFace(Suit.diamonds, kingRank)).dx),
     );
   });
+
+  testWidgets(
+    'freecell tablet landscape: free cells sit left of the foundations',
+    (WidgetTester tester) async {
+      await _pumpBoard(tester, const Size(1200, 800), state: _freecellBoard());
+
+      expect(tester.takeException(), isNull);
+      // Two clean sub-columns: parking (free cells) is the left column, the
+      // foundations (aces) are the right column, on the board's right edge.
+      expect(
+        tester.getCenter(_cardFace(Suit.spades, 7)).dx,
+        lessThan(tester.getCenter(_cardFace(Suit.clubs, aceRank)).dx),
+      );
+    },
+  );
 
   testWidgets('portrait keeps the foundations above the tableau', (
     WidgetTester tester,
