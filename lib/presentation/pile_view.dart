@@ -13,9 +13,11 @@ const Key foundationSlotMarkerKey = Key('foundationSlotMarker');
 const Key parkSlotMarkerKey = Key('parkSlotMarker');
 
 /// Renders one [Pile] and forwards input as callbacks. Tableau piles fan their
-/// cards vertically; stock/waste/foundation/free-cell piles stack (only the top
-/// card is shown and interactive). The whole pile area is a [DragTarget], so a
-/// dropped card is routed to [onDrop] with no legality decision made here.
+/// cards vertically; stock/foundation/free-cell piles stack (only the top card
+/// is shown and interactive); the waste pile fans its last [wasteVisibleCount]
+/// draws horizontally (see [_wasteFan]). The whole pile area is a
+/// [DragTarget], so a dropped card is routed to [onDrop] with no legality
+/// decision made here.
 class PileView extends StatelessWidget {
   const PileView({
     required this.pile,
@@ -23,6 +25,7 @@ class PileView extends StatelessWidget {
     required this.cardSize,
     this.faceUpGap,
     this.faceDownGap,
+    this.wasteVisibleCount = 1,
     this.onCardTap,
     this.onCardDoubleTap,
     this.onPileTap,
@@ -35,6 +38,11 @@ class PileView extends StatelessWidget {
   final Size cardSize;
   final double? faceUpGap;
   final double? faceDownGap;
+
+  /// How many of the waste pile's most recent draws are fanned out and
+  /// visible at rest — the variant's draw count (1 or 3). Ignored for every
+  /// other pile kind.
+  final int wasteVisibleCount;
 
   /// Tap on the interactive (top) card, by its index within the pile.
   final void Function(int cardIndex)? onCardTap;
@@ -203,6 +211,10 @@ class PileView extends StatelessWidget {
       );
     }
 
+    if (pile.kind == PileKind.waste) {
+      return _wasteFan(topIndex);
+    }
+
     return CardView(
       card: top,
       size: cardSize,
@@ -211,6 +223,62 @@ class PileView extends StatelessWidget {
       onDoubleTap: onCardDoubleTap == null
           ? null
           : () => onCardDoubleTap!(topIndex),
+    );
+  }
+
+  /// A slight fraction of the card width between fanned waste cards — enough
+  /// to read each covered card's corner without the tableau's full vertical
+  /// fan.
+  static const double _wasteFanStep = 0.16;
+
+  /// The waste pile: the last [wasteVisibleCount] draws, fanned with a slight
+  /// horizontal offset so a multi-card draw is fully readable (only the most
+  /// recent — [topIndex] — is interactive), plus, when older draws remain
+  /// underneath, one hidden backing card in the same spot as the oldest
+  /// visible card. That backing card is fully covered at rest; it only shows
+  /// once the real card above it lifts away mid-drag, which is what makes a
+  /// single-card waste correctly reveal the previous draw while dragging.
+  Widget _wasteFan(int topIndex) {
+    final int visible = math.min(wasteVisibleCount, pile.length);
+    final double step = cardSize.width * _wasteFanStep;
+    final int oldestVisibleIndex = pile.length - visible;
+
+    final List<Widget> children = <Widget>[
+      if (oldestVisibleIndex > 0)
+        Positioned(
+          left: 0,
+          child: CardFace(
+            card: pile.cards[oldestVisibleIndex - 1],
+            size: cardSize,
+          ),
+        ),
+      for (int i = 0; i < visible; i++)
+        Positioned(
+          left: step * i,
+          child: _wasteCard(oldestVisibleIndex + i, topIndex),
+        ),
+    ];
+
+    return SizedBox(
+      width: cardSize.width + step * (visible - 1),
+      height: cardSize.height,
+      child: Stack(clipBehavior: Clip.none, children: children),
+    );
+  }
+
+  Widget _wasteCard(int cardIndex, int topIndex) {
+    final Card card = pile.cards[cardIndex];
+    if (cardIndex != topIndex) {
+      return CardFace(card: card, size: cardSize);
+    }
+    return CardView(
+      card: card,
+      size: cardSize,
+      dragData: CardDragData(fromPile: pileIndex, cardIndex: cardIndex),
+      onTap: onCardTap == null ? null : () => onCardTap!(cardIndex),
+      onDoubleTap: onCardDoubleTap == null
+          ? null
+          : () => onCardDoubleTap!(cardIndex),
     );
   }
 
