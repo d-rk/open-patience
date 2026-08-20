@@ -89,6 +89,11 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk \
             "fdroid-repo/repo/open-patience-${GITHUB_RUN_NUMBER}.apk"
 
+      - name: Stage F-Droid app metadata (icon, summary, description)
+        run: |
+          mkdir -p fdroid-repo/metadata
+          cp -r fdroid/metadata/. fdroid-repo/metadata/
+
       - name: Regenerate the F-Droid repo index
         working-directory: fdroid-repo
         run: fdroid update --create-metadata

@@ -189,6 +189,23 @@ accents).
 - Prefer rounded, tactile controls (stadium buttons, pill stats, tiles).
   Avoid stock enterprise-flat Material chrome (bare `AppBar` titles, plain
   list rows) on player-facing screens.
+- **App icon is generated, not hand-drawn.** The single source of truth is
+  the Blender scene under `tools/logo/`, rendered by
+  `tools/logo/build_logo.py` into `assets/icon/icon.png` (+ adaptive
+  foreground). Platform launcher icons come from `flutter_launcher_icons`,
+  and the F-Droid listing icon is derived from the same
+  `assets/icon/icon.png` (see `fdroid/metadata/`). **Never** replace an icon
+  PNG by hand — change the Blender scene / `build_logo.py`, re-render, then
+  regenerate the launcher + F-Droid icons. See the README "App icon" section
+  for the exact commands.
+
+## Licensing
+
+Open Patience is licensed under **AGPL-3.0-only** (see `LICENSE`). Keep it
+that way: new source files should be compatible, and any bundled third-party
+assets (fonts, images) must carry a compatible license noted alongside them
+(e.g. the OFL fonts in `assets/fonts/`). The F-Droid metadata records the
+license as `AGPL-3.0-only` in `fdroid/metadata/io.github.d_rk.openpatience.yml`.
 
 ## Project layout
 
