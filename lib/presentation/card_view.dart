@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Card;
 
 import '../core/card.dart';
+import '../ui/theme/game_palette.dart';
 
 /// The payload a dragged card carries: enough for a drop target to describe the
 /// intended move (`from` pile + the index of the grabbed card) without the
@@ -133,7 +134,7 @@ class CardFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double radius = size.width * 0.1;
+    final double radius = size.width * 0.12;
     if (!card.faceUp) {
       return Semantics(
         label: _semanticLabel,
@@ -141,57 +142,94 @@ class CardFace extends StatelessWidget {
           width: size.width,
           height: size.height,
           decoration: BoxDecoration(
-            color: const Color(0xFF1B5E9B),
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: Colors.white70, width: 1.5),
-          ),
-          child: Center(
-            child: Icon(
-              Icons.pattern,
-              size: size.width * 0.5,
-              color: Colors.white24,
+            border: Border.all(color: GamePalette.gold, width: 2),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                GamePalette.feltGreenDark,
+                GamePalette.feltGreenMid,
+              ],
             ),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 3,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
         ),
       );
     }
 
-    final Color color = card.isRed
-        ? const Color(0xFFC62828)
-        : const Color(0xFF212121);
+    final Color color = card.isRed ? GamePalette.cardRed : GamePalette.cardInk;
     final String label = _rankLabels[card.rank];
     final String glyph = _suitGlyphs[card.suit]!;
+
+    final Widget index = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: size.width * 0.28,
+            fontWeight: FontWeight.w800,
+            height: 0.9,
+          ),
+        ),
+        Text(
+          glyph,
+          style: TextStyle(
+            color: color,
+            fontSize: size.width * 0.22,
+            height: 0.9,
+          ),
+        ),
+      ],
+    );
 
     return Semantics(
       label: _semanticLabel,
       child: Container(
         width: size.width,
         height: size.height,
-        padding: EdgeInsets.all(size.width * 0.06),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: GamePalette.cardFace,
           borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: const Color(0xFFBDBDBD)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              '$label$glyph',
-              style: TextStyle(
-                color: color,
-                fontSize: size.width * 0.26,
-                fontWeight: FontWeight.bold,
-                height: 1.0,
-              ),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 3,
+              offset: Offset(0, 2),
             ),
-            Expanded(
-              child: Center(
-                child: Text(
-                  glyph,
-                  style: TextStyle(color: color, fontSize: size.width * 0.44),
+          ],
+        ),
+        child: Stack(
+          children: <Widget>[
+            // Faint center pip.
+            Center(
+              child: Text(
+                glyph,
+                style: TextStyle(
+                  color: color.withValues(alpha: 0.14),
+                  fontSize: size.width * 0.7,
                 ),
               ),
+            ),
+            Positioned(
+              top: size.width * 0.08,
+              left: size.width * 0.1,
+              child: index,
+            ),
+            // Mirrored bottom-right index.
+            Positioned(
+              bottom: size.width * 0.08,
+              right: size.width * 0.1,
+              child: Transform.rotate(angle: 3.14159, child: index),
             ),
           ],
         ),
