@@ -146,8 +146,12 @@ class KlondikeRules implements GameRules {
     if (stock.isNotEmpty || waste.isEmpty) {
       return null;
     }
+    // Flipping the waste pile back over reverses its order: the card drawn
+    // first this pass ends up on top of the fresh stock, ready to be drawn
+    // first again.
     final List<Card> faceDown = waste
         .topN(waste.length)
+        .reversed
         .map((Card c) => c.faceDownCard)
         .toList();
     return Move(

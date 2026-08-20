@@ -208,6 +208,36 @@ void main() {
       );
     });
 
+    test('recycle preserves draw order across passes', () {
+      final KlondikeRules draw1 = KlondikeRules(drawCount: 1);
+      final Card a = _c(Suit.spades, 1, up: false);
+      final Card b = _c(Suit.spades, 2, up: false);
+      final Card c = _c(Suit.spades, 3, up: false);
+      // Stock bottom->top [a, b, c]; c is on top and drawn first.
+      final List<Pile> piles = _board();
+      piles[KlondikeRules.stockIndex] = Pile(
+        kind: PileKind.stock,
+        cards: <Card>[a, b, c],
+      );
+      final GameState state = GameState(piles: piles);
+
+      final Card firstDrawn = state.pileAt(KlondikeRules.stockIndex).topCard!;
+      state.applyMove(draw1.buildDraw(state)!);
+      state.applyMove(draw1.buildDraw(state)!);
+      state.applyMove(draw1.buildDraw(state)!);
+      expect(state.pileAt(KlondikeRules.stockIndex).isEmpty, isTrue);
+
+      state.applyMove(draw1.buildRecycle(state)!);
+
+      // After flipping the waste back over, the next card drawn must be the
+      // same one that was drawn first in the previous pass.
+      final Card afterRecycleTop = state
+          .pileAt(KlondikeRules.stockIndex)
+          .topCard!;
+      expect(afterRecycleTop.suit, firstDrawn.suit);
+      expect(afterRecycleTop.rank, firstDrawn.rank);
+    });
+
     test('buildDraw returns null on an empty stock', () {
       final GameState state = GameState(piles: _board());
       expect(rules.buildDraw(state), isNull);
