@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
+import 'theme/game_fonts.dart';
 import 'theme/game_palette.dart';
 import 'theme/widgets.dart';
 import 'variant_labels.dart';
@@ -103,9 +104,9 @@ class _Banner extends StatelessWidget {
           Text(
             variantTitle(bloc.variant),
             style: const TextStyle(
+              fontFamily: GameFonts.display,
               color: GamePalette.gold,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
+              fontSize: 20,
             ),
           ),
           const SizedBox(height: 2),

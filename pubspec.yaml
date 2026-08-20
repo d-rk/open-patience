@@ -29,6 +29,20 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Bundled OFL fonts (see assets/fonts/OFL-*.txt for licenses). Bundled as
+  # local assets — never fetched at runtime — so the F-Droid build stays
+  # offline and reproducible. Quicksand and Fredoka are variable-weight.
+  fonts:
+    - family: LilitaOne
+      fonts:
+        - asset: assets/fonts/LilitaOne-Regular.ttf
+    - family: Quicksand
+      fonts:
+        - asset: assets/fonts/Quicksand-VariableFont_wght.ttf
+    - family: Fredoka
+      fonts:
+        - asset: assets/fonts/Fredoka-VariableFont_wght.ttf
+
 # App launcher icons. Source art is rendered in Blender via
 # `tools/logo/build_logo.py` (see that file for the regen command).
 # Regenerate the platform icons with: dart run flutter_launcher_icons

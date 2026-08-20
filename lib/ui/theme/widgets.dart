@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'game_fonts.dart';
 import 'game_palette.dart';
 
 /// Paints the Emerald Felt gradient behind [child]. Wrap a screen body in it.
@@ -40,9 +41,9 @@ class FeltHeader extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
+              fontFamily: GameFonts.display,
               color: GamePalette.gold,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
+              fontSize: 24,
               letterSpacing: 0.5,
             ),
           ),
