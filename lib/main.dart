@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'persistence/records_repository.dart';
 import 'persistence/shared_prefs_records_repository.dart';
 import 'ui/main_menu_screen.dart';
+import 'ui/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,7 @@ class SolitaireApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Solitaire',
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.green),
+      theme: AppTheme.themeData,
       home: MainMenuScreen(
         repository: repository,
         autoTick: const Duration(seconds: 1),
