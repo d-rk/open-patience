@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # Runs on every push: fast, headless, and must be green before merge.
+  test:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Static analysis
+        run: flutter analyze
+
+      # The core discipline of this project: the pure-Dart logic layer must
+      # never import Flutter. `grep -rl` exits 0 (found → fail) or 1 (clean),
+      # so invert it: a match fails the build.
+      - name: Enforce core/persistence "no Flutter imports" boundary
+        run: |
+          if grep -rl "package:flutter" lib/core lib/persistence; then
+            echo "::error::lib/core or lib/persistence imports package:flutter"
+            exit 1
+          fi
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Unit + widget tests
+        run: flutter test
+
+  # Real-device end-to-end lane: heavier, so it runs on its own — treat as a
+  # pre-release gate rather than a per-push blocker. Runs the golden-path
+  # integration_test suite on an Android emulator.
+  integration:
+    name: Integration (emulator)
+    runs-on: ubuntu-latest
+    # Keep the per-push lane fast: only exercise the emulator on main and PRs
+    # into it, not on every feature-branch push.
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable Android platform tooling
+        run: flutter create --platforms=android .
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run golden-path integration tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          script: flutter test integration_test

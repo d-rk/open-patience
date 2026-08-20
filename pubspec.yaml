@@ -1,0 +1,29 @@
+name: solitaire
+description: >-
+  Cross-platform solitaire game built as a vehicle for clean, testable
+  architecture. Pure-Dart game engine (lib/core, lib/persistence) with a
+  Flutter presentation layer.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+  flutter: '>=3.38.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.7
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  bloc_test: ^10.0.0
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

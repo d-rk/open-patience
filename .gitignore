@@ -1,0 +1,23 @@
+.claude/
+
+# Dart/Flutter tooling cache
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Build output
+build/
+
+# Generated plugin registrants / ephemeral platform dirs
+**/generated_plugin_registrant.*
+**/ios/Flutter/ephemeral/
+**/android/.gradle/
+**/android/local.properties
+.gradle/
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
