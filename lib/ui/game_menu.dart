@@ -4,9 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
-import 'game_screen.dart' show variantTitle;
 import 'theme/game_palette.dart';
 import 'theme/widgets.dart';
+import 'variant_labels.dart';
 
 /// Opens the in-game menu: variant title + live stats banner over Restart,
 /// Shuffle and Exit actions. Each action dismisses the dialog first.

@@ -9,6 +9,7 @@ import '../presentation/bloc/game_bloc.dart';
 import 'game_screen.dart';
 import 'records_screen.dart';
 import 'theme/widgets.dart';
+import 'variant_labels.dart';
 
 /// The entry screen: one card per variant with Play, Resume (when a save
 /// exists) and Records. Building a game here is just constructing a [GameBloc]

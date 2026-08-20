@@ -93,7 +93,6 @@ class GameActionTile extends StatelessWidget {
     required this.background,
     required this.foreground,
     required this.onPressed,
-    this.fullWidth = false,
     super.key,
   });
 
@@ -102,7 +101,6 @@ class GameActionTile extends StatelessWidget {
   final Color background;
   final Color foreground;
   final VoidCallback onPressed;
-  final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
