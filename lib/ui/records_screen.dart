@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../persistence/records_repository.dart';
 import '../persistence/stats.dart';
 import 'theme/game_palette.dart';
+import 'theme/widgets.dart';
 
 /// Per-variant records / leaderboard. Reads [Stats] from the repository and
 /// renders them read-only. No game logic — just a view of stored results.
@@ -21,45 +22,61 @@ class RecordsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('$title — Records')),
-      body: FutureBuilder<Stats>(
-        future: repository.statsFor(variant),
-        builder: (BuildContext context, AsyncSnapshot<Stats> snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final Stats stats = snapshot.data!;
-          return ListView(
-            padding: const EdgeInsets.all(16),
+      body: FeltBackground(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              _RecordTile(label: 'Games played', value: '${stats.gamesPlayed}'),
-              _RecordTile(label: 'Games won', value: '${stats.gamesWon}'),
-              _RecordTile(
-                label: 'Win rate',
-                value: '${stats.winPercentage.toStringAsFixed(1)}%',
+              FeltHeader(
+                title: '$title — Records',
+                onBack: () => Navigator.of(context).pop(),
               ),
-              _RecordTile(
-                label: 'Best time',
-                value: stats.bestTimeSeconds == null
-                    ? '—'
-                    : formatDuration(stats.bestTimeSeconds!),
-              ),
-              _RecordTile(
-                label: 'Fewest moves',
-                value: stats.fewestMoves?.toString() ?? '—',
-              ),
-              _RecordTile(
-                label: 'Current streak',
-                value: '${stats.currentStreak}',
-              ),
-              _RecordTile(
-                label: 'Longest streak',
-                value: '${stats.longestStreak}',
-              ),
+              Expanded(child: _body()),
             ],
-          );
-        },
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _body() {
+    return FutureBuilder<Stats>(
+      future: repository.statsFor(variant),
+      builder: (BuildContext context, AsyncSnapshot<Stats> snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final Stats stats = snapshot.data!;
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: <Widget>[
+            _RecordTile(label: 'Games played', value: '${stats.gamesPlayed}'),
+            _RecordTile(label: 'Games won', value: '${stats.gamesWon}'),
+            _RecordTile(
+              label: 'Win rate',
+              value: '${stats.winPercentage.toStringAsFixed(1)}%',
+            ),
+            _RecordTile(
+              label: 'Best time',
+              value: stats.bestTimeSeconds == null
+                  ? '—'
+                  : formatDuration(stats.bestTimeSeconds!),
+            ),
+            _RecordTile(
+              label: 'Fewest moves',
+              value: stats.fewestMoves?.toString() ?? '—',
+            ),
+            _RecordTile(
+              label: 'Current streak',
+              value: '${stats.currentStreak}',
+            ),
+            _RecordTile(
+              label: 'Longest streak',
+              value: '${stats.longestStreak}',
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -74,10 +91,20 @@ class _RecordTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        title: Text(label),
+        title: Text(
+          label,
+          style: const TextStyle(
+            color: GamePalette.feltGreenDark,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         trailing: Text(
           value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: GamePalette.cardRed,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
