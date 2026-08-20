@@ -99,5 +99,10 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: fdroid-repo
           publish_branch: gh-pages
-          keep_files: true
+          # keep_files defaults to false: mirror fdroid-repo exactly. We
+          # already start from a full checkout of gh-pages and mutate it
+          # locally (delete the old APK, add the new one, regenerate the
+          # index), so the destination should match our tree exactly —
+          # keep_files: true would instead re-clone gh-pages separately
+          # and overlay our tree on top, silently un-deleting the old APK.
           exclude_assets: 'keystore.p12,config.yml'
