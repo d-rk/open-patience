@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' hide Card;
 import '../core/card.dart';
 import '../ui/theme/game_fonts.dart';
 import '../ui/theme/game_palette.dart';
+import 'drag_scope.dart';
 
 /// The payload a dragged card carries: enough for a drop target to describe the
 /// intended move (`from` pile + the index of the grabbed card) without the
@@ -60,15 +61,58 @@ class CardView extends StatelessWidget {
 
     if (card.faceUp && dragData != null) {
       final List<Card> stack = dragStack ?? <Card>[card];
-      return Draggable<CardDragData>(
-        data: dragData,
-        dragAnchorStrategy: childDragAnchorStrategy,
-        feedback: _DragFeedback(cards: stack, size: size),
-        childWhenDragging: Opacity(opacity: 0.3, child: face),
-        child: child,
+      final ValueNotifier<CardDragData?>? activeDrag = DragScope.maybeOf(
+        context,
+      );
+      if (activeDrag == null) {
+        return _draggable(stack, face, child, null);
+      }
+      return ValueListenableBuilder<CardDragData?>(
+        valueListenable: activeDrag,
+        builder: (BuildContext context, CardDragData? active, _) =>
+            _draggable(stack, face, child, activeDrag, active),
       );
     }
     return child;
+  }
+
+  /// Builds the draggable card, coordinating with the board's [activeDrag] so
+  /// only one drag runs at a time and the whole moving stack dims in place.
+  Widget _draggable(
+    List<Card> stack,
+    Widget face,
+    Widget child,
+    ValueNotifier<CardDragData?>? activeDrag, [
+    CardDragData? active,
+  ]) {
+    final Widget dimmed = Opacity(opacity: 0.3, child: face);
+
+    if (active != null && active.fromPile == dragData!.fromPile) {
+      // A card in this same pile is being dragged. Everything from the grabbed
+      // card down rides along, so it becomes a dimmed, inert placeholder; the
+      // grabbed card itself is handled by its own `childWhenDragging` below.
+      if (dragData!.cardIndex > active.cardIndex) {
+        return IgnorePointer(child: dimmed);
+      }
+    }
+
+    // A different card is mid-drag: lock this one so a second finger can't
+    // start a concurrent drag.
+    final bool locked =
+        active != null &&
+        !(active.fromPile == dragData!.fromPile &&
+            active.cardIndex == dragData!.cardIndex);
+
+    return Draggable<CardDragData>(
+      data: dragData,
+      maxSimultaneousDrags: locked ? 0 : 1,
+      dragAnchorStrategy: childDragAnchorStrategy,
+      feedback: _DragFeedback(cards: stack, size: size),
+      childWhenDragging: dimmed,
+      onDragStarted: () => activeDrag?.value = dragData,
+      onDragEnd: (_) => activeDrag?.value = null,
+      child: locked ? IgnorePointer(child: child) : child,
+    );
   }
 }
 

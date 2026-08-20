@@ -13,6 +13,7 @@ import 'bloc/game_bloc_state.dart';
 import 'bloc/game_event.dart';
 import 'board_metrics.dart';
 import 'card_view.dart';
+import 'drag_scope.dart';
 import 'pile_view.dart';
 
 /// The responsive board. Reads the current [GameState] from the [GameBloc] and
@@ -27,6 +28,10 @@ class Board extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return DragScopeHost(child: _board());
+  }
+
+  Widget _board() {
     return BlocBuilder<GameBloc, GameBlocState>(
       buildWhen: (GameBlocState previous, GameBlocState current) =>
           !listEquals(previous.state.piles, current.state.piles),
