@@ -9,6 +9,8 @@ jobs:
   publish-fdroid-repo:
     name: Build, sign, and publish to the self-hosted F-Droid repo
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
