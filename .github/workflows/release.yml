@@ -82,9 +82,10 @@ jobs:
           EOF
           chmod 600 config.yml keystore.p12
 
-      - name: Copy the new APK into the repo
+      - name: Replace the previous APK with the new one
         run: |
           mkdir -p fdroid-repo/repo
+          rm -f fdroid-repo/repo/*.apk
           cp build/app/outputs/flutter-apk/app-release.apk \
             "fdroid-repo/repo/solitaire-${GITHUB_RUN_NUMBER}.apk"
 
