@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Card;
 
 import '../core/card.dart';
+import '../ui/theme/game_fonts.dart';
 import '../ui/theme/game_palette.dart';
 
 /// The payload a dragged card carries: enough for a drop target to describe the
@@ -175,9 +176,10 @@ class CardFace extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
+            fontFamily: GameFonts.card,
             color: color,
             fontSize: size.width * 0.28,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             height: 0.9,
           ),
         ),

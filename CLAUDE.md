@@ -172,12 +172,20 @@ This is a **game, not an enterprise app** — the UI is playful, colorful and
 rounded (the "Emerald Felt" look: green felt table, cream cards, gold
 accents).
 
-- All colors and shared shapes come from `lib/ui/theme/`:
-  `game_palette.dart` (tokens + `formatDuration`), `app_theme.dart`
-  (the `ThemeData` on the root `MaterialApp`), `widgets.dart`
-  (`FeltBackground`, `FeltHeader`, `GamePill`, `GameActionTile`).
-- Widgets never hardcode `Color(0x…)` or ad-hoc style colors — reference a
-  token. New screens compose from the shared widgets and inherit `AppTheme`.
+- All colors, fonts and shared shapes come from `lib/ui/theme/`:
+  `game_palette.dart` (color tokens + `formatDuration`), `game_fonts.dart`
+  (font-family tokens), `app_theme.dart` (the `ThemeData` on the root
+  `MaterialApp`), `widgets.dart` (`FeltBackground`, `FeltHeader`, `GamePill`,
+  `GameActionTile`).
+- Widgets never hardcode `Color(0x…)`, a font-family string, or ad-hoc style
+  colors — reference a token (`GamePalette.*`, `GameFonts.*`). New screens
+  compose from the shared widgets and inherit `AppTheme`.
+- Typography: **Lilita One** (`GameFonts.display`) for titles, **Quicksand**
+  (`GameFonts.body`) as the app-wide default, **Fredoka** (`GameFonts.card`)
+  for card rank labels. Fonts are OFL and **bundled as local assets**
+  (`assets/fonts/`, declared in `pubspec.yaml`) — never fetched at runtime,
+  so the F-Droid build stays offline and reproducible. Card **suit glyphs**
+  (♠♥♣♦) stay on the system font for reliable Unicode rendering.
 - Prefer rounded, tactile controls (stadium buttons, pill stats, tiles).
   Avoid stock enterprise-flat Material chrome (bare `AppBar` titles, plain
   list rows) on player-facing screens.
