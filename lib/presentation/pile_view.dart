@@ -10,7 +10,7 @@ import 'card_view.dart';
 /// Keys for the role markers on empty slots, so tests (and future callers) can
 /// find them without reaching into glyph internals.
 const Key foundationSlotMarkerKey = Key('foundationSlotMarker');
-const Key freecellSlotMarkerKey = Key('freecellSlotMarker');
+const Key parkSlotMarkerKey = Key('parkSlotMarker');
 
 /// Renders one [Pile] and forwards input as callbacks. Tableau piles fan their
 /// cards vertically; stock/waste/foundation/free-cell piles stack (only the top
@@ -124,16 +124,19 @@ class PileView extends StatelessWidget {
       case PileKind.foundation:
         return Center(child: _foundationMarker());
       case PileKind.freecell:
+      case PileKind.tableau:
         return Center(child: _parkMarker());
       case PileKind.waste:
-      case PileKind.tableau:
         return null;
     }
   }
 
   /// A 2x2 cluster of all four suit pips: "suits go home here". Foundations are
   /// not suit-locked, so no single suit is shown. Suit glyphs stay on the system
-  /// font for reliable Unicode rendering (per the design language).
+  /// font for reliable Unicode rendering (per the design language), but that
+  /// font renders them as colored glyphs (red hearts/diamonds, black
+  /// spades/clubs) on some platforms — [ColorFiltered] flattens them to a
+  /// single muted tone so they read as a quiet marker, not a loud suit chart.
   Widget _foundationMarker() {
     final TextStyle glyph = TextStyle(
       color: GamePalette.slotGlyph,
@@ -148,22 +151,29 @@ class PileView extends StatelessWidget {
         Text(right, style: glyph),
       ],
     );
-    return Column(
+    return ColorFiltered(
       key: foundationSlotMarkerKey,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        row('♠', '♥'),
-        SizedBox(height: cardSize.width * 0.04),
-        row('♦', '♣'),
-      ],
+      colorFilter: const ColorFilter.mode(
+        GamePalette.slotGlyph,
+        BlendMode.srcIn,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          row('♠', '♥'),
+          SizedBox(height: cardSize.width * 0.04),
+          row('♦', '♣'),
+        ],
+      ),
     );
   }
 
-  /// A hollow diamond: a quiet "resting place" for a parked card.
+  /// A hollow diamond: a quiet "resting place" for a parked card, or (on an
+  /// empty tableau column) for a king-headed run.
   Widget _parkMarker() {
     final double side = cardSize.width * 0.30;
     return Transform.rotate(
-      key: freecellSlotMarkerKey,
+      key: parkSlotMarkerKey,
       angle: math.pi / 4,
       child: Container(
         width: side,
