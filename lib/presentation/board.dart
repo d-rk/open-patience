@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../core/game_rules.dart';
 import '../core/game_state.dart';
+import '../core/games/klondike.dart';
 import '../core/pile.dart';
 import 'bloc/game_bloc.dart';
 import 'bloc/game_bloc_state.dart';
@@ -310,6 +312,9 @@ class Board extends StatelessWidget {
         pile: pile,
         pileIndex: index,
         cardSize: cardSize,
+        wasteVisibleCount: pile.kind == PileKind.waste
+            ? _wasteVisibleCount(context)
+            : 1,
         onCardTap: (int cardIndex) => _tap(context, index, cardIndex),
         onCardDoubleTap: (int cardIndex) =>
             _doubleTap(context, index, cardIndex),
@@ -321,6 +326,13 @@ class Board extends StatelessWidget {
         onDrop: (CardDragData data) => _drop(context, data, index),
       ),
     );
+  }
+
+  /// The active variant's draw count (1 or 3), or 1 for variants (e.g.
+  /// FreeCell) that have no waste pile at all.
+  int _wasteVisibleCount(BuildContext context) {
+    final GameRules rules = context.read<GameBloc>().rules;
+    return rules is KlondikeRules ? rules.drawCount : 1;
   }
 
   void _tap(BuildContext context, int pileIndex, int cardIndex) {
