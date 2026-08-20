@@ -9,6 +9,7 @@ import '../core/pile.dart';
 import 'bloc/game_bloc.dart';
 import 'bloc/game_bloc_state.dart';
 import 'bloc/game_event.dart';
+import 'board_metrics.dart';
 import 'card_view.dart';
 import 'pile_view.dart';
 
@@ -45,52 +46,162 @@ class Board extends StatelessWidget {
           }
         }
 
+        final MediaQueryData media = MediaQuery.of(context);
+        final bool isLandscape = media.orientation == Orientation.landscape;
+        final double shortestSide = media.size.shortestSide;
+        int maxPileLength = 1;
+        for (final int index in tableau) {
+          maxPileLength = math.max(maxPileLength, game.pileAt(index).length);
+        }
+
         return LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
-            final int columns = math.max(tableau.length, 1);
-            final double cardWidth = math.max(
-              24,
-              (constraints.maxWidth - _pad) / columns - _pad,
-            );
-            final double cardHeight = cardWidth * CardView.aspectRatio;
-            final Size cardSize = Size(cardWidth, cardHeight);
-            final double topRowHeight = cardHeight + _pad;
-            final double bottomHeight = math.max(
-              cardHeight,
-              constraints.maxHeight - topRowHeight - _pad * 2,
-            );
-            final double fanGap = _fanGap(
-              game,
-              tableau,
-              cardHeight,
-              bottomHeight,
+            final BoardMetrics metrics = BoardMetrics.resolve(
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+              columns: tableau.length,
+              maxPileLength: maxPileLength,
+              shortestSide: shortestSide,
+              isLandscape: isLandscape,
             );
 
-            return Padding(
-              padding: const EdgeInsets.all(_pad),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  SizedBox(
-                    height: topRowHeight,
-                    child: _topRow(context, game, upper, foundations, cardSize),
-                  ),
-                  const SizedBox(height: _pad),
-                  Expanded(
-                    child: _tableauRow(
-                      context,
-                      game,
-                      tableau,
-                      cardSize,
-                      fanGap,
-                    ),
-                  ),
-                ],
-              ),
-            );
+            switch (metrics.layout) {
+              case BoardLayout.portrait:
+              case BoardLayout.phoneLandscape:
+                return _stackedLayout(
+                  context,
+                  game,
+                  upper,
+                  foundations,
+                  tableau,
+                  metrics.cardSize,
+                  constraints,
+                  centred: metrics.layout == BoardLayout.phoneLandscape,
+                );
+              case BoardLayout.tabletLandscape:
+                return _sideColumnLayout(
+                  context,
+                  game,
+                  upper,
+                  foundations,
+                  tableau,
+                  metrics.cardSize,
+                  constraints,
+                  metrics.sideColumnWidth,
+                );
+            }
           },
         );
       },
+    );
+  }
+
+  /// Portrait and phone-landscape share the stacked arrangement: the top row of
+  /// stock/waste/foundations above the tableau. The card size is already
+  /// fit-to-height, so the fan cannot overflow; the vertical chrome here mirrors
+  /// the budget [BoardMetrics] reserves. In phone landscape the content is
+  /// centred so the freed width becomes symmetric margins rather than stretched
+  /// gaps between columns.
+  Widget _stackedLayout(
+    BuildContext context,
+    GameState game,
+    List<int> upper,
+    List<int> foundations,
+    List<int> tableau,
+    Size cardSize,
+    BoxConstraints constraints, {
+    required bool centred,
+  }) {
+    final double usableHeight = constraints.maxHeight - _pad * 2;
+    final double bottomHeight = math.max(
+      cardSize.height,
+      usableHeight - cardSize.height - _pad,
+    );
+    final double fanGap = _fanGap(game, tableau, cardSize.height, bottomHeight);
+
+    final Widget content = Padding(
+      padding: const EdgeInsets.all(_pad),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            height: cardSize.height,
+            child: _topRow(context, game, upper, foundations, cardSize),
+          ),
+          const SizedBox(height: _pad),
+          Expanded(
+            child: _tableauRow(context, game, tableau, cardSize, fanGap),
+          ),
+        ],
+      ),
+    );
+
+    if (!centred) {
+      return content;
+    }
+    final double contentWidth =
+        cardSize.width * tableau.length + _pad * (tableau.length + 1);
+    return Center(
+      child: SizedBox(width: contentWidth, child: content),
+    );
+  }
+
+  /// Tablet landscape: the tableau takes the full height on the left while
+  /// stock/waste/foundations move to a right-hand column, so wide screens buy
+  /// longer, more readable fans instead of oversized cards.
+  Widget _sideColumnLayout(
+    BuildContext context,
+    GameState game,
+    List<int> upper,
+    List<int> foundations,
+    List<int> tableau,
+    Size cardSize,
+    BoxConstraints constraints,
+    double sideColumnWidth,
+  ) {
+    final double bottomHeight = math.max(
+      cardSize.height,
+      constraints.maxHeight - _pad * 2,
+    );
+    final double fanGap = _fanGap(game, tableau, cardSize.height, bottomHeight);
+
+    return Padding(
+      padding: const EdgeInsets.all(_pad),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Expanded(
+            child: _tableauRow(context, game, tableau, cardSize, fanGap),
+          ),
+          const SizedBox(width: _pad),
+          SizedBox(
+            width: sideColumnWidth,
+            child: _sideColumn(context, game, upper, foundations, cardSize),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The right-hand column for tablet landscape: stock/waste then foundations,
+  /// flowing two slots per row to match the reserved [sideColumnWidth].
+  Widget _sideColumn(
+    BuildContext context,
+    GameState game,
+    List<int> upper,
+    List<int> foundations,
+    Size cardSize,
+  ) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Wrap(
+        spacing: _pad,
+        runSpacing: _pad,
+        children: <Widget>[
+          for (final int index in <int>[...upper, ...foundations])
+            _slot(context, game, index, cardSize),
+        ],
+      ),
     );
   }
 
