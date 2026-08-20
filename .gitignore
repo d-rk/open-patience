@@ -29,3 +29,6 @@ android/key.properties
 *.p12
 
 .superpowers/
+
+# Blender backup files
+*.blend1

@@ -24,6 +24,18 @@ dev_dependencies:
     sdk: flutter
   bloc_test: ^10.0.0
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
+
+# App launcher icons. Source art is rendered in Blender via
+# `tools/logo/build_logo.py` (see that file for the regen command).
+# Regenerate the platform icons with: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: true
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  adaptive_icon_background: "#2c8e5d"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
