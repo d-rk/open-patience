@@ -21,3 +21,9 @@ local.properties
 .idea/
 *.iml
 .vscode/
+
+# Release signing (never commit — see docs/superpowers/specs/2026-08-20-fdroid-self-hosted-repo-design.md)
+android/key.properties
+*.keystore
+*.jks
+*.p12
