@@ -8,6 +8,7 @@ import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
 import '../presentation/board.dart';
+import 'game_menu.dart';
 import 'records_screen.dart';
 import 'stat_bar.dart';
 import 'theme/widgets.dart';
@@ -86,7 +87,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         child: SafeArea(
           child: Column(
             children: <Widget>[
-              TopBar(onMenu: () {}),
+              TopBar(
+                onMenu: () => showGameMenu(context, context.read<GameBloc>()),
+              ),
               Expanded(
                 child: BlocListener<GameBloc, GameBlocState>(
                   listenWhen: (GameBlocState previous, GameBlocState current) =>
