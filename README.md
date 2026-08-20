@@ -1,8 +1,11 @@
-# Solitaire
+# Open Patience
 
-A cross-platform solitaire game built in Flutter, with Klondike (draw-1,
-draw-3) and FreeCell. Built as a vehicle for clean, testable architecture —
-see `CLAUDE.md` and `docs/superpowers/specs/` for the design.
+Open Patience is a free, open-source solitaire game built in Flutter — no
+ads, no tracking. It ships Klondike (draw-1, draw-3) and FreeCell, and is
+built as a vehicle for clean, testable architecture — see `CLAUDE.md` and
+`docs/superpowers/specs/` for the design.
+
+*Solitär — kostenlos, quelloffen, werbefrei.*
 
 ## Install
 
@@ -11,14 +14,14 @@ to `main` builds a new signed release automatically.
 
 1. In F-Droid: **Settings → Repositories → +** and add:
    ```
-   https://d-rk.github.io/solitaire/repo
+   https://d-rk.github.io/open-patience/repo
    ```
 2. F-Droid will show a fingerprint to confirm before adding the repo. It
    should be:
    ```
    DE:B8:5A:53:E9:BA:3C:CA:E5:D6:02:45:D4:EA:D7:5B:5A:C9:69:2F:A7:E9:78:2B:4A:37:B0:21:CA:2E:C9:9B
    ```
-3. Find "Solitaire" under the new repo and install it from there. Installing
+3. Find "Open Patience" under the new repo and install it from there. Installing
    from F-Droid (rather than a sideloaded APK) is what lets future pushes
    show up as an in-app update.
 4. From then on, a normal F-Droid sync (automatic or pull-to-refresh) picks

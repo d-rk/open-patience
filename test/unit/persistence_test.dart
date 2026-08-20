@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/core/game_registry.dart';
+import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/core/games/klondike.dart';
+import 'package:open_patience/persistence/records_repository.dart';
+import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
+import 'package:open_patience/persistence/stats.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:solitaire/core/game_registry.dart';
-import 'package:solitaire/core/game_state.dart';
-import 'package:solitaire/core/games/klondike.dart';
-import 'package:solitaire/persistence/records_repository.dart';
-import 'package:solitaire/persistence/shared_prefs_records_repository.dart';
-import 'package:solitaire/persistence/stats.dart';
 
 void main() {
   late SharedPreferences prefs;

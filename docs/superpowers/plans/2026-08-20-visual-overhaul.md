@@ -39,7 +39,7 @@
 // test/unit/game_palette_test.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/ui/theme/game_palette.dart';
+import 'package:open_patience/ui/theme/game_palette.dart';
 
 void main() {
   group('formatDuration', () {
@@ -143,8 +143,8 @@ git commit -m "Add Emerald Felt design tokens and formatDuration"
 // test/unit/app_theme_test.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/ui/theme/app_theme.dart';
-import 'package:solitaire/ui/theme/game_palette.dart';
+import 'package:open_patience/ui/theme/app_theme.dart';
+import 'package:open_patience/ui/theme/game_palette.dart';
 
 void main() {
   test('themeData uses Material 3 and the gold secondary', () {
@@ -273,7 +273,7 @@ git commit -m "Add app-wide Emerald Felt ThemeData"
 // test/widget/theme_widgets_test.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/ui/theme/widgets.dart';
+import 'package:open_patience/ui/theme/widgets.dart';
 
 Future<void> _pump(WidgetTester tester, Widget child) {
   return tester.pumpWidget(MaterialApp(home: Scaffold(body: child)));
@@ -742,14 +742,14 @@ import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:solitaire/core/card.dart';
-import 'package:solitaire/core/game_state.dart';
-import 'package:solitaire/core/pile.dart';
-import 'package:solitaire/persistence/records_repository.dart';
-import 'package:solitaire/persistence/shared_prefs_records_repository.dart';
-import 'package:solitaire/presentation/bloc/game_bloc.dart';
-import 'package:solitaire/presentation/bloc/game_event.dart';
-import 'package:solitaire/ui/game_screen.dart';
+import 'package:open_patience/core/card.dart';
+import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/core/pile.dart';
+import 'package:open_patience/persistence/records_repository.dart';
+import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
+import 'package:open_patience/presentation/bloc/game_bloc.dart';
+import 'package:open_patience/presentation/bloc/game_event.dart';
+import 'package:open_patience/ui/game_screen.dart';
 
 class _RecordingBloc extends GameBloc {
   _RecordingBloc(RecordsRepository repo, GameState state)

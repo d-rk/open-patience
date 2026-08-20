@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/persistence/records_repository.dart';
+import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
+import 'package:open_patience/presentation/board.dart';
+import 'package:open_patience/ui/main_menu_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:solitaire/persistence/records_repository.dart';
-import 'package:solitaire/persistence/shared_prefs_records_repository.dart';
-import 'package:solitaire/presentation/board.dart';
-import 'package:solitaire/ui/main_menu_screen.dart';
 
 Future<RecordsRepository> _repo() async {
   SharedPreferences.setMockInitialValues(<String, Object>{});

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/presentation/board_metrics.dart';
+import 'package:open_patience/presentation/board_metrics.dart';
 
 /// The minimal vertical footprint a stacked (portrait / phone-landscape) board
 /// needs: outer padding, the top row (one card tall), the gap below it, and the

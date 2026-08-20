@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/core/card.dart';
+import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/core/games/klondike.dart';
+import 'package:open_patience/core/pile.dart';
+import 'package:open_patience/persistence/records_repository.dart';
+import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
+import 'package:open_patience/persistence/stats.dart';
+import 'package:open_patience/presentation/bloc/game_bloc.dart';
+import 'package:open_patience/presentation/card_view.dart';
+import 'package:open_patience/ui/game_screen.dart';
+import 'package:open_patience/ui/records_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:solitaire/core/card.dart';
-import 'package:solitaire/core/game_state.dart';
-import 'package:solitaire/core/games/klondike.dart';
-import 'package:solitaire/core/pile.dart';
-import 'package:solitaire/persistence/records_repository.dart';
-import 'package:solitaire/persistence/shared_prefs_records_repository.dart';
-import 'package:solitaire/persistence/stats.dart';
-import 'package:solitaire/presentation/bloc/game_bloc.dart';
-import 'package:solitaire/presentation/card_view.dart';
-import 'package:solitaire/ui/game_screen.dart';
-import 'package:solitaire/ui/records_screen.dart';
 
 Card _up(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
 

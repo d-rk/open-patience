@@ -2,15 +2,15 @@ import 'dart:math';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/core/card.dart';
-import 'package:solitaire/core/game_state.dart';
-import 'package:solitaire/core/games/klondike.dart';
-import 'package:solitaire/core/pile.dart';
-import 'package:solitaire/persistence/records_repository.dart';
-import 'package:solitaire/persistence/stats.dart';
-import 'package:solitaire/presentation/bloc/game_bloc.dart';
-import 'package:solitaire/presentation/bloc/game_bloc_state.dart';
-import 'package:solitaire/presentation/bloc/game_event.dart';
+import 'package:open_patience/core/card.dart';
+import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/core/games/klondike.dart';
+import 'package:open_patience/core/pile.dart';
+import 'package:open_patience/persistence/records_repository.dart';
+import 'package:open_patience/persistence/stats.dart';
+import 'package:open_patience/presentation/bloc/game_bloc.dart';
+import 'package:open_patience/presentation/bloc/game_bloc_state.dart';
+import 'package:open_patience/presentation/bloc/game_event.dart';
 
 /// Records every call so tests can assert the bloc drives persistence.
 class _FakeRepo implements RecordsRepository {

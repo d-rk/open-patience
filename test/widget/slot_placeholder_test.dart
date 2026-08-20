@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/core/pile.dart';
-import 'package:solitaire/presentation/pile_view.dart';
+import 'package:open_patience/core/pile.dart';
+import 'package:open_patience/presentation/pile_view.dart';
 
 /// The empty-slot markers must be distinguishable per pile role so a player can
 /// tell at a glance where aces go (foundation) versus where a card (or a

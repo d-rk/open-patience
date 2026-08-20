@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/ui/theme/game_palette.dart';
+import 'package:open_patience/ui/theme/game_palette.dart';
 
 void main() {
   group('formatDuration', () {

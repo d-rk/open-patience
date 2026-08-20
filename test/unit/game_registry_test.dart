@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/core/game_registry.dart';
-import 'package:solitaire/core/games/freecell.dart';
-import 'package:solitaire/core/games/klondike.dart';
+import 'package:open_patience/core/game_registry.dart';
+import 'package:open_patience/core/games/freecell.dart';
+import 'package:open_patience/core/games/klondike.dart';
 
 void main() {
   group('GameRegistry', () {

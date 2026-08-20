@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solitaire/core/card.dart';
+import 'package:open_patience/core/card.dart';
 
 void main() {
   group('Card', () {
