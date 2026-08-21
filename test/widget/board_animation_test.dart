@@ -31,6 +31,23 @@ GameState _oneAce() => GameState(
   ],
 );
 
+GameState _stockToDraw() => GameState(
+  piles: <Pile>[
+    Pile(
+      kind: PileKind.stock,
+      cards: const <Card>[
+        Card(suit: Suit.hearts, rank: 9), // face-down in stock
+      ],
+    ),
+    Pile(kind: PileKind.waste),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    for (int i = 0; i < 7; i++) Pile(kind: PileKind.tableau),
+  ],
+);
+
 GameState _aceOverKing() => GameState(
   piles: <Pile>[
     Pile(kind: PileKind.stock),
@@ -155,5 +172,48 @@ void main() {
     expect(faces.last.card.rank, aceRank);
 
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('drawing from stock ends with a face-up card on the waste', (
+    WidgetTester tester,
+  ) async {
+    final GameBloc bloc = await _pump(
+      tester,
+      const Size(400, 800),
+      state: _stockToDraw(),
+    );
+    // Tap the stock (top-left) to draw.
+    await tester.tap(find.byType(CardFace).first);
+    await tester.pumpAndSettle();
+    expect(bloc.state.state.pileAt(1).topCard!.faceUp, isTrue);
+    expect(_cardFace(Suit.hearts, 9), findsOneWidget); // face-up nine on waste
+  });
+
+  testWidgets('a face change runs a flip transform', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, const Size(400, 800), state: _stockToDraw());
+    await tester.tap(find.byType(CardFace).first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 80)); // mid-flip
+    // The keyed rotationY flip transform wraps the drawn card's face.
+    expect(find.byKey(const Key('cardFlip')), findsWidgets);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('reduce-motion shows the flipped face immediately', (
+    WidgetTester tester,
+  ) async {
+    final GameBloc bloc = await _pump(
+      tester,
+      const Size(400, 800),
+      state: _stockToDraw(),
+      disableAnimations: true,
+    );
+    await tester.tap(find.byType(CardFace).first);
+    await tester.pump();
+    await tester.pump();
+    expect(bloc.state.state.pileAt(1).topCard!.faceUp, isTrue);
+    expect(_cardFace(Suit.hearts, 9), findsOneWidget);
   });
 }
