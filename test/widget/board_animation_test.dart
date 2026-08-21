@@ -260,6 +260,32 @@ void main() {
     expect(bloc.state.state.pileAt(7).length, 2); // 8 then 7
   });
 
+  testWidgets('a fresh deal converges to the resolved layout', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, const Size(400, 800), state: _dragPair());
+    // During the deal, some cards have not yet reached their slots.
+    await tester.pump(const Duration(milliseconds: 10));
+    // After it settles, both distinctive cards are at rest and visible.
+    await tester.pumpAndSettle();
+    expect(_cardFace(Suit.spades, 7), findsOneWidget);
+    expect(_cardFace(Suit.hearts, 8), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('reduce-motion deals instantly (no stagger)', (
+    WidgetTester tester,
+  ) async {
+    await _pump(
+      tester,
+      const Size(400, 800),
+      state: _dragPair(),
+      disableAnimations: true,
+    );
+    await tester.pump();
+    expect(_cardFace(Suit.spades, 7), findsOneWidget);
+  });
+
   testWidgets('reduce-motion shows the flipped face immediately', (
     WidgetTester tester,
   ) async {

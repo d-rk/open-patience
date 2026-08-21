@@ -11,6 +11,7 @@ import 'bloc/game_bloc.dart';
 import 'bloc/game_bloc_state.dart';
 import 'bloc/game_event.dart';
 import 'board_geometry.dart';
+import 'board_sequence.dart';
 import 'card_view.dart';
 import 'drag_scope.dart';
 import 'slot_placeholder.dart';
@@ -30,7 +31,7 @@ class Board extends StatefulWidget {
   State<Board> createState() => _BoardState();
 }
 
-class _BoardState extends State<Board> {
+class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// The last board [GameState] we rendered. Diffed against each new state to
   /// discover which cards moved, so they can be lifted to the top of the paint
   /// order while in flight. Seeded from the bloc so the very first move is
@@ -56,10 +57,38 @@ class _BoardState extends State<Board> {
   /// global offset is converted to board-local coordinates.
   final GlobalKey _stackKey = GlobalKey();
 
+  /// The set-piece animation the board plays on a deal transition. It is the
+  /// only thing the board knows about deals: swapping in a fancier deal (or a
+  /// win flourish) means replacing this field with a different [SpecialSequence]
+  /// — `board.dart` and the geometry stay untouched.
+  final SpecialSequence _dealSequence = const DealSequence();
+
+  /// Drives the active set-piece: while it runs, each card waits at
+  /// [dealOriginOf] until [_dealSequence.delayFor] elapses, then reveals its
+  /// real target. Null when no set-piece is playing. Disposed on completion and
+  /// in [dispose].
+  AnimationController? _dealController;
+
+  /// The state passed to [_dealSequence] as "previous" when evaluating the next
+  /// transition. Deliberately *not* seeded (unlike [_previous]) so the very
+  /// first render is diffed against `null` and recognised as a deal.
+  GameState? _dealBaseline;
+
+  /// The state instance last evaluated for a set-piece, so the per-tick rebuilds
+  /// during a deal don't re-trigger it (the bloc state is unchanged, so it stays
+  /// identical).
+  GameState? _lastDealState;
+
   @override
   void initState() {
     super.initState();
     _previous = context.read<GameBloc>().state.state;
+  }
+
+  @override
+  void dispose() {
+    _disposeDeal();
+    super.dispose();
   }
 
   @override
@@ -105,6 +134,7 @@ class _BoardState extends State<Board> {
               isLandscape: isLandscape,
               wasteVisibleCount: wasteVisibleCount,
             );
+            _syncDeal(game, reduceMotion);
             return _stack(context, game, geometry, moveDuration);
           },
         );
@@ -136,7 +166,14 @@ class _BoardState extends State<Board> {
       for (final SlotPlacement slot in geometry.slots)
         _positionedSlot(context, slot, cardSize),
       for (final CardPlacement placement in _paintOrdered(geometry))
-        _positionedCard(context, placement, game, cardSize, moveDuration),
+        _positionedCard(
+          context,
+          placement,
+          game,
+          geometry,
+          cardSize,
+          moveDuration,
+        ),
       for (final MapEntry<int, Rect> entry in geometry.dropTargets.entries)
         _positionedDropTarget(context, entry.key, entry.value),
     ];
@@ -225,6 +262,7 @@ class _BoardState extends State<Board> {
     BuildContext context,
     CardPlacement placement,
     GameState game,
+    BoardGeometry geometry,
     Size cardSize,
     Duration moveDuration,
   ) {
@@ -238,12 +276,25 @@ class _BoardState extends State<Board> {
     if (isSettling) {
       _scheduleSettleRelease(key);
     }
+    // During a set-piece deal a card waits at the stock origin until its
+    // activation delay elapses; once activated it reveals its real target so
+    // AnimatedPositioned tweens it into place. Settling (a just-dropped card)
+    // takes precedence — the two never overlap in practice (a deal is the first
+    // render; a drop comes later).
+    final Offset? dealOrigin = (!isSettling && _isDealPending(key, geometry))
+        ? dealOriginOf(geometry)
+        : null;
+    final bool isDealing = dealOrigin != null;
     return AnimatedPositioned(
       key: key.widgetKey,
       duration: isSettling ? Duration.zero : moveDuration,
       curve: GameMotion.moveCurve,
-      left: isSettling ? settle.dx : placement.rect.left,
-      top: isSettling ? settle.dy : placement.rect.top,
+      left: isSettling
+          ? settle.dx
+          : (isDealing ? dealOrigin.dx : placement.rect.left),
+      top: isSettling
+          ? settle.dy
+          : (isDealing ? dealOrigin.dy : placement.rect.top),
       width: placement.rect.width,
       height: placement.rect.height,
       onEnd: isSettling
@@ -292,6 +343,77 @@ class _BoardState extends State<Board> {
       }
       setState(() => _settleFrom.remove(key));
     });
+  }
+
+  /// Evaluates whether the transition into [next] is a set-piece the
+  /// [_dealSequence] should play, and drives its controller. Called once per
+  /// distinct board state (guarded by [_lastDealState] so the deal's own
+  /// per-tick rebuilds don't re-trigger it). The first render is diffed against
+  /// a null baseline, so it always reads as a deal. Under reduce-motion the
+  /// controller is skipped entirely, so cards render at their targets at once.
+  void _syncDeal(GameState next, bool reduceMotion) {
+    if (identical(_lastDealState, next)) {
+      return;
+    }
+    final bool isDeal = _dealSequence.matches(_dealBaseline, next);
+    _dealBaseline = next;
+    _lastDealState = next;
+    if (!isDeal || reduceMotion) {
+      _disposeDeal();
+      return;
+    }
+    _disposeDeal();
+    final AnimationController controller = AnimationController(
+      vsync: this,
+      duration: _dealSequence.total,
+    );
+    _dealController = controller;
+    controller.addListener(_onDealTick);
+    controller.addStatusListener(_onDealStatus);
+    controller.forward();
+  }
+
+  /// Whether [key] is a deal card still waiting at the origin — its activation
+  /// delay has not yet elapsed. False once no set-piece is playing.
+  bool _isDealPending(CardKey key, BoardGeometry geometry) {
+    final AnimationController? controller = _dealController;
+    if (controller == null) {
+      return false;
+    }
+    final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
+    return elapsed < _dealSequence.delayFor(key, geometry);
+  }
+
+  /// Rebuilds each set-piece tick so cards cross their activation thresholds.
+  void _onDealTick() {
+    setState(() {});
+  }
+
+  /// Tears the set-piece controller down once it completes. Deferred to after
+  /// the frame so the controller is not disposed from inside its own callback
+  /// while the ticker is still finishing.
+  void _onDealStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (!mounted) {
+        return;
+      }
+      setState(_disposeDeal);
+    });
+  }
+
+  /// Disposes the active set-piece controller, if any. Idempotent.
+  void _disposeDeal() {
+    final AnimationController? controller = _dealController;
+    if (controller == null) {
+      return;
+    }
+    _dealController = null;
+    controller.removeListener(_onDealTick);
+    controller.removeStatusListener(_onDealStatus);
+    controller.dispose();
   }
 
   /// Replicates `PileView`'s per-kind card interactivity:
