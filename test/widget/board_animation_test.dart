@@ -48,6 +48,20 @@ GameState _stockToDraw() => GameState(
   ],
 );
 
+GameState _dragPair() => GameState(
+  piles: <Pile>[
+    Pile(kind: PileKind.stock),
+    Pile(kind: PileKind.waste),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.spades, 7)]),
+    Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.hearts, 8)]),
+    for (int i = 0; i < 5; i++) Pile(kind: PileKind.tableau),
+  ],
+);
+
 GameState _aceOverKing() => GameState(
   piles: <Pile>[
     Pile(kind: PileKind.stock),
@@ -217,6 +231,33 @@ void main() {
       isTrue,
     );
     expect(_cardFace(Suit.hearts, 9), findsOneWidget);
+  });
+
+  testWidgets('a dropped card settles from the release point, not the source', (
+    WidgetTester tester,
+  ) async {
+    final GameBloc bloc = await _pump(
+      tester,
+      const Size(400, 800),
+      state: _dragPair(),
+    );
+    final Offset source = tester.getCenter(_cardFace(Suit.spades, 7));
+    final Offset target = tester.getCenter(_cardFace(Suit.hearts, 8));
+
+    final TestGesture g = await tester.startGesture(source);
+    await tester.pump(const Duration(milliseconds: 200));
+    await g.moveTo(target);
+    await tester.pump();
+    await g.up();
+    await tester.pump(); // move accepted; card re-homed to col 7
+    await tester.pump(const Duration(milliseconds: 30)); // first settle frame
+
+    // Mid-settle the seven is near the release point (col 7), NOT back at col 6.
+    final double x = tester.getCenter(_cardFace(Suit.spades, 7)).dx;
+    expect((x - target.dx).abs(), lessThan((x - source.dx).abs()));
+
+    await tester.pumpAndSettle();
+    expect(bloc.state.state.pileAt(7).length, 2); // 8 then 7
   });
 
   testWidgets('reduce-motion shows the flipped face immediately', (

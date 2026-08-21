@@ -43,6 +43,19 @@ class _BoardState extends State<Board> {
   /// `onEnd` removes settled cards, so it can never grow unbounded.
   final Set<CardKey> _moving = <CardKey>{};
 
+  /// Board-local release points for cards just dropped, keyed by the dropped
+  /// card. A seeded card is painted at its release point for exactly one frame
+  /// (with a zero-duration [AnimatedPositioned]) so the eye keeps it under the
+  /// finger, then the seed is cleared and the next build tweens release→target.
+  /// Without this the card would animate from its *source* pile — a
+  /// teleport-back. Populated in [_drop] from a single bounded [RenderBox] read.
+  final Map<CardKey, Offset> _settleFrom = <CardKey, Offset>{};
+
+  /// The board's [Stack] container. Its render box spans the board-local area,
+  /// so its top-left is [BoardGeometry]'s origin `(0,0)` — the one place a drop's
+  /// global offset is converted to board-local coordinates.
+  final GlobalKey _stackKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -127,7 +140,7 @@ class _BoardState extends State<Board> {
       for (final MapEntry<int, Rect> entry in geometry.dropTargets.entries)
         _positionedDropTarget(context, entry.key, entry.value),
     ];
-    return Stack(clipBehavior: Clip.none, children: children);
+    return Stack(key: _stackKey, clipBehavior: Clip.none, children: children);
   }
 
   /// The board's cards in paint order with any in-flight cards moved to the end
@@ -218,15 +231,24 @@ class _BoardState extends State<Board> {
     final Pile pile = game.pileAt(placement.pileIndex);
     final CardKey key = placement.key;
     final bool isMoving = _moving.contains(key);
+    // A just-dropped card is seeded at its release point for one zero-duration
+    // frame, then released so the next build tweens release→target.
+    final Offset? settle = _settleFrom[key];
+    final bool isSettling = settle != null;
+    if (isSettling) {
+      _scheduleSettleRelease(key);
+    }
     return AnimatedPositioned(
       key: key.widgetKey,
-      duration: moveDuration,
+      duration: isSettling ? Duration.zero : moveDuration,
       curve: GameMotion.moveCurve,
-      left: placement.rect.left,
-      top: placement.rect.top,
+      left: isSettling ? settle.dx : placement.rect.left,
+      top: isSettling ? settle.dy : placement.rect.top,
       width: placement.rect.width,
       height: placement.rect.height,
-      onEnd: isMoving ? () => _release(key) : null,
+      onEnd: isSettling
+          ? () => _scheduleSettleRelease(key)
+          : (isMoving ? () => _release(key) : null),
       // CardFlip sits at this faceUp-invariant position (its ValueKey is stable
       // across the CardFace↔CardView swap that a draw / reveal triggers) so it
       // persists and can animate the orientation change. The gesture and
@@ -254,6 +276,21 @@ class _BoardState extends State<Board> {
         return;
       }
       setState(() => _moving.remove(key));
+    });
+  }
+
+  /// Clears [key]'s release-point seed after its one settle frame has painted,
+  /// so the next build places the card at its real target and
+  /// [AnimatedPositioned] tweens release→target. Deferred to after the frame
+  /// (the seed frame is zero-duration and completes synchronously) and
+  /// mounted-guarded; idempotent, so the post-frame schedule and the `onEnd`
+  /// backstop can both fire harmlessly.
+  void _scheduleSettleRelease(CardKey key) {
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (!mounted || !_settleFrom.containsKey(key)) {
+        return;
+      }
+      setState(() => _settleFrom.remove(key));
     });
   }
 
@@ -338,15 +375,32 @@ class _BoardState extends State<Board> {
   }
 
   /// Routes a dropped card to the [GameBloc]. [globalDrop] is the drop's global
-  /// offset (from `DragTarget.onAcceptWithDetails`); it is unused until Task 10
-  /// consumes it for the landing animation.
+  /// offset (from `DragTarget.onAcceptWithDetails`). Before dispatching the move
+  /// it converts that offset once — through the board [Stack]'s own [RenderBox],
+  /// the single bounded measurement in the system — to board-local coordinates
+  /// and seeds the moved card's landing animation there, so it settles from the
+  /// release point instead of teleporting back from its source pile. Skipped
+  /// under reduce-motion (the move duration is already zero, so it snaps).
   void _drop(
     BuildContext context,
     CardDragData data,
     Offset globalDrop,
     int toPile,
   ) {
-    context.read<GameBloc>().add(
+    final GameBloc bloc = context.read<GameBloc>();
+    if (!MediaQuery.of(context).disableAnimations) {
+      final Pile pile = bloc.state.state.pileAt(data.fromPile);
+      if (data.cardIndex >= 0 && data.cardIndex < pile.length) {
+        final CardKey key = CardKey.of(pile.cards[data.cardIndex]);
+        final RenderBox? box =
+            _stackKey.currentContext?.findRenderObject() as RenderBox?;
+        if (box != null) {
+          final Offset local = box.globalToLocal(globalDrop);
+          setState(() => _settleFrom[key] = local);
+        }
+      }
+    }
+    bloc.add(
       MoveRequested(
         fromPile: data.fromPile,
         toPile: toPile,
