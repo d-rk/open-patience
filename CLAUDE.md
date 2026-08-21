@@ -115,7 +115,7 @@ flutter test
 flutter test integration_test
 ```
 
-Run the app locally: `flutter run`.
+Run the app locally: `flutter run --flavor production`.
 
 CI (GitHub Actions) runs `pub get` → `analyze` → the import-boundary grep
 check → `flutter test` on every push and must be green before merge. The
