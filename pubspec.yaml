@@ -25,9 +25,15 @@ dev_dependencies:
   bloc_test: ^10.0.0
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.7
 
 flutter:
   uses-material-design: true
+
+  # Bundled Blender-rendered art (splash + main-menu banner). Rendered from
+  # tools/art/*.blend via tools/art/build_art.py — never fetched at runtime.
+  assets:
+    - assets/images/
 
   # Bundled OFL fonts (see assets/fonts/OFL-*.txt for licenses). Bundled as
   # local assets — never fetched at runtime — so the F-Droid build stays
@@ -53,3 +59,16 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   adaptive_icon_background: "#2c8e5d"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+
+# Startup splash. Source art is rendered in Blender via
+# `tools/art/build_art.py` (fanned card spread on transparent film). The
+# splash.png sits centered on the felt-dark background. Regenerate the native
+# splash assets with: dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#14532D"
+  image: assets/images/splash.png
+  android: true
+  ios: true
+  android_12:
+    image: assets/images/splash.png
+    color: "#14532D"

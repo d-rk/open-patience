@@ -18,7 +18,10 @@ void main() {
   ) async {
     final RecordsRepository repo = await _repo();
     await tester.pumpWidget(
-      MaterialApp(home: MainMenuScreen(repository: repo)),
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp(home: MainMenuScreen(repository: repo)),
+      ),
     );
     await tester.pumpAndSettle();
 
