@@ -118,10 +118,7 @@ class GameWordmark extends StatelessWidget {
   );
 
   Widget _rule() => Expanded(
-    child: Container(
-      height: 2,
-      color: GamePalette.gold.withValues(alpha: 0.7),
-    ),
+    child: Container(height: 2, color: GamePalette.gold.withValues(alpha: 0.7)),
   );
 
   @override
@@ -155,6 +152,33 @@ class GameWordmark extends StatelessWidget {
                 _rule(),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The author's signature credit, styled as handwriting pressed into the felt.
+/// A single centered line of script (Satisfy) in soft dark ink with a faint
+/// light emboss edge. Used as a pinned footer on the main menu.
+class GameSignature extends StatelessWidget {
+  const GameSignature({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(top: 4, bottom: 12),
+      child: Text(
+        'a game by Dirk Wilden',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: GameFonts.signature,
+          color: GamePalette.signatureInk,
+          fontSize: 20,
+          height: 1.0,
+          shadows: <Shadow>[
+            Shadow(color: GamePalette.signatureEmboss, offset: Offset(0, 1)),
           ],
         ),
       ),

@@ -46,6 +46,7 @@ class MainMenuScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const GameSignature(),
             ],
           ),
         ),

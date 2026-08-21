@@ -34,4 +34,19 @@ void main() {
 
     expect(find.byType(Board), findsOneWidget);
   });
+
+  testWidgets('menu shows the handwritten signature footer', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp(home: MainMenuScreen(repository: repo)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('a game by Dirk Wilden'), findsOneWidget);
+  });
 }
