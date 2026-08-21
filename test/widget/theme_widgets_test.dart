@@ -42,7 +42,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await _pump(tester, const GameWordmark());
-    expect(find.text('OPEN '), findsOneWidget);
+    expect(find.text('OPEN'), findsOneWidget);
     expect(find.text('PATIENCE'), findsOneWidget);
   });
 }

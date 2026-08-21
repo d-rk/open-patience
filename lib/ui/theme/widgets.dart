@@ -125,7 +125,8 @@ class GameWordmark extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             crossAxisAlignment: CrossAxisAlignment.baseline,
             children: <Widget>[
-              Text('OPEN ', style: _word(GamePalette.cardFace)),
+              Text('OPEN', style: _word(GamePalette.cardFace)),
+              const SizedBox(width: 14),
               Text('PATIENCE', style: _word(GamePalette.gold)),
             ],
           ),
