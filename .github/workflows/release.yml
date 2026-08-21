@@ -108,6 +108,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: fdroid-repo
           publish_branch: gh-pages
+          # Flatten gh-pages to a single orphan commit each release. Without
+          # this, every release keeps the previous APK blob in git history
+          # forever (the working tree is lean, but .git grows ~one APK per
+          # release and fetch-depth:0 re-fetches it all each time).
+          force_orphan: true
           # keep_files defaults to false: mirror fdroid-repo exactly. We
           # already start from a full checkout of gh-pages and mutate it
           # locally (delete the old APK, add the new one, regenerate the
