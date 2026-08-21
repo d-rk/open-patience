@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: gh-pages-publish
+  cancel-in-progress: false
+
 jobs:
   publish-fdroid-repo:
     name: Build, sign, and publish to the self-hosted F-Droid repo
@@ -43,7 +47,7 @@ jobs:
           EOF
 
       - name: Build signed release APK
-        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER"
+        run: flutter build apk --release --flavor production --build-number="$GITHUB_RUN_NUMBER"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -86,7 +90,7 @@ jobs:
         run: |
           mkdir -p fdroid-repo/repo
           rm -f fdroid-repo/repo/*.apk
-          cp build/app/outputs/flutter-apk/app-release.apk \
+          cp build/app/outputs/flutter-apk/app-production-release.apk \
             "fdroid-repo/repo/open-patience-${GITHUB_RUN_NUMBER}.apk"
 
       - name: Stage F-Droid app metadata (icon, summary, description)
