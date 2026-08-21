@@ -15,7 +15,7 @@ codes="$(
   find "$repo_dir" -maxdepth 1 -name 'open-patience-testing-*.apk' -printf '%f\n' 2>/dev/null \
     | sed -E 's/^open-patience-testing-([0-9]+)\.apk$/\1/' \
     | grep -E '^[0-9]+$' \
-    | sort -rn
+    | sort -rn || true
 )"
 
 kept=0
