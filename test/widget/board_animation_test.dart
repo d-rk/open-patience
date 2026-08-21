@@ -76,4 +76,44 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(_cardFace(Suit.spades, aceRank), findsOneWidget);
   });
+
+  testWidgets('reduce-motion: a tap-move lands instantly in one frame', (
+    WidgetTester tester,
+  ) async {
+    final GameBloc bloc = await _pump(
+      tester,
+      const Size(400, 800),
+      state: _oneAce(),
+      disableAnimations: true,
+    );
+    await tester.tap(_cardFace(Suit.spades, aceRank));
+    // A card that also handles double-tap defers its onTap until the
+    // double-tap window closes; let that timer elapse so the move fires.
+    await tester.pump(const Duration(milliseconds: 350)); // fire onTap
+    await tester.pump(); // one build; no animation to settle
+    expect(bloc.state.state.pileAt(6).isEmpty, isTrue);
+    // The ace now renders at a foundation position (top of the board).
+    expect(tester.getCenter(_cardFace(Suit.spades, aceRank)).dy, lessThan(200));
+  });
+
+  testWidgets('animated tap-move converges to the same final layout', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, const Size(400, 800), state: _oneAce());
+    final Offset before = tester.getCenter(_cardFace(Suit.spades, aceRank));
+    await tester.tap(_cardFace(Suit.spades, aceRank));
+    // A card that also handles double-tap defers its onTap until the
+    // double-tap window closes; let that timer elapse so the move fires.
+    await tester.pump(const Duration(milliseconds: 350)); // fire onTap
+    await tester.pump(); // rebuild applies the new target, animation begins
+    await tester.pump(const Duration(milliseconds: 60)); // mid-flight
+    final Offset mid = tester.getCenter(_cardFace(Suit.spades, aceRank));
+    await tester.pumpAndSettle();
+    final Offset after = tester.getCenter(_cardFace(Suit.spades, aceRank));
+    // It actually moved during the animation (not an instant jump)...
+    expect(mid, isNot(equals(before)));
+    expect(mid, isNot(equals(after)));
+    // ...and settled above where it started (now on a foundation).
+    expect(after.dy, lessThan(before.dy));
+  });
 }
