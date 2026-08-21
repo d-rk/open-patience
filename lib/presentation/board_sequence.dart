@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import '../core/card.dart';
@@ -95,6 +97,44 @@ class DealSequence implements SpecialSequence {
       }
     }
     return keys;
+  }
+}
+
+/// A modest win flourish: a brief, symmetric scale pulse of the foundation
+/// cards when the game is won. Kept deliberately small and isolated behind the
+/// [SpecialSequence] seam so a fuller arcade cascade can later replace it by
+/// swapping this one class (see `_winSequence` in `board.dart`).
+///
+/// Unlike [DealSequence], its engagement is *not* driven by a piles-diff: the
+/// board plays it when the bloc emits a `GameWon` state — the win-ness the
+/// engine has already decided. So [matches] is intentionally conservative and
+/// unused for engagement (it always returns `false`), and [delayFor] is unused
+/// too: every foundation card pulses together, so it returns [Duration.zero].
+class WinSequence implements SpecialSequence {
+  const WinSequence();
+
+  /// The peak extra scale at the pulse's midpoint (an 8% swell).
+  static const double _amplitude = 0.08;
+
+  @override
+  bool matches(GameState? previous, GameState next) => false;
+
+  @override
+  Duration delayFor(CardKey key, BoardGeometry geometry) => Duration.zero;
+
+  @override
+  Duration get total => const Duration(milliseconds: 600);
+
+  /// The foundation-card scale at [elapsed] into the flourish: a symmetric ease
+  /// pulse that starts at 1.0, swells to `1 + _amplitude` (~1.08) at the
+  /// midpoint, and eases back to 1.0 at [total]. Flat at 1.0 before the start
+  /// and once the flourish is over, so it is safe to sample at any time.
+  double pulseAt(Duration elapsed) {
+    final double t = elapsed.inMicroseconds / total.inMicroseconds;
+    if (t <= 0.0 || t >= 1.0) {
+      return 1.0;
+    }
+    return 1.0 + _amplitude * math.sin(math.pi * t);
   }
 }
 

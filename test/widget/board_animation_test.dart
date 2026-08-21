@@ -76,6 +76,27 @@ GameState _aceOverKing() => GameState(
   ],
 );
 
+List<Card> _run(Suit s, int upTo) => <Card>[
+  for (int r = aceRank; r <= upTo; r++) _up(s, r),
+];
+
+/// A board one legal tap-to-foundation away from a win: three foundations are
+/// complete (Ace..King) and the fourth is Ace..Queen, with its lone King sitting
+/// face-up on a tableau column. Tapping that King sends it to its foundation, so
+/// the bloc emits `GameWon` and the board plays its win flourish.
+GameState _almostWon() => GameState(
+  piles: <Pile>[
+    Pile(kind: PileKind.stock),
+    Pile(kind: PileKind.waste),
+    Pile(kind: PileKind.foundation, cards: _run(Suit.clubs, kingRank)),
+    Pile(kind: PileKind.foundation, cards: _run(Suit.diamonds, kingRank)),
+    Pile(kind: PileKind.foundation, cards: _run(Suit.hearts, kingRank)),
+    Pile(kind: PileKind.foundation, cards: _run(Suit.spades, 12)),
+    Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.spades, kingRank)]),
+    for (int i = 0; i < 6; i++) Pile(kind: PileKind.tableau),
+  ],
+);
+
 Future<GameBloc> _pump(
   WidgetTester tester,
   Size size, {
@@ -284,6 +305,37 @@ void main() {
     );
     await tester.pump();
     expect(_cardFace(Suit.spades, 7), findsOneWidget);
+  });
+
+  testWidgets('winning plays a flourish and then rests without error', (
+    WidgetTester tester,
+  ) async {
+    // Drive the win with a real final move: tap the lone King up to its
+    // foundation, which completes the board and makes the bloc emit GameWon.
+    final GameBloc bloc = await _pump(
+      tester,
+      const Size(400, 800),
+      state: _almostWon(),
+    );
+    await tester.tap(_cardFace(Suit.spades, kingRank));
+    // A card that also handles double-tap defers its onTap until the
+    // double-tap window closes; let that timer elapse so the move fires.
+    await tester.pump(const Duration(milliseconds: 350)); // fire onTap
+    await tester.pump(); // rebuild: GameWon, the flourish begins
+    await tester.pump(const Duration(milliseconds: 100)); // mid-flourish
+    // The pulse scales a foundation card up (>1.0); nothing else scales up, so a
+    // Transform with an x-scale above 1 proves the flourish is playing.
+    final Iterable<Transform> transforms = tester.widgetList<Transform>(
+      find.byType(Transform),
+    );
+    expect(
+      transforms.any((Transform t) => t.transform.storage[0] > 1.001),
+      isTrue,
+      reason: 'expected a foundation card scaled up mid-flourish',
+    );
+    await tester.pumpAndSettle();
+    expect(bloc.state.state.isWon(bloc.rules), isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('reduce-motion shows the flipped face immediately', (

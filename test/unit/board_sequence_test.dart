@@ -47,4 +47,11 @@ void main() {
     expect(d5, isNot(equals(d8)));
     expect(s.total, greaterThanOrEqualTo(GameMotion.move));
   });
+
+  test('WinSequence pulse starts and returns to rest scale', () {
+    const WinSequence w = WinSequence();
+    expect(w.pulseAt(Duration.zero), closeTo(1.0, 0.001));
+    expect(w.pulseAt(w.total), closeTo(1.0, 0.02));
+    expect(w.pulseAt(w.total ~/ 2), greaterThan(1.0));
+  });
 }

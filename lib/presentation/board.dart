@@ -79,6 +79,24 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// identical).
   GameState? _lastDealState;
 
+  /// The set-piece the board plays when the game is won: a modest scale pulse of
+  /// the foundation cards. Like [_dealSequence] it is the only thing the board
+  /// knows about the win flourish — swapping in a fuller arcade cascade means
+  /// replacing this one field with a different [SpecialSequence].
+  final WinSequence _winSequence = const WinSequence();
+
+  /// Drives the win flourish: while it runs, foundation cards are scaled by
+  /// [_winSequence.pulseAt]. Null when no flourish is playing. Independent of
+  /// [_dealController] (a game never deals and wins in the same frame, but the
+  /// two controllers are kept separate defensively). Disposed on completion and
+  /// in [dispose].
+  AnimationController? _winController;
+
+  /// The state instance last evaluated for the win flourish, so the flourish's
+  /// own per-tick rebuilds don't re-trigger it (the `GameWon` state is unchanged
+  /// across those ticks, so it stays identical).
+  GameState? _lastWinState;
+
   @override
   void initState() {
     super.initState();
@@ -88,6 +106,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   @override
   void dispose() {
     _disposeDeal();
+    _disposeWin();
     super.dispose();
   }
 
@@ -135,6 +154,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
               wasteVisibleCount: wasteVisibleCount,
             );
             _syncDeal(game, reduceMotion);
+            _syncWin(blocState, reduceMotion);
             return _stack(context, game, geometry, moveDuration);
           },
         );
@@ -285,6 +305,26 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         ? dealOriginOf(geometry)
         : null;
     final bool isDealing = dealOrigin != null;
+    // CardFlip sits at this faceUp-invariant position (its ValueKey is stable
+    // across the CardFace↔CardView swap that a draw / reveal triggers) so it
+    // persists and can animate the orientation change. The gesture and
+    // Draggable layers stay inside its child, and it is the identity transform
+    // at rest, so drag and taps are unaffected.
+    final Widget flip = CardFlip(
+      key: ValueKey<String>(
+        'flip-${placement.card.suit.name}-${placement.card.rank}',
+      ),
+      card: placement.card,
+      size: cardSize,
+      child: _cardWidgetFor(context, placement, pile, cardSize),
+    );
+    // The win flourish scales foundation cards by a gentle pulse; at rest (and
+    // for non-foundation cards) the scale is 1.0, so this is a no-op transform
+    // that never interferes with drags, taps or the deal set-piece.
+    final double winScale = _winScaleFor(pile);
+    final Widget child = winScale == 1.0
+        ? flip
+        : Transform.scale(scale: winScale, child: flip);
     return AnimatedPositioned(
       key: key.widgetKey,
       duration: isSettling ? Duration.zero : moveDuration,
@@ -300,19 +340,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       onEnd: isSettling
           ? () => _scheduleSettleRelease(key)
           : (isMoving ? () => _release(key) : null),
-      // CardFlip sits at this faceUp-invariant position (its ValueKey is stable
-      // across the CardFace↔CardView swap that a draw / reveal triggers) so it
-      // persists and can animate the orientation change. The gesture and
-      // Draggable layers stay inside its child, and it is the identity transform
-      // at rest, so drag and taps are unaffected.
-      child: CardFlip(
-        key: ValueKey<String>(
-          'flip-${placement.card.suit.name}-${placement.card.rank}',
-        ),
-        card: placement.card,
-        size: cardSize,
-        child: _cardWidgetFor(context, placement, pile, cardSize),
-      ),
+      child: child,
     );
   }
 
@@ -413,6 +441,77 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     _dealController = null;
     controller.removeListener(_onDealTick);
     controller.removeStatusListener(_onDealStatus);
+    controller.dispose();
+  }
+
+  /// Engages the win flourish when the bloc reports a `GameWon` state. Driven by
+  /// the bloc *state type* (the engine has already decided the game is won), not
+  /// a piles-diff — so [WinSequence.matches] stays unused here. Guarded by
+  /// [_lastWinState] so the flourish's own per-tick rebuilds don't re-trigger
+  /// it. Skipped under reduce-motion, so the win simply lands with no pulse.
+  void _syncWin(GameBlocState blocState, bool reduceMotion) {
+    final GameState next = blocState.state;
+    if (identical(_lastWinState, next)) {
+      return;
+    }
+    _lastWinState = next;
+    if (blocState is! GameWon || reduceMotion) {
+      _disposeWin();
+      return;
+    }
+    _disposeWin();
+    final AnimationController controller = AnimationController(
+      vsync: this,
+      duration: _winSequence.total,
+    );
+    _winController = controller;
+    controller.addListener(_onWinTick);
+    controller.addStatusListener(_onWinStatus);
+    controller.forward();
+  }
+
+  /// The win-pulse scale for a card on [pile]: [WinSequence.pulseAt] of the
+  /// controller's elapsed time for foundation cards while the flourish plays,
+  /// and 1.0 (a no-op) otherwise.
+  double _winScaleFor(Pile pile) {
+    final AnimationController? controller = _winController;
+    if (controller == null || pile.kind != PileKind.foundation) {
+      return 1.0;
+    }
+    final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
+    return _winSequence.pulseAt(elapsed);
+  }
+
+  /// Rebuilds each flourish tick so the foundation pulse advances.
+  void _onWinTick() {
+    setState(() {});
+  }
+
+  /// Tears the flourish controller down once it completes. Deferred to after the
+  /// frame so the controller is not disposed from inside its own callback while
+  /// the ticker is still finishing, and mounted-guarded because the win
+  /// navigation may unmount the board mid-pulse.
+  void _onWinStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (!mounted) {
+        return;
+      }
+      setState(_disposeWin);
+    });
+  }
+
+  /// Disposes the active win-flourish controller, if any. Idempotent.
+  void _disposeWin() {
+    final AnimationController? controller = _winController;
+    if (controller == null) {
+      return;
+    }
+    _winController = null;
+    controller.removeListener(_onWinTick);
+    controller.removeStatusListener(_onWinStatus);
     controller.dispose();
   }
 
