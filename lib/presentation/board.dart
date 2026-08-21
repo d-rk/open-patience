@@ -6,6 +6,7 @@ import '../core/game_rules.dart';
 import '../core/game_state.dart';
 import '../core/games/klondike.dart';
 import '../core/pile.dart';
+import '../ui/theme/game_motion.dart';
 import 'bloc/game_bloc.dart';
 import 'bloc/game_bloc_state.dart';
 import 'bloc/game_event.dart';
@@ -22,9 +23,14 @@ import 'slot_placeholder.dart';
 /// and no rules: every gesture is forwarded straight to the bloc as a
 /// [GameEvent]. Rebuilds are scoped to *board* changes (piles), so the
 /// once-a-second timer tick never repaints it.
-class Board extends StatelessWidget {
+class Board extends StatefulWidget {
   const Board({super.key});
 
+  @override
+  State<Board> createState() => _BoardState();
+}
+
+class _BoardState extends State<Board> {
   @override
   Widget build(BuildContext context) {
     return DragScopeHost(child: _board());
@@ -40,6 +46,11 @@ class Board extends StatelessWidget {
         final bool isLandscape = media.orientation == Orientation.landscape;
         final double shortestSide = media.size.shortestSide;
         final int wasteVisibleCount = _wasteVisibleCount(context);
+        final bool reduceMotion = media.disableAnimations;
+        final Duration moveDuration = GameMotion.resolve(
+          GameMotion.move,
+          reduceMotion: reduceMotion,
+        );
 
         return LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
@@ -51,7 +62,7 @@ class Board extends StatelessWidget {
               isLandscape: isLandscape,
               wasteVisibleCount: wasteVisibleCount,
             );
-            return _stack(context, game, geometry);
+            return _stack(context, game, geometry, moveDuration);
           },
         );
       },
@@ -71,13 +82,18 @@ class Board extends StatelessWidget {
   /// unchanged. Placing them *below* the cards instead would let an opaque card
   /// swallow the hit before the [DragScope]'s `IgnorePointer` demotes it a frame
   /// later, so a single-move drop onto an occupied pile would be missed.
-  Widget _stack(BuildContext context, GameState game, BoardGeometry geometry) {
+  Widget _stack(
+    BuildContext context,
+    GameState game,
+    BoardGeometry geometry,
+    Duration moveDuration,
+  ) {
     final Size cardSize = geometry.cardSize;
     final List<Widget> children = <Widget>[
       for (final SlotPlacement slot in geometry.slots)
         _positionedSlot(context, slot, cardSize),
       for (final CardPlacement placement in geometry.cards)
-        _positionedCard(context, placement, game, cardSize),
+        _positionedCard(context, placement, game, cardSize, moveDuration),
       for (final MapEntry<int, Rect> entry in geometry.dropTargets.entries)
         _positionedDropTarget(context, entry.key, entry.value),
     ];
@@ -121,10 +137,13 @@ class Board extends StatelessWidget {
     CardPlacement placement,
     GameState game,
     Size cardSize,
+    Duration moveDuration,
   ) {
     final Pile pile = game.pileAt(placement.pileIndex);
-    return Positioned(
+    return AnimatedPositioned(
       key: placement.key.widgetKey,
+      duration: moveDuration,
+      curve: GameMotion.moveCurve,
       left: placement.rect.left,
       top: placement.rect.top,
       width: placement.rect.width,
