@@ -372,5 +372,45 @@ class _Builder {
     }
   }
 
-  void tablet() => throw UnimplementedError(); // Task 4
+  void tablet() {
+    final int cols = tableau.length;
+    final double sideW = metrics.sideColumnWidth;
+    const double topY = _pad;
+    final double tableauAreaW = (width - 2 * _pad) - _pad - sideW;
+    final double colW = tableauAreaW / cols;
+
+    // Tableau on the left, full height.
+    final double bottomHeight = math.max(_cardH, height - 2 * _pad);
+    final double upGap = _fanGap(bottomHeight);
+    final double downGap = upGap * 0.5;
+    for (int j = 0; j < cols; j++) {
+      final double centerX = _pad + colW * j + colW / 2;
+      _placeTableau(
+        tableau[j],
+        Offset(centerX - _cardW / 2, topY),
+        upGap,
+        downGap,
+      );
+    }
+
+    // Right side column: two centered sub-columns (upper left, foundations
+    // right). The min-width row (2*cardW + pad) is centred in sideColumnWidth
+    // (2*cardW + 3*pad), so it is inset one pad on each side.
+    final double sideLeft = _pad + tableauAreaW + _pad;
+    final double upperX = sideLeft + _pad;
+    final double foundX = upperX + _cardW + _pad;
+    for (int i = 0; i < upper.length; i++) {
+      final double y = topY + i * (_cardH + _pad);
+      final int idx = upper[i];
+      if (game.pileAt(idx).kind == PileKind.waste) {
+        _placeWaste(idx, Offset(upperX, y));
+      } else {
+        _placeSingleOrSlot(idx, Offset(upperX, y));
+      }
+    }
+    for (int i = 0; i < foundations.length; i++) {
+      final double y = topY + i * (_cardH + _pad);
+      _placeSingleOrSlot(foundations[i], Offset(foundX, y));
+    }
+  }
 }

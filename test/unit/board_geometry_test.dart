@@ -32,6 +32,20 @@ GameState _klondike() => GameState(
   ],
 );
 
+GameState _freecell() => GameState(
+  piles: <Pile>[
+    Pile(kind: PileKind.freecell, cards: <Card>[_up(Suit.spades, 7)]),
+    Pile(kind: PileKind.freecell),
+    Pile(kind: PileKind.freecell),
+    Pile(kind: PileKind.freecell),
+    Pile(kind: PileKind.foundation, cards: <Card>[_up(Suit.clubs, aceRank)]),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    for (int i = 0; i < 8; i++) Pile(kind: PileKind.tableau),
+  ],
+);
+
 Rect _rectOf(BoardGeometry g, Suit s, int r) =>
     g.cards.firstWhere((CardPlacement p) => p.key == CardKey(s, r)).rect;
 
@@ -183,6 +197,54 @@ void main() {
       final double x4 = _rectOf(g, Suit.clubs, 4).left;
       expect(x3, greaterThan(x2));
       expect(x4, greaterThan(x3));
+    });
+  });
+
+  group('tablet-landscape geometry', () {
+    test('foundations sit to the right of the last tableau column', () {
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: _klondike(),
+        width: 1200,
+        height: 800,
+        shortestSide: 800,
+        isLandscape: true,
+        wasteVisibleCount: 1,
+      );
+      expect(g.metrics.layout, BoardLayout.tabletLandscape);
+      expect(
+        _rectOf(g, Suit.clubs, aceRank).center.dx,
+        greaterThan(_rectOf(g, Suit.diamonds, kingRank).center.dx),
+      );
+    });
+
+    test('free cells sit left of the foundations', () {
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: _freecell(),
+        width: 1200,
+        height: 800,
+        shortestSide: 800,
+        isLandscape: true,
+        wasteVisibleCount: 1,
+      );
+      expect(
+        _rectOf(g, Suit.spades, 7).center.dx,
+        lessThan(_rectOf(g, Suit.clubs, aceRank).center.dx),
+      );
+    });
+
+    test('nothing overflows the viewport', () {
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: _klondike(),
+        width: 1200,
+        height: 800,
+        shortestSide: 800,
+        isLandscape: true,
+        wasteVisibleCount: 1,
+      );
+      for (final CardPlacement p in g.cards) {
+        expect(p.rect.right, lessThanOrEqualTo(1200 + 0.5));
+        expect(p.rect.bottom, lessThanOrEqualTo(800 + 0.5));
+      }
     });
   });
 }
