@@ -31,13 +31,43 @@ class Board extends StatefulWidget {
 }
 
 class _BoardState extends State<Board> {
+  /// The last board [GameState] we rendered. Diffed against each new state to
+  /// discover which cards moved, so they can be lifted to the top of the paint
+  /// order while in flight. Seeded from the bloc so the very first move is
+  /// diffed against the real deal (not a null baseline).
+  GameState? _previous;
+
+  /// Keys of the cards currently in flight. They paint last (on top of the
+  /// piles they cross) until each one's [AnimatedPositioned.onEnd] releases it.
+  /// Mutated in place: a fresh diff replaces its contents each transition and
+  /// `onEnd` removes settled cards, so it can never grow unbounded.
+  final Set<CardKey> _moving = <CardKey>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _previous = context.read<GameBloc>().state.state;
+  }
+
   @override
   Widget build(BuildContext context) {
     return DragScopeHost(child: _board());
   }
 
   Widget _board() {
-    return BlocBuilder<GameBloc, GameBlocState>(
+    return BlocConsumer<GameBloc, GameBlocState>(
+      listenWhen: (GameBlocState previous, GameBlocState current) =>
+          !listEquals(previous.state.piles, current.state.piles),
+      listener: (BuildContext context, GameBlocState blocState) {
+        final GameState next = blocState.state;
+        final Set<CardKey> moved = _diffMoved(_previous, next);
+        setState(() {
+          _moving
+            ..clear()
+            ..addAll(moved);
+          _previous = next;
+        });
+      },
       buildWhen: (GameBlocState previous, GameBlocState current) =>
           !listEquals(previous.state.piles, current.state.piles),
       builder: (BuildContext context, GameBlocState blocState) {
@@ -92,12 +122,58 @@ class _BoardState extends State<Board> {
     final List<Widget> children = <Widget>[
       for (final SlotPlacement slot in geometry.slots)
         _positionedSlot(context, slot, cardSize),
-      for (final CardPlacement placement in geometry.cards)
+      for (final CardPlacement placement in _paintOrdered(geometry))
         _positionedCard(context, placement, game, cardSize, moveDuration),
       for (final MapEntry<int, Rect> entry in geometry.dropTargets.entries)
         _positionedDropTarget(context, entry.key, entry.value),
     ];
     return Stack(clipBehavior: Clip.none, children: children);
+  }
+
+  /// The board's cards in paint order with any in-flight cards moved to the end
+  /// so they paint above the piles they cross. Non-moving cards keep
+  /// [BoardGeometry.cards]' pile-major order; moving cards follow, in that same
+  /// relative order. Returns the geometry list unchanged when nothing is moving.
+  List<CardPlacement> _paintOrdered(BoardGeometry geometry) {
+    if (_moving.isEmpty) {
+      return geometry.cards;
+    }
+    return <CardPlacement>[
+      for (final CardPlacement p in geometry.cards)
+        if (!_moving.contains(p.key)) p,
+      for (final CardPlacement p in geometry.cards)
+        if (_moving.contains(p.key)) p,
+    ];
+  }
+
+  /// Cards whose `(pileIndex, indexInPile)` changed (or that newly appeared)
+  /// between [prev] and [next]. Empty when [prev] is null.
+  Set<CardKey> _diffMoved(GameState? prev, GameState next) {
+    if (prev == null) {
+      return <CardKey>{};
+    }
+    final Map<CardKey, (int, int)> before = _positions(prev);
+    final Map<CardKey, (int, int)> after = _positions(next);
+    final Set<CardKey> moved = <CardKey>{};
+    after.forEach((CardKey k, (int, int) pos) {
+      final (int, int)? was = before[k];
+      if (was == null || was != pos) {
+        moved.add(k);
+      }
+    });
+    return moved;
+  }
+
+  /// Maps every card in [g] to its `(pileIndex, indexInPile)` location.
+  Map<CardKey, (int, int)> _positions(GameState g) {
+    final Map<CardKey, (int, int)> m = <CardKey, (int, int)>{};
+    for (int pi = 0; pi < g.piles.length; pi++) {
+      final Pile pile = g.pileAt(pi);
+      for (int ci = 0; ci < pile.length; ci++) {
+        m[CardKey.of(pile.cards[ci])] = (pi, ci);
+      }
+    }
+    return m;
   }
 
   Widget _positionedDropTarget(BuildContext context, int pileIndex, Rect rect) {
@@ -140,16 +216,33 @@ class _BoardState extends State<Board> {
     Duration moveDuration,
   ) {
     final Pile pile = game.pileAt(placement.pileIndex);
+    final CardKey key = placement.key;
+    final bool isMoving = _moving.contains(key);
     return AnimatedPositioned(
-      key: placement.key.widgetKey,
+      key: key.widgetKey,
       duration: moveDuration,
       curve: GameMotion.moveCurve,
       left: placement.rect.left,
       top: placement.rect.top,
       width: placement.rect.width,
       height: placement.rect.height,
+      onEnd: isMoving ? () => _release(key) : null,
       child: _cardWidgetFor(context, placement, pile, cardSize),
     );
+  }
+
+  /// Drops [key] from the moving set once its flight ends. Deferred to after the
+  /// current frame because under reduce-motion the zero-duration animation
+  /// completes synchronously inside `AnimatedPositioned`'s `didUpdateWidget`,
+  /// so a direct `setState` here would fire during build. Post-frame it is safe
+  /// whether `onEnd` came from that instant completion or from the real ticker.
+  void _release(CardKey key) {
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _moving.remove(key));
+    });
   }
 
   /// Replicates `PileView`'s per-kind card interactivity:
