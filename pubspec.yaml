@@ -29,6 +29,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Bundled Blender-rendered art (splash + main-menu banner). Rendered from
+  # tools/art/*.blend via tools/art/build_art.py — never fetched at runtime.
+  assets:
+    - assets/images/
+
   # Bundled OFL fonts (see assets/fonts/OFL-*.txt for licenses). Bundled as
   # local assets — never fetched at runtime — so the F-Droid build stays
   # offline and reproducible. Quicksand and Fredoka are variable-weight.
