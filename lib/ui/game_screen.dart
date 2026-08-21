@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../presentation/bloc/game_bloc.dart';
@@ -37,6 +38,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Hide the system bars during play. On Android this stops the edge-swipe
+    // back gesture from stealing a card drag (and bouncing to the menu): the
+    // swipe now peeks the bars back instead of navigating. `immersiveSticky`
+    // re-hides them automatically after the peek and after an app resume.
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     final Duration? interval = widget.autoTick;
     if (interval != null) {
       _timer = Timer.periodic(interval, (_) {
@@ -55,6 +61,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void dispose() {
     _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    // Restore the normal edge-to-edge chrome so the menu and records screens
+    // get their system bars back.
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
