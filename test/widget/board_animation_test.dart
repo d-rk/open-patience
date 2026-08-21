@@ -189,16 +189,34 @@ void main() {
     expect(_cardFace(Suit.hearts, 9), findsOneWidget); // face-up nine on waste
   });
 
-  testWidgets('a face change runs a flip transform', (
+  testWidgets('drawing from stock actually rotates a card mid-flip', (
     WidgetTester tester,
   ) async {
     await _pump(tester, const Size(400, 800), state: _stockToDraw());
     await tester.tap(find.byType(CardFace).first);
-    await tester.pump();
+    await tester.pump(); // dispatch the draw; the flip begins
     await tester.pump(const Duration(milliseconds: 80)); // mid-flip
-    // The keyed rotationY flip transform wraps the drawn card's face.
-    expect(find.byKey(const Key('cardFlip')), findsWidgets);
+    // Some keyed flip Transform is genuinely rotated (not the identity) — the
+    // drawn card is turning. The others (untouched cards) stay at identity.
+    final Iterable<Transform> mid = tester.widgetList<Transform>(
+      find.byKey(const Key('cardFlip')),
+    );
+    expect(
+      mid.any((Transform t) => t.transform != Matrix4.identity()),
+      isTrue,
+      reason: 'expected a rotationY flip in progress mid-draw',
+    );
     await tester.pumpAndSettle();
+    // Settled: every flip Transform is back to the identity and the drawn card
+    // is face-up on the waste.
+    final Iterable<Transform> settled = tester.widgetList<Transform>(
+      find.byKey(const Key('cardFlip')),
+    );
+    expect(
+      settled.every((Transform t) => t.transform == Matrix4.identity()),
+      isTrue,
+    );
+    expect(_cardFace(Suit.hearts, 9), findsOneWidget);
   });
 
   testWidgets('reduce-motion shows the flipped face immediately', (

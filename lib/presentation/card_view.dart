@@ -51,7 +51,7 @@ class CardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget face = _FlippingFace(card: card, size: size);
+    final Widget face = CardFace(card: card, size: size);
 
     Widget child = face;
     if (onTap != null || onDoubleTap != null) {
@@ -132,78 +132,95 @@ class CardView extends StatelessWidget {
   }
 }
 
-/// Wraps a [CardFace] and runs a short Y-axis flip whenever the card's
-/// `faceUp` changes, swapping which face shows at the half-turn (edge-on)
-/// point. At rest the wrapping [Transform] is the identity, so it never
-/// disturbs hit-testing or drag feedback. Honors the OS reduce-motion setting
-/// via [GameMotion.resolve] — a zero duration snaps straight to the new face.
-class _FlippingFace extends StatefulWidget {
-  const _FlippingFace({required this.card, required this.size});
+/// Wraps a card's whole widget subtree ([child]) and runs a short Y-axis flip
+/// whenever the card's `faceUp` changes. It is placed at a `faceUp`-invariant
+/// position — the immediate child of the board's per-card `AnimatedPositioned`
+/// (keyed by the physical card) — so it *persists* across the
+/// [CardFace]↔[CardView] swap that a draw or tableau reveal triggers, and can
+/// therefore see the orientation change in `didUpdateWidget` and animate it.
+///
+/// During the first half of the turn (angle `0 → π/2`) it shows the *prior*
+/// face — reconstructed as a [CardFace] from the cached previous [card] — and
+/// at the edge-on midpoint swaps to [child] (the new face), which completes the
+/// turn `−π/2 → 0`. At rest the wrapping [Transform] is the identity, so it
+/// never disturbs hit-testing, taps or drag feedback (flips only happen on a
+/// draw / reveal, never mid-drag). Honors the OS reduce-motion setting via
+/// [GameMotion.resolve]: a zero duration snaps straight to the new face with no
+/// rotation and no stuck frame.
+class CardFlip extends StatefulWidget {
+  const CardFlip({
+    required Key key,
+    required this.card,
+    required this.size,
+    required this.child,
+  }) : super(key: key);
 
   final Card card;
   final Size size;
+  final Widget child;
 
   @override
-  State<_FlippingFace> createState() => _FlippingFaceState();
+  State<CardFlip> createState() => _CardFlipState();
 }
 
-class _FlippingFaceState extends State<_FlippingFace> {
-  /// The face shown at the start of the current flip (`t == 0`).
-  late Card _from;
+class _CardFlipState extends State<CardFlip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
 
-  /// The face shown at the end of the current flip (`t == 1`).
-  late Card _to;
-
-  /// Bumped on every flip so the [TweenAnimationBuilder] gets a fresh key and
-  /// replays `0 → 1`. Stays 0 until the first real flip so a card's initial
-  /// appearance does not animate.
-  int _flipId = 0;
+  /// The card as it was before the in-progress flip started, used to paint the
+  /// outgoing face during the first half of the turn. Null when not flipping.
+  Card? _fromCard;
 
   @override
   void initState() {
     super.initState();
-    _from = widget.card;
-    _to = widget.card;
+    _controller = AnimationController(vsync: this);
   }
 
   @override
-  void didUpdateWidget(covariant _FlippingFace oldWidget) {
+  void didUpdateWidget(covariant CardFlip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.card.faceUp != oldWidget.card.faceUp) {
-      _from = oldWidget.card;
-      _to = widget.card;
-      _flipId++;
-    } else {
-      // Same orientation (possibly different content): show it, no flip.
-      _from = widget.card;
-      _to = widget.card;
+      _fromCard = oldWidget.card;
+      _controller.duration = GameMotion.resolve(
+        GameMotion.flip,
+        reduceMotion: MediaQuery.of(context).disableAnimations,
+      );
+      _controller.forward(from: 0);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final bool reduceMotion = MediaQuery.of(context).disableAnimations;
-    final bool animating = _flipId > 0;
-    final Duration duration = animating
-        ? GameMotion.resolve(GameMotion.flip, reduceMotion: reduceMotion)
-        : Duration.zero;
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
-    return TweenAnimationBuilder<double>(
-      key: ValueKey<int>(_flipId),
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: duration,
-      curve: GameMotion.flipCurve,
-      builder: (BuildContext context, double t, Widget? child) {
-        // Before the midpoint the outgoing face turns 0 → π/2; after it the
-        // incoming face completes the turn from −π/2 → 0, so both read
-        // right-way-round and only the edge-on frame is shared.
-        final Card shown = t < 0.5 ? _from : _to;
-        final double angle = t < 0.5 ? t * math.pi : (t - 1) * math.pi;
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (BuildContext context, Widget? child) {
+        final Card? fromCard = _fromCard;
+        double angle = 0;
+        Widget shown = child!;
+        if (_controller.isAnimating && fromCard != null) {
+          final double t = GameMotion.flipCurve.transform(_controller.value);
+          if (t < 0.5) {
+            // Outgoing (prior) face turning away: 0 → π/2.
+            angle = t * math.pi;
+            shown = CardFace(card: fromCard, size: widget.size);
+          } else {
+            // Incoming (new) face completing the turn: −π/2 → 0.
+            angle = (t - 1) * math.pi;
+          }
+        }
         return Transform(
           key: const Key('cardFlip'),
           alignment: Alignment.center,
           transform: Matrix4.rotationY(angle),
-          child: CardFace(card: shown, size: widget.size),
+          child: shown,
         );
       },
     );

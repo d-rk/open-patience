@@ -227,7 +227,19 @@ class _BoardState extends State<Board> {
       width: placement.rect.width,
       height: placement.rect.height,
       onEnd: isMoving ? () => _release(key) : null,
-      child: _cardWidgetFor(context, placement, pile, cardSize),
+      // CardFlip sits at this faceUp-invariant position (its ValueKey is stable
+      // across the CardFace↔CardView swap that a draw / reveal triggers) so it
+      // persists and can animate the orientation change. The gesture and
+      // Draggable layers stay inside its child, and it is the identity transform
+      // at rest, so drag and taps are unaffected.
+      child: CardFlip(
+        key: ValueKey<String>(
+          'flip-${placement.card.suit.name}-${placement.card.rank}',
+        ),
+        card: placement.card,
+        size: cardSize,
+        child: _cardWidgetFor(context, placement, pile, cardSize),
+      ),
     );
   }
 
