@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Card;
 
 import '../core/card.dart';
 import '../ui/theme/game_fonts.dart';
+import '../ui/theme/game_motion.dart';
 import '../ui/theme/game_palette.dart';
 import 'card_back_pattern.dart';
 import 'drag_scope.dart';
@@ -48,7 +51,7 @@ class CardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget face = CardFace(card: card, size: size);
+    final Widget face = _FlippingFace(card: card, size: size);
 
     Widget child = face;
     if (onTap != null || onDoubleTap != null) {
@@ -125,6 +128,84 @@ class CardView extends StatelessWidget {
       onDragStarted: () => activeDrag?.value = dragData,
       onDragEnd: (_) => activeDrag?.value = null,
       child: locked ? IgnorePointer(child: child) : child,
+    );
+  }
+}
+
+/// Wraps a [CardFace] and runs a short Y-axis flip whenever the card's
+/// `faceUp` changes, swapping which face shows at the half-turn (edge-on)
+/// point. At rest the wrapping [Transform] is the identity, so it never
+/// disturbs hit-testing or drag feedback. Honors the OS reduce-motion setting
+/// via [GameMotion.resolve] — a zero duration snaps straight to the new face.
+class _FlippingFace extends StatefulWidget {
+  const _FlippingFace({required this.card, required this.size});
+
+  final Card card;
+  final Size size;
+
+  @override
+  State<_FlippingFace> createState() => _FlippingFaceState();
+}
+
+class _FlippingFaceState extends State<_FlippingFace> {
+  /// The face shown at the start of the current flip (`t == 0`).
+  late Card _from;
+
+  /// The face shown at the end of the current flip (`t == 1`).
+  late Card _to;
+
+  /// Bumped on every flip so the [TweenAnimationBuilder] gets a fresh key and
+  /// replays `0 → 1`. Stays 0 until the first real flip so a card's initial
+  /// appearance does not animate.
+  int _flipId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _from = widget.card;
+    _to = widget.card;
+  }
+
+  @override
+  void didUpdateWidget(covariant _FlippingFace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.card.faceUp != oldWidget.card.faceUp) {
+      _from = oldWidget.card;
+      _to = widget.card;
+      _flipId++;
+    } else {
+      // Same orientation (possibly different content): show it, no flip.
+      _from = widget.card;
+      _to = widget.card;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool reduceMotion = MediaQuery.of(context).disableAnimations;
+    final bool animating = _flipId > 0;
+    final Duration duration = animating
+        ? GameMotion.resolve(GameMotion.flip, reduceMotion: reduceMotion)
+        : Duration.zero;
+
+    return TweenAnimationBuilder<double>(
+      key: ValueKey<int>(_flipId),
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: duration,
+      curve: GameMotion.flipCurve,
+      builder: (BuildContext context, double t, Widget? child) {
+        // Before the midpoint the outgoing face turns 0 → π/2; after it the
+        // incoming face completes the turn from −π/2 → 0, so both read
+        // right-way-round and only the edge-on frame is shared.
+        final Card shown = t < 0.5 ? _from : _to;
+        final double angle = t < 0.5 ? t * math.pi : (t - 1) * math.pi;
+        return Transform(
+          key: const Key('cardFlip'),
+          alignment: Alignment.center,
+          transform: Matrix4.rotationY(angle),
+          child: CardFace(card: shown, size: widget.size),
+        );
+      },
     );
   }
 }
