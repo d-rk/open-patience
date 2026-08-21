@@ -40,6 +40,11 @@ jobs:
       - name: Unit + widget tests
         run: flutter test
 
+      - name: F-Droid helper script tests
+        run: |
+          bash tools/fdroid/test/prune-testing-apks.test.sh
+          bash tools/fdroid/test/write-pr-changelog.test.sh
+
   # Real-device end-to-end lane: heavier, so it runs on its own — treat as a
   # pre-release gate rather than a per-push blocker. Runs the golden-path
   # integration_test suite on an Android emulator.
@@ -83,4 +88,4 @@ jobs:
           api-level: 34
           arch: x86_64
           profile: pixel_6
-          script: flutter test integration_test
+          script: flutter test integration_test --flavor production

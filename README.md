@@ -54,6 +54,10 @@ and summary.
   reinstall — the testing app's saved game is lost (production is untouched).
 - PRs from forks are not published (GitHub withholds the signing secrets
   from fork workflows).
+- If several PRs push near-simultaneously, only the most recent queued
+  testing-channel publish runs — older queued runs are superseded by the
+  shared publish concurrency group — so a PR may need a fresh push to
+  appear.
 
 #### Maintainer: one-time key and secret setup
 
@@ -95,7 +99,7 @@ flutter pub get      # install dependencies
 flutter analyze      # static analysis
 flutter test         # unit + widget suite
 flutter test integration_test   # golden-path suite (real device/emulator)
-flutter run           # run the app locally
+flutter run --flavor production   # run the app locally
 ```
 
 Full contributor guidance — architecture, TDD workflow, style — is in
