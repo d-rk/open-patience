@@ -86,6 +86,65 @@ class GamePill extends StatelessWidget {
   }
 }
 
+/// The app wordmark: a centered, all-caps two-tone logotype with a small
+/// suit-pip flourish beneath. `OPEN` in cream, `PATIENCE` in gold, sitting on
+/// the felt with a soft drop shadow. This is the main-menu title lockup.
+class GameWordmark extends StatelessWidget {
+  const GameWordmark({super.key});
+
+  static const List<Shadow> _shadows = <Shadow>[
+    Shadow(color: Color(0x66000000), offset: Offset(0, 2), blurRadius: 6),
+  ];
+
+  TextStyle _word(Color color) => TextStyle(
+    fontFamily: GameFonts.display,
+    color: color,
+    fontSize: 42,
+    height: 1.0,
+    letterSpacing: 3,
+    shadows: _shadows,
+  );
+
+  Widget _pip(String glyph, Color color) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 7),
+    child: Text(
+      glyph,
+      style: TextStyle(color: color, fontSize: 16, height: 1.0),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            textBaseline: TextBaseline.alphabetic,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            children: <Widget>[
+              Text('OPEN ', style: _word(GamePalette.cardFace)),
+              Text('PATIENCE', style: _word(GamePalette.gold)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _pip('♠', GamePalette.cardFace.withValues(alpha: 0.85)),
+              _pip('♥', GamePalette.cardRed),
+              _pip('♦', GamePalette.cardRed),
+              _pip('♣', GamePalette.cardFace.withValues(alpha: 0.85)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// A menu action tile (icon + label on a colored, rounded background).
 class GameActionTile extends StatelessWidget {
   const GameActionTile({
