@@ -30,6 +30,64 @@ to `main` builds a new signed release automatically.
 See `docs/superpowers/specs/2026-08-20-fdroid-self-hosted-repo-design.md`
 for how the publish pipeline works.
 
+### Testing channel (per-PR builds)
+
+Every pull request from a branch in this repo is built and published to a
+separate **testing** F-Droid channel, so you can try a PR on a device
+without touching the production app. The testing app installs side-by-side
+(applicationId `io.github.d_rk.openpatience.debug`, labelled
+"Open Patience (Testing)"), and the channel keeps the **latest 3** PR builds.
+
+**One-time setup on your phone:** add this repo in the F-Droid client:
+
+```
+https://d-rk.github.io/open-patience/testing/repo
+```
+
+Each build shows up as a version labelled `pr<number>-<slug>`; tap a version
+to install or switch to it. The per-version "What's New" holds the PR title
+and summary.
+
+**Caveats:**
+- Switching to a *newer* build is a normal update. Switching *back* to an
+  older build is an Android downgrade, so F-Droid must uninstall and
+  reinstall — the testing app's saved game is lost (production is untouched).
+- PRs from forks are not published (GitHub withholds the signing secrets
+  from fork workflows).
+
+#### Maintainer: one-time key and secret setup
+
+The testing channel needs two persistent keystores, separate from the
+production ones. Generate them once and never rotate them:
+
+```bash
+# 1. Testing APP signing key (signs the .debug app).
+keytool -genkeypair -v -keystore app-testing.keystore \
+  -alias testingkey -keyalg RSA -keysize 2048 -validity 10000
+
+# 2. Testing REPO signing key (signs the F-Droid index).
+keytool -genkeypair -v -keystore testing-keystore.p12 \
+  -storetype PKCS12 -alias repokey -keyalg RSA -keysize 2048 -validity 10000
+
+# Base64-encode each for storage as a GitHub Actions secret:
+base64 -w0 app-testing.keystore   # → TESTING_ANDROID_KEYSTORE_BASE64
+base64 -w0 testing-keystore.p12   # → TESTING_FDROID_KEYSTORE_BASE64
+```
+
+Store these repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `TESTING_ANDROID_KEYSTORE_BASE64` | base64 of `app-testing.keystore` |
+| `TESTING_ANDROID_KEY_ALIAS` | the app key alias (e.g. `testingkey`) |
+| `TESTING_ANDROID_KEY_PASSWORD` | the app key password |
+| `TESTING_ANDROID_STORE_PASSWORD` | the app keystore password |
+| `TESTING_FDROID_KEYSTORE_BASE64` | base64 of `testing-keystore.p12` |
+| `TESTING_FDROID_KEYSTORE_PASSWORD` | the repo keystore password |
+
+The testing repo key uses alias `repokey` and one password for both store and
+key, matching `pr-channel.yml`'s `config.yml`.
+
 ## Development
 
 ```bash
