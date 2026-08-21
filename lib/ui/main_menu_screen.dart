@@ -10,6 +10,7 @@ import 'game_screen.dart';
 import 'records_screen.dart';
 import 'theme/widgets.dart';
 import 'variant_labels.dart';
+import 'widgets/menu_banner.dart';
 
 /// The entry screen: one card per variant with Play, Resume (when a save
 /// exists) and Records. Building a game here is just constructing a [GameBloc]
@@ -30,6 +31,7 @@ class MainMenuScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
+              const MenuBanner(),
               const FeltHeader(title: '♠ Open Patience ♥'),
               Expanded(
                 child: ListView(
