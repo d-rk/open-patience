@@ -1,9 +1,7 @@
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
-import 'package:open_patience/core/pile.dart';
 import 'package:open_patience/presentation/board_geometry.dart';
 
 void main() {
