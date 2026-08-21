@@ -15,6 +15,13 @@ if (hasReleaseKeystore) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+val testingKeystorePropertiesFile = rootProject.file("key.testing.properties")
+val testingKeystoreProperties = Properties()
+val hasTestingKeystore = testingKeystorePropertiesFile.exists()
+if (hasTestingKeystore) {
+    testingKeystoreProperties.load(FileInputStream(testingKeystorePropertiesFile))
+}
+
 android {
     namespace = "io.github.d_rk.openpatience"
     compileSdk = flutter.compileSdkVersion
@@ -46,15 +53,53 @@ android {
                 storePassword = keystoreProperties["storePassword"] as String
             }
         }
+        if (hasTestingKeystore) {
+            create("testing") {
+                keyAlias = testingKeystoreProperties["keyAlias"] as String
+                keyPassword = testingKeystoreProperties["keyPassword"] as String
+                storeFile = file(testingKeystoreProperties["storeFile"] as String)
+                storePassword = testingKeystoreProperties["storePassword"] as String
+            }
+        }
     }
 
     buildTypes {
         release {
+            // signingConfig is assigned per-flavor below, so production and
+            // testing sign with different keys. (A signingConfig set here
+            // would take precedence over the flavor's and defeat that.)
+        }
+    }
+
+    flavorDimensions += "channel"
+
+    productFlavors {
+        create("production") {
+            dimension = "channel"
+            manifestPlaceholders["appLabel"] = "Open Patience"
             signingConfig = if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")
             } else {
-                // No key.properties present (e.g. local dev machine) — fall
-                // back to debug signing so `flutter run --release` still works.
+                // No key.properties (local dev) — fall back to debug signing
+                // so `flutter run --release` still works.
+                signingConfigs.getByName("debug")
+            }
+        }
+        // Named "Testing" (capital T), not "testing": AGP hard-rejects any
+        // product flavor whose name starts with the lowercase prefix "test"
+        // ("ProductFlavor names cannot start with 'test'" — reserved for its
+        // own generated test source sets/tasks). The capital-T variant still
+        // satisfies `flutter build apk --flavor testing` and
+        // `--flavor Testing` on the CLI, since Flutter capitalizes the first
+        // letter it's given before mapping to the Gradle task name
+        // (assembleTestingRelease either way).
+        create("Testing") {
+            dimension = "channel"
+            applicationIdSuffix = ".debug"
+            manifestPlaceholders["appLabel"] = "Open Patience (Testing)"
+            signingConfig = if (hasTestingKeystore) {
+                signingConfigs.getByName("testing")
+            } else {
                 signingConfigs.getByName("debug")
             }
         }
