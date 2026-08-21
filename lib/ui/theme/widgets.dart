@@ -105,11 +105,22 @@ class GameWordmark extends StatelessWidget {
     shadows: _shadows,
   );
 
-  Widget _pip(String glyph, Color color) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 7),
+  Widget _pip(String glyph) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 6),
     child: Text(
       glyph,
-      style: TextStyle(color: color, fontSize: 16, height: 1.0),
+      style: const TextStyle(
+        color: GamePalette.gold,
+        fontSize: 15,
+        height: 1.0,
+      ),
+    ),
+  );
+
+  Widget _rule() => Expanded(
+    child: Container(
+      height: 2,
+      color: GamePalette.gold.withValues(alpha: 0.7),
     ),
   );
 
@@ -117,30 +128,35 @@ class GameWordmark extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            textBaseline: TextBaseline.alphabetic,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            children: <Widget>[
-              Text('OPEN', style: _word(GamePalette.cardFace)),
-              const SizedBox(width: 14),
-              Text('PATIENCE', style: _word(GamePalette.gold)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              _pip('♠', GamePalette.gold),
-              _pip('♥', GamePalette.gold),
-              _pip('♦', GamePalette.gold),
-              _pip('♣', GamePalette.gold),
-            ],
-          ),
-        ],
+      child: IntrinsicWidth(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              textBaseline: TextBaseline.alphabetic,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              children: <Widget>[
+                Text('OPEN', style: _word(GamePalette.cardFace)),
+                const SizedBox(width: 14),
+                Text('PATIENCE', style: _word(GamePalette.gold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: <Widget>[
+                _rule(),
+                const SizedBox(width: 10),
+                _pip('♠'),
+                _pip('♥'),
+                _pip('♦'),
+                _pip('♣'),
+                const SizedBox(width: 10),
+                _rule(),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
