@@ -1,0 +1,50 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/core/card.dart';
+import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/core/pile.dart';
+import 'package:open_patience/presentation/board_geometry.dart';
+import 'package:open_patience/presentation/board_sequence.dart';
+import 'package:open_patience/ui/theme/game_motion.dart';
+
+Card _up(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
+
+GameState _dealt() => GameState(
+  piles: <Pile>[
+    Pile(kind: PileKind.stock),
+    Pile(kind: PileKind.waste),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.spades, 5)]),
+    Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.hearts, 8)]),
+    for (int i = 0; i < 5; i++) Pile(kind: PileKind.tableau),
+  ],
+);
+
+void main() {
+  test('DealSequence matches the first render', () {
+    expect(const DealSequence().matches(null, _dealt()), isTrue);
+  });
+
+  test('DealSequence does not match an ordinary move', () {
+    final GameState a = _dealt();
+    expect(const DealSequence().matches(a, a), isFalse);
+  });
+
+  test('later cards in deal order get longer delays', () {
+    const DealSequence s = DealSequence();
+    final BoardGeometry g = BoardGeometry.resolve(
+      game: _dealt(),
+      width: 400,
+      height: 800,
+      shortestSide: 400,
+      isLandscape: false,
+      wasteVisibleCount: 1,
+    );
+    final Duration d5 = s.delayFor(const CardKey(Suit.spades, 5), g);
+    final Duration d8 = s.delayFor(const CardKey(Suit.hearts, 8), g);
+    expect(d5, isNot(equals(d8)));
+    expect(s.total, greaterThanOrEqualTo(GameMotion.move));
+  });
+}
