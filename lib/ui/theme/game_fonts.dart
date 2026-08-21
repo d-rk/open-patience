@@ -13,4 +13,7 @@ class GameFonts {
 
   /// Rounded, legible face for card rank labels (Fredoka).
   static const String card = 'Fredoka';
+
+  /// Handwritten script face for the author's signature credit (Satisfy).
+  static const String signature = 'Satisfy';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/ui/theme/game_fonts.dart';
 import 'package:open_patience/ui/theme/widgets.dart';
 
 Future<void> _pump(WidgetTester tester, Widget child) {
@@ -45,4 +46,15 @@ void main() {
     expect(find.text('OPEN'), findsOneWidget);
     expect(find.text('PATIENCE'), findsOneWidget);
   });
+
+  testWidgets(
+    'GameSignature renders the handwritten credit in the script font',
+    (WidgetTester tester) async {
+      await _pump(tester, const GameSignature());
+      final Finder credit = find.text('a game by Dirk Wilden');
+      expect(credit, findsOneWidget);
+      final Text text = tester.widget<Text>(credit);
+      expect(text.style?.fontFamily, GameFonts.signature);
+    },
+  );
 }

@@ -48,6 +48,9 @@ flutter:
     - family: Fredoka
       fonts:
         - asset: assets/fonts/Fredoka-VariableFont_wght.ttf
+    - family: Satisfy
+      fonts:
+        - asset: assets/fonts/Satisfy-Regular.ttf
 
 # App launcher icons. Source art is rendered in Blender via
 # `tools/logo/build_logo.py` (see that file for the regen command).

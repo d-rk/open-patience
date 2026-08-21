@@ -25,11 +25,12 @@ Decided interactively (visual companion):
 
 ## Font asset (offline, F-Droid-safe)
 
-Satisfy is an OFL font (Google Fonts), AGPL-compatible. Bundle it locally like
-the existing three faces — never fetched at runtime:
+Satisfy (by Font Diner) is an **Apache-2.0** font from Google Fonts,
+AGPL-compatible. Bundle it locally like the existing faces — never fetched at
+runtime:
 
 - `assets/fonts/Satisfy-Regular.ttf`
-- `assets/fonts/OFL-Satisfy.txt` (license, alongside the asset)
+- `assets/fonts/LICENSE-Satisfy.txt` (Apache-2.0 license, alongside the asset)
 - `pubspec.yaml`: new `family: Satisfy` entry under `fonts:`.
 - `lib/ui/theme/game_fonts.dart`: new token
   `static const String signature = 'Satisfy';`.
@@ -78,6 +79,6 @@ child of the top-level `Column` (after the `Expanded` list), inside
 
 ## Licensing
 
-Satisfy ships under the SIL Open Font License, compatible with the project's
-AGPL-3.0-only licensing. The `OFL-Satisfy.txt` file is bundled alongside the
-`.ttf` in `assets/fonts/`, matching the existing OFL fonts.
+Satisfy ships under the Apache License 2.0, which is one-way compatible with
+the project's AGPL-3.0-only licensing. The `LICENSE-Satisfy.txt` file is
+bundled alongside the `.ttf` in `assets/fonts/`.
