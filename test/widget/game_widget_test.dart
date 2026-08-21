@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Card;
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
@@ -251,6 +252,45 @@ void main() {
     expect(find.byTooltip('Menu'), findsOneWidget);
     expect(find.text('0 moves'), findsOneWidget);
     expect(find.text('00:00'), findsOneWidget);
+  });
+
+  testWidgets('play screen requests immersive mode to fend off edge-swipe '
+      'back gestures', (WidgetTester tester) async {
+    final List<MethodCall> platformCalls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (MethodCall call) async {
+        platformCalls.add(call);
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    final RecordsRepository repo = await _repo();
+    final GameBloc bloc = _bloc(
+      repo,
+      GameState.newGame(KlondikeRules(), seed: 42),
+    );
+    addTearDown(bloc.close);
+
+    await _pump(tester, bloc);
+
+    final MethodCall uiMode = platformCalls.firstWhere(
+      (MethodCall call) => call.method == 'SystemChrome.setEnabledSystemUIMode',
+      orElse: () => const MethodCall('none'),
+    );
+    expect(
+      uiMode.arguments,
+      'SystemUiMode.immersiveSticky',
+      reason:
+          'GameScreen should hide the system bars so an edge swipe peeks '
+          'them back instead of popping to the menu',
+    );
   });
 
   testWidgets('save then simulated relaunch resumes the in-progress game', (
