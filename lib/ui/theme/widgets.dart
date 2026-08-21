@@ -133,10 +133,10 @@ class GameWordmark extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _pip('♠', GamePalette.cardFace.withValues(alpha: 0.85)),
-              _pip('♥', GamePalette.cardRed),
-              _pip('♦', GamePalette.cardRed),
-              _pip('♣', GamePalette.cardFace.withValues(alpha: 0.85)),
+              _pip('♠', GamePalette.gold),
+              _pip('♥', GamePalette.gold),
+              _pip('♦', GamePalette.gold),
+              _pip('♣', GamePalette.gold),
             ],
           ),
         ],
