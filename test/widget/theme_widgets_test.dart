@@ -37,4 +37,12 @@ void main() {
     await tester.tap(find.text('Restart'));
     expect(taps, 1);
   });
+
+  testWidgets('GameWordmark shows the two-tone all-caps wordmark', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, const GameWordmark());
+    expect(find.text('OPEN '), findsOneWidget);
+    expect(find.text('PATIENCE'), findsOneWidget);
+  });
 }

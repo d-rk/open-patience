@@ -32,7 +32,7 @@ class MainMenuScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               const MenuBanner(),
-              const FeltHeader(title: '♠ Open Patience ♥'),
+              const GameWordmark(),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(16),
