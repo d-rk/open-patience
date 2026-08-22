@@ -111,6 +111,29 @@ void main() {
     expect(find.text('Continue playing'), findsOneWidget);
   });
 
+  testWidgets('swiping a Continue row removes it and clears the save', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    await repo.saveGame(
+      variant: 'freecell',
+      seed: 9,
+      state: GameState.newGame(GameRegistry.rulesFor('freecell'), seed: 9),
+    );
+    await tester.pumpWidget(_host(MainMenuScreen(repository: repo)));
+    await tester.pumpAndSettle();
+    expect(find.text('Continue playing'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const ValueKey<String>('continue-freecell')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Continue playing'), findsNothing);
+    expect(await repo.loadAllSaves(), isEmpty);
+  });
+
   testWidgets('no Continue section when nothing is in progress', (
     WidgetTester tester,
   ) async {
