@@ -77,6 +77,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Landscape is short on height, so the stats ride in the otherwise-empty
+    // centre of the top bar instead of claiming a bottom row of their own.
+    final bool isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     return Scaffold(
       body: FeltBackground(
         child: SafeArea(
@@ -84,6 +88,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             children: <Widget>[
               TopBar(
                 onMenu: () => showGameMenu(context, context.read<GameBloc>()),
+                center: isLandscape ? const StatBar(compact: true) : null,
               ),
               Expanded(
                 child: BlocListener<GameBloc, GameBlocState>(
@@ -96,7 +101,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                   child: const Board(),
                 ),
               ),
-              const StatBar(),
+              if (!isLandscape) const StatBar(),
             ],
           ),
         ),

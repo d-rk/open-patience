@@ -10,6 +10,7 @@ import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/persistence/stats.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
+import 'package:open_patience/presentation/board.dart';
 import 'package:open_patience/presentation/card_view.dart';
 import 'package:open_patience/ui/game_screen.dart';
 import 'package:open_patience/ui/records_screen.dart';
@@ -327,5 +328,54 @@ void main() {
 
     expect(find.text('1 moves'), findsOneWidget);
     expect(resumed.state.state.pileAt(7).length, 2);
+  });
+
+  testWidgets('landscape shows the stats above the board', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    final GameBloc bloc = _bloc(
+      repo,
+      GameState.newGame(KlondikeRules(), seed: 42),
+    );
+    addTearDown(bloc.close);
+
+    tester.view.physicalSize = const Size(800, 360);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pump(tester, bloc);
+
+    // Stats live in the top bar, above the board — not in a bottom bar.
+    expect(find.text('0 moves'), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('0 moves')).dy,
+      lessThan(tester.getRect(find.byType(Board)).top),
+    );
+  });
+
+  testWidgets('portrait keeps the stats below the board', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    final GameBloc bloc = _bloc(
+      repo,
+      GameState.newGame(KlondikeRules(), seed: 42),
+    );
+    addTearDown(bloc.close);
+
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pump(tester, bloc);
+
+    expect(find.text('0 moves'), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('0 moves')).dy,
+      greaterThan(tester.getRect(find.byType(Board)).bottom),
+    );
   });
 }
