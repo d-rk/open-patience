@@ -7,10 +7,10 @@ import 'sequence.dart';
 
 /// FreeCell solitaire.
 ///
-/// Pile layout (canonical index order):
-/// * `0`..`3`   — four free cells (hold one card each)
-/// * `4`..`7`   — foundations (one per suit, built up Ace..King)
-/// * `8`..`15`  — eight tableau columns (all cards dealt face up)
+/// Pile layout (canonical index order), where `n` is [freecellCount]:
+/// * `0`..`n-1`         — the free cells (hold one card each)
+/// * `n`..`n+3`         — 4 foundations (one per suit, built up Ace..King)
+/// * `n+4`..`n+11`      — 8 tableau columns (all cards dealt face up)
 ///
 /// The signature move constraint is [maxMovable]: with no real "pick up a
 /// stack" mechanic, moving N cards as a group is only shorthand for a chain of
