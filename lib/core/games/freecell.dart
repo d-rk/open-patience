@@ -17,17 +17,24 @@ import 'sequence.dart';
 /// single-card moves through the free cells and empty columns, so the group
 /// size is capped by `(freeCells + 1) * 2^(emptyColumns)`.
 class FreecellRules implements GameRules {
-  FreecellRules();
+  FreecellRules({this.freecellCount = 4})
+    : assert(
+        freecellCount >= 1 && freecellCount <= 8,
+        'freecellCount must be between 1 and 8',
+      );
 
   static const int firstFreecell = 0;
-  static const int freecellCount = 4;
-  static const int firstFoundation = 4;
   static const int foundationCount = 4;
-  static const int firstTableau = 8;
   static const int tableauCount = 8;
 
+  final int freecellCount;
+
+  int get firstFoundation => freecellCount;
+  int get firstTableau => freecellCount + foundationCount;
+
   @override
-  String get id => 'freecell';
+  String get id =>
+      freecellCount == 4 ? 'freecell' : 'freecell-cells$freecellCount';
 
   @override
   List<Pile> deal(Deck deck) {
