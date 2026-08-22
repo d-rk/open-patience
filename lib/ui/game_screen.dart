@@ -33,6 +33,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   Timer? _timer;
+  bool _menuOpen = false;
 
   @override
   void initState() {
@@ -50,7 +51,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           return;
         }
         final GameBloc bloc = context.read<GameBloc>();
-        if (bloc.state is GameInProgress) {
+        if (bloc.state is GameInProgress && !_menuOpen) {
           bloc.add(const Tick());
         }
       });
@@ -87,7 +88,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           child: Column(
             children: <Widget>[
               TopBar(
-                onMenu: () => showGameMenu(context, context.read<GameBloc>()),
+                onMenu: () async {
+                  setState(() => _menuOpen = true);
+                  await showGameMenu(context, context.read<GameBloc>());
+                  if (mounted) {
+                    setState(() => _menuOpen = false);
+                  }
+                },
                 center: isLandscape ? const StatBar(compact: true) : null,
               ),
               Expanded(

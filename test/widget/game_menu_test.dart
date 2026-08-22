@@ -9,6 +9,7 @@ import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
 import 'package:open_patience/presentation/bloc/game_event.dart';
 import 'package:open_patience/ui/game_screen.dart';
+import 'package:open_patience/ui/theme/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _RecordingBloc extends GameBloc {
@@ -79,30 +80,76 @@ void main() {
     expect(find.text('Klondike (Draw 1)'), findsOneWidget);
   });
 
-  testWidgets('Restart tile dispatches RestartDealRequested and closes', (
+  testWidgets('Restart Deal tile dispatches RestartDealRequested and closes', (
     WidgetTester tester,
   ) async {
     final _RecordingBloc bloc = await _repoBloc();
     addTearDown(bloc.close);
     await _pump(tester, bloc);
     await _openMenu(tester);
-    await tester.tap(find.text('Restart'));
+    await tester.tap(find.text('Restart Deal'));
     await tester.pumpAndSettle();
     expect(bloc.recorded.whereType<RestartDealRequested>(), isNotEmpty);
-    expect(find.text('Restart'), findsNothing); // dialog closed
+    expect(find.text('Restart Deal'), findsNothing); // dialog closed
   });
 
-  testWidgets('Shuffle tile dispatches NewDealRequested and closes', (
+  testWidgets('New Deal tile dispatches NewDealRequested and closes', (
     WidgetTester tester,
   ) async {
     final _RecordingBloc bloc = await _repoBloc();
     addTearDown(bloc.close);
     await _pump(tester, bloc);
     await _openMenu(tester);
-    await tester.tap(find.text('Shuffle'));
+    await tester.tap(find.text('New Deal'));
     await tester.pumpAndSettle();
     expect(bloc.recorded.whereType<NewDealRequested>(), isNotEmpty);
-    expect(find.text('Shuffle'), findsNothing);
+    expect(find.text('New Deal'), findsNothing);
+  });
+
+  testWidgets('menu content is width-capped so it stays compact in landscape', (
+    WidgetTester tester,
+  ) async {
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+    await _openMenu(tester);
+    final MenuWidthLimit widthLimit = tester.widget(
+      find.byType(MenuWidthLimit),
+    );
+    expect(widthLimit.maxWidth, lessThanOrEqualTo(400));
+  });
+
+  testWidgets('timer pauses while the in-game menu is open', (
+    WidgetTester tester,
+  ) async {
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<GameBloc>.value(
+          value: bloc,
+          child: const GameScreen(autoTick: Duration(milliseconds: 10)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.pump(const Duration(milliseconds: 35));
+    final int ticksBeforeMenu = bloc.recorded.whereType<Tick>().length;
+    expect(ticksBeforeMenu, greaterThan(0));
+
+    await _openMenu(tester);
+    await tester.pump(const Duration(milliseconds: 35));
+    expect(bloc.recorded.whereType<Tick>().length, ticksBeforeMenu);
+
+    // Dismiss by tapping the barrier, outside the dialog bounds.
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 35));
+    expect(
+      bloc.recorded.whereType<Tick>().length,
+      greaterThan(ticksBeforeMenu),
+    );
   });
 
   testWidgets('Exit closes the dialog and pops back to the previous screen', (
