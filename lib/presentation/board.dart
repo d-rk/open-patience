@@ -154,8 +154,8 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
               isLandscape: isLandscape,
               wasteVisibleCount: wasteVisibleCount,
             );
-            _syncDeal(game, reduceMotion);
-            _syncWin(blocState, reduceMotion);
+            _syncDeal(game, geometry, reduceMotion);
+            _syncWin(blocState, geometry, reduceMotion);
             return _stack(context, game, geometry, moveDuration);
           },
         );
@@ -393,7 +393,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// per-tick rebuilds don't re-trigger it). The first render is diffed against
   /// a null baseline, so it always reads as a deal. Under reduce-motion the
   /// controller is skipped entirely, so cards render at their targets at once.
-  void _syncDeal(GameState next, bool reduceMotion) {
+  void _syncDeal(GameState next, BoardGeometry geometry, bool reduceMotion) {
     if (identical(_lastDealState, next)) {
       return;
     }
@@ -407,7 +407,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     _disposeDeal();
     final AnimationController controller = AnimationController(
       vsync: this,
-      duration: _dealSequence.total,
+      duration: _dealSequence.totalFor(geometry),
     );
     _dealController = controller;
     controller.addListener(_onDealTick);
@@ -467,7 +467,11 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// a piles-diff — so [WinSequence.matches] stays unused here. Guarded by
   /// [_lastWinState] so the flourish's own per-tick rebuilds don't re-trigger
   /// it. Skipped under reduce-motion, so the win simply lands with no pulse.
-  void _syncWin(GameBlocState blocState, bool reduceMotion) {
+  void _syncWin(
+    GameBlocState blocState,
+    BoardGeometry geometry,
+    bool reduceMotion,
+  ) {
     final GameState next = blocState.state;
     if (identical(_lastWinState, next)) {
       return;
@@ -480,7 +484,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     _disposeWin();
     final AnimationController controller = AnimationController(
       vsync: this,
-      duration: _winSequence.total,
+      duration: _winSequence.totalFor(geometry),
     );
     _winController = controller;
     controller.addListener(_onWinTick);

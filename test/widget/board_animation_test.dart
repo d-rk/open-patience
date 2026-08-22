@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
+import 'package:open_patience/core/game_registry.dart';
 import 'package:open_patience/core/game_state.dart';
 import 'package:open_patience/core/pile.dart';
 import 'package:open_patience/persistence/records_repository.dart';
@@ -359,19 +360,35 @@ void main() {
   testWidgets('the deal ends without every card lurching back to the origin', (
     WidgetTester tester,
   ) async {
-    await _startDeal(tester, const Size(400, 800), state: _dragPair());
-    // Play the deal out in real frames so the card genuinely settles at rest.
-    for (int t = 0; t < 500; t += 40) {
+    // A full Klondike deal (~29 animated cards) so an early card settles well
+    // before the controller completes, giving a clear window across completion.
+    final GameState deal = GameState.newGame(
+      GameRegistry.rulesFor('klondike-draw1'),
+      seed: 1,
+    );
+    final GameBloc bloc = await _startDeal(
+      tester,
+      const Size(400, 800),
+      state: deal,
+    );
+    // The second tableau column's bottom card is dealt early and stays face
+    // down (so it reads as a plain CardFace whether at rest or, in the bug,
+    // re-pended to the origin).
+    final Card early = bloc.state.state.pileAt(7).cards.first;
+    final Finder earlyFinder = _faceDown(early.suit, early.rank);
+
+    // Play the deal out in real frames so that card genuinely settles at rest.
+    for (int t = 0; t < 400; t += 40) {
       await tester.pump(const Duration(milliseconds: 40));
     }
-    final double rest = tester.getTopLeft(_cardFace(Suit.hearts, 8)).dy;
-    // Keep stepping across the controller-completion boundary (~2260ms). The
-    // card is long settled and must not move: a regression re-pended every card
-    // to the origin on the completion frame, so all cards lurched back.
-    for (int i = 0; i < 60; i++) {
-      await tester.pump(const Duration(milliseconds: 40)); // 540ms .. 2940ms
+    final double rest = tester.getTopLeft(earlyFinder).dy;
+    // Keep stepping across the controller-completion boundary. The card is long
+    // settled and must not move: a regression re-pended every card to the origin
+    // on the completion frame, so all cards lurched back.
+    for (int i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 40)); // 440ms .. 2040ms
       expect(
-        tester.getTopLeft(_cardFace(Suit.hearts, 8)).dy,
+        tester.getTopLeft(earlyFinder).dy,
         closeTo(rest, 2.0),
         reason: 'card lurched toward the origin at step $i',
       );

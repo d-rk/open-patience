@@ -26,8 +26,10 @@ abstract interface class SpecialSequence {
   Duration delayFor(CardKey key, BoardGeometry geometry);
 
   /// The controller duration for the whole set-piece: long enough that the last
-  /// card has both activated and finished its flight.
-  Duration get total;
+  /// card has both activated and finished its flight. Sized from [geometry] so a
+  /// small deal doesn't leave the controller running a long empty tail past the
+  /// last card.
+  Duration totalFor(BoardGeometry geometry);
 }
 
 /// A modest staggered deal: cards start at the stock origin and reveal their
@@ -35,11 +37,6 @@ abstract interface class SpecialSequence {
 /// walking [BoardGeometry.cards] in paint order (pile-major, bottom-to-top).
 class DealSequence implements SpecialSequence {
   const DealSequence();
-
-  /// Upper bound on the cards a single deal can involve (a full deck). Used to
-  /// size [total] without needing the geometry, so the controller always
-  /// outlives the last card's flight regardless of the variant.
-  static const int _maxDealCards = 52;
 
   @override
   bool matches(GameState? previous, GameState next) {
@@ -71,8 +68,14 @@ class DealSequence implements SpecialSequence {
   }
 
   @override
-  Duration get total =>
-      GameMotion.dealStagger * (_maxDealCards - 1) + GameMotion.move;
+  Duration totalFor(BoardGeometry geometry) {
+    // The last card in paint order activates at dealStagger*(count-1); add one
+    // move so the controller outlives its flight. Only the cards actually placed
+    // in the geometry animate (a deep stock shows a single top card), so this is
+    // usually far under a full 52-card deck.
+    final int count = math.max(geometry.cards.length, 1);
+    return GameMotion.dealStagger * (count - 1) + GameMotion.move;
+  }
 
   /// Every card key anywhere in [state].
   Set<CardKey> _allCardKeys(GameState state) {
@@ -122,8 +125,11 @@ class WinSequence implements SpecialSequence {
   @override
   Duration delayFor(CardKey key, BoardGeometry geometry) => Duration.zero;
 
-  @override
+  /// The flourish is a fixed, card-count-independent pulse.
   Duration get total => const Duration(milliseconds: 600);
+
+  @override
+  Duration totalFor(BoardGeometry geometry) => total;
 
   /// The foundation-card scale at [elapsed] into the flourish: a symmetric ease
   /// pulse that starts at 1.0, swells to `1 + _amplitude` (~1.08) at the
