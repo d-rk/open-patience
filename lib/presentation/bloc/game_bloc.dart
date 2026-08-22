@@ -179,7 +179,10 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     }
   }
 
-  void _onUndoRequested(UndoRequested event, Emitter<GameBlocState> emit) {
+  Future<void> _onUndoRequested(
+    UndoRequested event,
+    Emitter<GameBlocState> emit,
+  ) async {
     if (!_state.canUndo) {
       return;
     }
@@ -187,14 +190,19 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     // Undo can move the board out of a won state, so re-derive the snapshot
     // rather than assuming in-progress.
     emit(_snapshotOf(_state, rules));
+    await _persist();
   }
 
-  void _onRedoRequested(RedoRequested event, Emitter<GameBlocState> emit) {
+  Future<void> _onRedoRequested(
+    RedoRequested event,
+    Emitter<GameBlocState> emit,
+  ) async {
     if (!_state.canRedo) {
       return;
     }
     _state.redo();
     emit(_snapshotOf(_state, rules));
+    await _persist();
   }
 
   Future<void> _onNewDealRequested(
@@ -207,11 +215,14 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     emit(GameInProgress(_state.copy()));
   }
 
-  void _onRestartDealRequested(
+  Future<void> _onRestartDealRequested(
     RestartDealRequested event,
     Emitter<GameBlocState> emit,
-  ) {
+  ) async {
     _state = GameState.newGame(rules, seed: _seed);
+    // The prior deal's autosave is now stale — drop it so the reset deal is
+    // not resumable to its abandoned progress.
+    await repository.clearSave(variant);
     emit(GameInProgress(_state.copy()));
   }
 
@@ -219,6 +230,10 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     SaveRequested event,
     Emitter<GameBlocState> emit,
   ) async {
+    // Never persist a completed game as resumable.
+    if (_state.isWon(rules)) {
+      return;
+    }
     await repository.saveGame(variant: variant, seed: _seed, state: _state);
   }
 
@@ -246,6 +261,18 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       emit(GameWon(_state.copy(), elapsed: elapsed, moves: moves));
     } else {
       emit(GameInProgress(_state.copy()));
+      await _persist();
+    }
+  }
+
+  /// Persists the current in-progress game so leaving the play screen (by any
+  /// path) always leaves a resumable save, or clears the slot once the game is
+  /// won. Called after every state change that leaves the board resumable.
+  Future<void> _persist() async {
+    if (_state.isWon(rules)) {
+      await repository.clearSave(variant);
+    } else {
+      await repository.saveGame(variant: variant, seed: _seed, state: _state);
     }
   }
 
