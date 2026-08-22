@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../core/card.dart';
 import '../core/game_rules.dart';
 import '../core/game_state.dart';
 import '../core/games/klondike.dart';
@@ -312,33 +313,39 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         ? dealOriginOf(geometry)
         : null;
     final bool isDealing = dealOrigin != null;
+    // While a card waits at the fly-from origin it shows its back, so the deck
+    // building up at the origin never flashes a face-up card. Crucially this is
+    // routed through the persistent CardFlip below (not a bare CardFace): the
+    // card it carries is face-down while waiting and its real card once dealt,
+    // so the instant it activates the flip plays — and the flip shows the *back*
+    // through the first half of its turn, i.e. exactly while the card is still
+    // at the origin. The face is only revealed once the card has flown clear.
+    final Card flipCard = isDealing
+        ? placement.card.faceDownCard
+        : placement.card;
+    final Widget faceChild = isDealing
+        ? CardFace(card: placement.card.faceDownCard, size: cardSize)
+        : _cardWidgetFor(context, placement, pile, cardSize);
     // CardFlip sits at this faceUp-invariant position (its ValueKey is stable
-    // across the CardFace↔CardView swap that a draw / reveal triggers) so it
-    // persists and can animate the orientation change. The gesture and
+    // across the CardFace↔CardView swap that a draw / reveal / deal triggers) so
+    // it persists and can animate the orientation change. The gesture and
     // Draggable layers stay inside its child, and it is the identity transform
     // at rest, so drag and taps are unaffected.
     final Widget flip = CardFlip(
       key: ValueKey<String>(
         'flip-${placement.card.suit.name}-${placement.card.rank}',
       ),
-      card: placement.card,
+      card: flipCard,
       size: cardSize,
-      child: _cardWidgetFor(context, placement, pile, cardSize),
+      child: faceChild,
     );
     // The win flourish scales foundation cards by a gentle pulse; at rest (and
     // for non-foundation cards) the scale is 1.0, so this is a no-op transform
     // that never interferes with drags, taps or the deal set-piece.
     final double winScale = _winScaleFor(pile);
-    Widget child = winScale == 1.0
+    final Widget child = winScale == 1.0
         ? flip
         : Transform.scale(scale: winScale, child: flip);
-    // While a card waits at the fly-from origin it shows a plain face-down back,
-    // so the stack building up at the origin reads as the deck being dealt from
-    // rather than a confusing hovering face-up card. It swaps to its real face
-    // (via the CardFlip above) the moment it activates and glides to its slot.
-    if (isDealing) {
-      child = CardFace(card: placement.card.faceDownCard, size: cardSize);
-    }
     return AnimatedPositioned(
       key: key.widgetKey,
       duration: isSettling ? Duration.zero : moveDuration,

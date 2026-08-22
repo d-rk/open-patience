@@ -9,6 +9,8 @@ import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
 import 'package:open_patience/presentation/board.dart';
+import 'package:open_patience/presentation/board_geometry.dart';
+import 'package:open_patience/presentation/board_sequence.dart';
 import 'package:open_patience/presentation/card_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -356,6 +358,48 @@ void main() {
       expect(_cardFace(Suit.hearts, 8), findsOneWidget);
     },
   );
+
+  testWidgets('no card is ever shown face up at the deal origin', (
+    WidgetTester tester,
+  ) async {
+    final GameState deal = GameState.newGame(
+      GameRegistry.rulesFor('klondike-draw1'),
+      seed: 1,
+    );
+    final BoardGeometry g = BoardGeometry.resolve(
+      game: deal,
+      width: 400,
+      height: 800,
+      shortestSide: 400,
+      isLandscape: false,
+      wasteVisibleCount: 1,
+    );
+    final Offset origin = dealOriginOf(g);
+    await _startDeal(tester, const Size(400, 800), state: deal);
+
+    // Walk the whole deal frame by frame. A face-up card must never be rendered
+    // at the fly-from origin: waiting cards show their back, and each card only
+    // reveals its face (mid-flip) once it has flown clear of the deck.
+    for (int frame = 0; frame < 120; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      for (final CardFace f in tester.widgetList<CardFace>(
+        find.byType(CardFace),
+      )) {
+        if (!f.card.faceUp) {
+          continue;
+        }
+        final Offset tl = tester.getTopLeft(find.byWidget(f));
+        expect(
+          (tl - origin).distance,
+          greaterThan(g.cardSize.height * 0.5),
+          reason:
+              'face-up ${f.card.suit.name}${f.card.rank} flashed at the deal '
+              'origin on frame $frame',
+        );
+      }
+    }
+    await tester.pumpAndSettle();
+  });
 
   testWidgets('the deal ends without every card lurching back to the origin', (
     WidgetTester tester,

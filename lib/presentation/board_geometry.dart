@@ -95,6 +95,7 @@ class TrayPlacement {
 class BoardGeometry {
   const BoardGeometry({
     required this.metrics,
+    required this.size,
     required this.cards,
     required this.slots,
     required this.trays,
@@ -102,6 +103,11 @@ class BoardGeometry {
   });
 
   final BoardMetrics metrics;
+
+  /// The resolved board area (the [LayoutBuilder] constraints the geometry was
+  /// laid out into). Board-local origin `(0,0)` is its top-left.
+  final Size size;
+
   final List<CardPlacement> cards;
   final List<SlotPlacement> slots;
   final List<TrayPlacement> trays;
@@ -194,6 +200,7 @@ class BoardGeometry {
     }
     return BoardGeometry(
       metrics: metrics,
+      size: Size(width, height),
       cards: builder.cards,
       slots: builder.slots,
       trays: builder.trays,
