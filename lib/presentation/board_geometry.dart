@@ -126,6 +126,22 @@ class BoardGeometry {
       maxPileLength = math.max(maxPileLength, game.pileAt(i).length);
     }
 
+    // The top area normally sits on one row (free cells / stock+waste on the
+    // left, foundations on the right). In portrait, when those groups together
+    // would out-number the tableau columns (6-cell FreeCell: 6 + 4 > 8) it
+    // splits into two rows — foundations above, free cells below. Landscape has
+    // the width to keep them side by side, so it stays on one row. Mirrors the
+    // rule the old `board.dart` carried before the geometry rewrite.
+    final bool twoRowTop =
+        !isLandscape && upper.length + foundations.length > tableau.length;
+    final int topRows = twoRowTop ? 2 : 1;
+    // The widest single top line, so cards can be sized to fit its width. On one
+    // row the top spans within the tableau, so it never binds (0 = no extra
+    // constraint); on two rows the wider of the two lines must fit.
+    final int topRowSlots = twoRowTop
+        ? math.max(upper.length, foundations.length)
+        : 0;
+
     final BoardMetrics metrics = BoardMetrics.resolve(
       width: width,
       height: height,
@@ -134,6 +150,11 @@ class BoardGeometry {
       shortestSide: shortestSide,
       isLandscape: isLandscape,
       sideStackCount: math.max(upper.length, foundations.length),
+      topRows: topRows,
+      topRowSlots: topRowSlots,
+      // The geometry paints no tray chrome, so reserve none — the top area is
+      // budgeted as bare card rows.
+      topTrays: 0,
     );
 
     final _Builder builder = _Builder(
@@ -145,6 +166,7 @@ class BoardGeometry {
       foundations: foundations,
       tableau: tableau,
       wasteVisibleCount: wasteVisibleCount,
+      twoRowTop: twoRowTop,
     );
     switch (metrics.layout) {
       case BoardLayout.portrait:
@@ -174,6 +196,7 @@ class _Builder {
     required this.foundations,
     required this.tableau,
     required this.wasteVisibleCount,
+    required this.twoRowTop,
   });
 
   final GameState game;
@@ -184,6 +207,10 @@ class _Builder {
   final List<int> foundations;
   final List<int> tableau;
   final int wasteVisibleCount;
+
+  /// Whether the top area splits into two rows (foundations above, free cells
+  /// below) because the two groups together out-number the tableau columns.
+  final bool twoRowTop;
 
   final List<CardPlacement> cards = <CardPlacement>[];
   final List<SlotPlacement> slots = <SlotPlacement>[];
@@ -323,7 +350,13 @@ class _Builder {
       return defaultGap;
     }
     final double fitGap = (bottomHeight - _cardH) / (maxLen - 1);
-    return math.max(_cardH * 0.06, math.min(defaultGap, fitGap));
+    // Floor matches the fraction BoardMetrics reserves vertical room for, so a
+    // fan compressed to its tightest still leaves a covered card's rank digit
+    // peeking out rather than collapsing to an unreadable sliver.
+    return math.max(
+      _cardH * BoardMetrics.minFanFactor,
+      math.min(defaultGap, fitGap),
+    );
   }
 
   void stacked() {
@@ -340,28 +373,41 @@ class _Builder {
       innerW = width - 2 * _pad;
     }
     const double topY = _pad;
+    final int topRows = twoRowTop ? 2 : 1;
+    final double topAreaHeight = topRows * _cardH + (topRows - 1) * _pad;
 
-    // Top row: upper piles left-aligned, foundations right-aligned.
-    double ux = originX;
-    for (final int i in upper) {
-      if (game.pileAt(i).kind == PileKind.waste) {
-        _placeWaste(i, Offset(ux, topY));
-      } else {
-        _placeSingleOrSlot(i, Offset(ux, topY));
+    if (twoRowTop) {
+      // Two rows: foundations on top, free cells (parking) below — both
+      // left-aligned. Portrait-only, when 6 free cells + 4 foundations would
+      // overflow a single row.
+      _placeTopRow(foundations, originX, topY);
+      _placeTopRow(upper, originX, topY + _cardH + _pad);
+    } else {
+      // One row: upper piles left-aligned, foundations right-aligned.
+      double ux = originX;
+      for (final int i in upper) {
+        if (game.pileAt(i).kind == PileKind.waste) {
+          _placeWaste(i, Offset(ux, topY));
+        } else {
+          _placeSingleOrSlot(i, Offset(ux, topY));
+        }
+        ux += _cardW + _pad;
       }
-      ux += _cardW + _pad;
-    }
-    double fx = originX + innerW;
-    for (int k = foundations.length - 1; k >= 0; k--) {
-      fx -= _cardW;
-      _placeSingleOrSlot(foundations[k], Offset(fx, topY));
-      fx -= _pad;
+      double fx = originX + innerW;
+      for (int k = foundations.length - 1; k >= 0; k--) {
+        fx -= _cardW;
+        _placeSingleOrSlot(foundations[k], Offset(fx, topY));
+        fx -= _pad;
+      }
     }
 
     // Tableau row.
-    final double tableauTop = topY + _cardH + _pad;
+    final double tableauTop = topY + topAreaHeight + _pad;
     final double usableHeight = height - 2 * _pad;
-    final double bottomHeight = math.max(_cardH, usableHeight - _cardH - _pad);
+    final double bottomHeight = math.max(
+      _cardH,
+      usableHeight - topAreaHeight - _pad,
+    );
     final double upGap = _fanGap(bottomHeight);
     final double downGap = upGap * 0.5;
     final double colW = innerW / cols;
@@ -369,6 +415,20 @@ class _Builder {
       final double centerX = originX + colW * j + colW / 2;
       final double cardX = centerX - _cardW / 2;
       _placeTableau(tableau[j], Offset(cardX, tableauTop), upGap, downGap);
+    }
+  }
+
+  /// Places [indices] as a left-aligned run of single/waste slots starting at
+  /// [x], all at [y], each [_cardW] + [_pad] apart. Used for the two-row top.
+  void _placeTopRow(List<int> indices, double x, double y) {
+    double cx = x;
+    for (final int i in indices) {
+      if (game.pileAt(i).kind == PileKind.waste) {
+        _placeWaste(i, Offset(cx, y));
+      } else {
+        _placeSingleOrSlot(i, Offset(cx, y));
+      }
+      cx += _cardW + _pad;
     }
   }
 
