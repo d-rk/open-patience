@@ -54,6 +54,16 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// teleport-back. Populated in [_drop] from a single bounded [RenderBox] read.
   final Map<CardKey, Offset> _settleFrom = <CardKey, Offset>{};
 
+  /// The card keys rendered in the last build (the placements in
+  /// [BoardGeometry.cards]). A card only counts as *moving* — lifted to the top
+  /// of the paint order until its flight ends — if it was on screen last frame
+  /// and so genuinely animates from its old position. A card that merely
+  /// *appears* (e.g. a buried stock card surfacing to the waste on a draw) has
+  /// no prior position, so its [AnimatedPositioned] never animates and never
+  /// fires `onEnd`; treating it as moving would strand it in [_moving] forever
+  /// and corrupt the paint order.
+  Set<CardKey> _renderedKeys = <CardKey>{};
+
   /// The board's [Stack] container. Its render box spans the board-local area,
   /// so its top-left is [BoardGeometry]'s origin `(0,0)` — the one place a drop's
   /// global offset is converted to board-local coordinates.
@@ -185,6 +195,11 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     Duration moveDuration,
   ) {
     final Size cardSize = geometry.cardSize;
+    // Remember what is on screen this frame, so the next transition only lifts
+    // cards that were actually here to fly from (see [_renderedKeys]).
+    _renderedKeys = <CardKey>{
+      for (final CardPlacement placement in geometry.cards) placement.key,
+    };
     final List<Widget> children = <Widget>[
       for (final TrayPlacement tray in geometry.trays)
         Positioned.fromRect(
@@ -234,6 +249,14 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     final Map<CardKey, (int, int)> after = _positions(next);
     final Set<CardKey> moved = <CardKey>{};
     after.forEach((CardKey k, (int, int) pos) {
+      // Only a card that was actually rendered last frame can fly: it has a
+      // prior on-screen position to animate from and an `onEnd` that will
+      // release it. A card that merely surfaced (was buried, unrendered) just
+      // appears at its target, so it must not be lifted (it would never leave
+      // the moving set and would corrupt the paint order).
+      if (!_renderedKeys.contains(k)) {
+        return;
+      }
       final (int, int)? was = before[k];
       if (was == null || was != pos) {
         moved.add(k);
