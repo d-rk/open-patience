@@ -29,20 +29,19 @@ void main() {
     test('deals all 52 cards face up across 8 columns (7,7,7,7,6,6,6,6)', () {
       final GameState state = GameState.newGame(rules, seed: 77);
       final List<int> heights = <int>[
-        for (int i = 0; i < 8; i++)
-          state.pileAt(FreecellRules.firstTableau + i).length,
+        for (int i = 0; i < 8; i++) state.pileAt(rules.firstTableau + i).length,
       ];
       expect(heights, <int>[7, 7, 7, 7, 6, 6, 6, 6]);
       final int total = heights.reduce((int a, int b) => a + b);
       expect(total, 52);
       for (int i = 0; i < 8; i++) {
-        final Pile pile = state.pileAt(FreecellRules.firstTableau + i);
+        final Pile pile = state.pileAt(rules.firstTableau + i);
         expect(pile.cards.every((Card c) => c.faceUp), isTrue);
       }
       // Free cells and foundations start empty.
       for (int i = 0; i < 4; i++) {
         expect(state.pileAt(FreecellRules.firstFreecell + i).isEmpty, isTrue);
-        expect(state.pileAt(FreecellRules.firstFoundation + i).isEmpty, isTrue);
+        expect(state.pileAt(rules.firstFoundation + i).isEmpty, isTrue);
       }
     });
   });
@@ -157,6 +156,51 @@ void main() {
       final List<Card> pair = <Card>[_c(Suit.spades, 8), _c(Suit.hearts, 7)];
       expect(rules.maxMovable(state), 1);
       expect(rules.isLegalMove(state, 8, pair, 9), isFalse);
+    });
+  });
+
+  group('FreeCell cell-count variants', () {
+    test('2-cell variant shifts offsets and deals 14 piles', () {
+      final FreecellRules hard = FreecellRules(freecellCount: 2);
+      expect(hard.id, 'freecell-cells2');
+      expect(FreecellRules.firstFreecell, 0);
+      expect(hard.firstFoundation, 2);
+      expect(hard.firstTableau, 6);
+      final GameState state = GameState.newGame(hard, seed: 5);
+      expect(state.piles.length, 2 + 4 + 8);
+      int total = 0;
+      for (int i = 0; i < 8; i++) {
+        total += state.pileAt(hard.firstTableau + i).length;
+      }
+      expect(total, 52);
+    });
+
+    test('6-cell variant has id freecell-cells6 and 18 piles', () {
+      final FreecellRules easy = FreecellRules(freecellCount: 6);
+      expect(easy.id, 'freecell-cells6');
+      final GameState state = GameState.newGame(easy, seed: 8);
+      expect(state.piles.length, 6 + 4 + 8);
+    });
+
+    test('classic 4-cell keeps id freecell for records backward-compat', () {
+      expect(FreecellRules().id, 'freecell');
+      expect(FreecellRules(freecellCount: 4).id, 'freecell');
+    });
+
+    test('maxMovable scales with the free-cell count', () {
+      final FreecellRules hard = FreecellRules(freecellCount: 2);
+      final List<Pile> piles = <Pile>[
+        for (int i = 0; i < 2; i++) Pile(kind: PileKind.freecell),
+        for (int i = 0; i < 4; i++) Pile(kind: PileKind.foundation),
+        for (int i = 0; i < 8; i++) Pile(kind: PileKind.tableau),
+      ];
+      piles[6] = Pile(
+        kind: PileKind.tableau,
+        cards: <Card>[_c(Suit.spades, 5)],
+      );
+      final GameState state = GameState(piles: piles);
+      // freeCells = 2, emptyColumns = 7 -> (2+1) * 2^7.
+      expect(hard.maxMovable(state), (2 + 1) * (1 << 7));
     });
   });
 

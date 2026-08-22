@@ -8,6 +8,7 @@ import '../core/game_rules.dart';
 import '../core/game_state.dart';
 import '../core/games/klondike.dart';
 import '../core/pile.dart';
+import '../ui/theme/game_palette.dart';
 import 'bloc/game_bloc.dart';
 import 'bloc/game_bloc_state.dart';
 import 'bloc/game_event.dart';
@@ -61,6 +62,18 @@ class Board extends StatelessWidget {
           maxPileLength = math.max(maxPileLength, game.pileAt(index).length);
         }
 
+        // The top area normally sits on one row (free cells / stock+waste on
+        // the left, foundations on the right). When those groups together would
+        // out-number the tableau columns (6-cell FreeCell: 6 + 4 > 8) it splits
+        // into two tray rows — foundations above, free cells below.
+        final bool twoRowTop =
+            upper.length + foundations.length > tableau.length;
+        final int topRows = twoRowTop ? 2 : 1;
+        final int topRowSlots = twoRowTop
+            ? math.max(upper.length, foundations.length)
+            : upper.length + foundations.length;
+        final int topTrays = twoRowTop ? 1 : 2;
+
         return LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
             final BoardMetrics metrics = BoardMetrics.resolve(
@@ -71,6 +84,9 @@ class Board extends StatelessWidget {
               shortestSide: shortestSide,
               isLandscape: isLandscape,
               sideStackCount: math.max(upper.length, foundations.length),
+              topRows: topRows,
+              topRowSlots: topRowSlots,
+              topTrays: topTrays,
             );
 
             switch (metrics.layout) {
@@ -85,6 +101,7 @@ class Board extends StatelessWidget {
                   metrics.cardSize,
                   constraints,
                   centred: metrics.layout == BoardLayout.phoneLandscape,
+                  twoRowTop: twoRowTop,
                 );
               case BoardLayout.tabletLandscape:
                 return _sideColumnLayout(
@@ -119,11 +136,18 @@ class Board extends StatelessWidget {
     Size cardSize,
     BoxConstraints constraints, {
     required bool centred,
+    required bool twoRowTop,
   }) {
     final double usableHeight = constraints.maxHeight - _pad * 2;
+    final int topRows = twoRowTop ? 2 : 1;
+    // Mirrors the vertical budget BoardMetrics reserves for the top area: each
+    // tray row is a card tall plus its vertical chrome, with a pad between rows.
+    final double topAreaHeight =
+        topRows * (cardSize.height + 2 * BoardMetrics.trayInset) +
+        (topRows - 1) * _pad;
     final double bottomHeight = math.max(
       cardSize.height,
-      usableHeight - cardSize.height - _pad,
+      usableHeight - topAreaHeight - _pad,
     );
     final double fanGap = _fanGap(game, tableau, cardSize.height, bottomHeight);
 
@@ -132,9 +156,13 @@ class Board extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(
-            height: cardSize.height,
-            child: _topRow(context, game, upper, foundations, cardSize),
+          _topArea(
+            context,
+            game,
+            upper,
+            foundations,
+            cardSize,
+            twoRowTop: twoRowTop,
           ),
           const SizedBox(height: _pad),
           Expanded(
@@ -208,9 +236,15 @@ class Board extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _sideStack(context, game, upper, cardSize),
+          _zoneTray(
+            foundation: false,
+            child: _sideStack(context, game, upper, cardSize),
+          ),
           const SizedBox(width: _pad),
-          _sideStack(context, game, foundations, cardSize),
+          _zoneTray(
+            foundation: true,
+            child: _sideStack(context, game, foundations, cardSize),
+          ),
         ],
       ),
     );
@@ -252,26 +286,86 @@ class Board extends StatelessWidget {
     return math.max(cardHeight * 0.06, math.min(defaultGap, fitGap));
   }
 
-  Widget _topRow(
+  /// The top area above the tableau. One row (free cells / stock+waste on the
+  /// left in the parking tray, foundations on the right in the foundation tray),
+  /// or — when [twoRowTop] — two rows: foundations on top, free cells below.
+  Widget _topArea(
     BuildContext context,
     GameState game,
     List<int> upper,
     List<int> foundations,
-    Size cardSize,
-  ) {
+    Size cardSize, {
+    required bool twoRowTop,
+  }) {
+    if (twoRowTop) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _zoneTray(
+            foundation: true,
+            child: _slotRow(context, game, foundations, cardSize),
+          ),
+          const SizedBox(height: _pad),
+          _zoneTray(
+            foundation: false,
+            child: _slotRow(context, game, upper, cardSize),
+          ),
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        for (final int index in upper) ...<Widget>[
-          _slot(context, game, index, cardSize),
-          const SizedBox(width: _pad),
-        ],
+        _zoneTray(
+          foundation: false,
+          child: _slotRow(context, game, upper, cardSize),
+        ),
         const Spacer(),
-        for (final int index in foundations) ...<Widget>[
-          const SizedBox(width: _pad),
-          _slot(context, game, index, cardSize),
+        _zoneTray(
+          foundation: true,
+          child: _slotRow(context, game, foundations, cardSize),
+        ),
+      ],
+    );
+  }
+
+  /// A horizontal run of slots, [_pad] apart, sized to its content.
+  Widget _slotRow(
+    BuildContext context,
+    GameState game,
+    List<int> indices,
+    Size cardSize,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (int i = 0; i < indices.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(width: _pad),
+          _slot(context, game, indices[i], cardSize),
         ],
       ],
+    );
+  }
+
+  /// A translucent panel behind a zone: warm gold for the foundations (aces
+  /// build up here), cool felt for the parking zone (free cells / stock+waste).
+  Widget _zoneTray({required bool foundation, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(BoardMetrics.trayPad),
+      decoration: BoxDecoration(
+        color: foundation
+            ? GamePalette.foundationTrayFill
+            : GamePalette.parkingTrayFill,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: foundation
+              ? GamePalette.foundationTrayBorder
+              : GamePalette.parkingTrayBorder,
+        ),
+      ),
+      child: child,
     );
   }
 

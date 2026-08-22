@@ -26,6 +26,17 @@ double _sideColumnFootprint(double cardHeight, int rows) {
       (rows - 1) * BoardMetrics.pad;
 }
 
+/// The stacked footprint for a two-row top area (foundations over free cells):
+/// two tray rows, each a card tall plus tray chrome, a gap between them and
+/// below, the outer padding, and the compressed tableau fan.
+double _twoRowTopFootprint(double cardHeight, int maxPileLength) {
+  final double minGap = BoardMetrics.minFanFactor * cardHeight;
+  return 4 * BoardMetrics.pad +
+      4 * BoardMetrics.trayPad +
+      3 * cardHeight +
+      minGap * (maxPileLength - 1);
+}
+
 void main() {
   group('layout selection', () {
     test('portrait orientation is always the portrait layout', () {
@@ -113,9 +124,61 @@ void main() {
         shortestSide: 420,
         isLandscape: false,
       );
+      // Card width fills a tableau column within the true content width
+      // (inside the board's outer padding on both edges).
       const double widthBudget =
-          (width - BoardMetrics.pad) / columns - BoardMetrics.pad;
+          (width - 2 * BoardMetrics.pad) / columns - BoardMetrics.pad;
       expect(m.cardSize.width, closeTo(widthBudget, 0.5));
+    });
+
+    test('a single-row FreeCell top (8 slots) fits the width', () {
+      // Classic FreeCell: 4 free cells + 4 foundations share one top row of 8
+      // slots in two trays, above 8 tableau columns. The card must be small
+      // enough that the top row does not overflow (the old bug).
+      const double width = 400;
+      final BoardMetrics m = BoardMetrics.resolve(
+        width: width,
+        height: 900,
+        columns: 8,
+        maxPileLength: 8,
+        shortestSide: 400,
+        isLandscape: false,
+        topRows: 1,
+        topRowSlots: 8,
+        topTrays: 2,
+      );
+      const double contentWidth = width - 2 * BoardMetrics.pad;
+      final double topRowWidth =
+          8 * m.cardSize.width +
+          6 * BoardMetrics.pad + // pads between the 8 slots (across - trays)
+          2 * 2 * BoardMetrics.trayPad; // two trays, horizontal chrome each
+      expect(topRowWidth, lessThanOrEqualTo(contentWidth + 0.5));
+    });
+
+    test('a 6-cell FreeCell top uses two rows that fit width and height', () {
+      const double width = 400;
+      const double height = 800;
+      final BoardMetrics m = BoardMetrics.resolve(
+        width: width,
+        height: height,
+        columns: 8,
+        maxPileLength: 7,
+        shortestSide: 400,
+        isLandscape: false,
+        topRows: 2,
+        topRowSlots: 6, // the free-cell row is the taller line
+        topTrays: 1,
+      );
+      expect(
+        _twoRowTopFootprint(m.cardSize.height, 7),
+        lessThanOrEqualTo(height + 0.5),
+      );
+      const double contentWidth = width - 2 * BoardMetrics.pad;
+      final double topLineWidth =
+          6 * m.cardSize.width +
+          5 * BoardMetrics.pad +
+          2 * BoardMetrics.trayPad;
+      expect(topLineWidth, lessThanOrEqualTo(contentWidth + 0.5));
     });
 
     test(

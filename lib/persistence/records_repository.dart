@@ -48,4 +48,7 @@ abstract class RecordsRepository {
 
   /// Clears the save slot for [variant] (e.g. after a win or a new deal).
   Future<void> clearSave(String variant);
+
+  /// Every in-progress save across all variants. Corrupt entries are skipped.
+  Future<List<SavedGame>> loadAllSaves();
 }

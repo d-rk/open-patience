@@ -26,12 +26,27 @@ void main() {
       }
     });
 
-    test('lists exactly the three v1 variants', () {
+    test('lists exactly the five variants in menu order', () {
       expect(GameRegistry.ids, <String>[
         'klondike-draw1',
         'klondike-draw3',
         'freecell',
+        'freecell-cells2',
+        'freecell-cells6',
       ]);
+    });
+
+    test('maps the FreeCell cell-count variants', () {
+      expect(
+        (GameRegistry.rulesFor('freecell-cells2') as FreecellRules)
+            .freecellCount,
+        2,
+      );
+      expect(
+        (GameRegistry.rulesFor('freecell-cells6') as FreecellRules)
+            .freecellCount,
+        6,
+      );
     });
 
     test('an unknown id is a programmer error (throws)', () {
