@@ -45,7 +45,26 @@ void main() {
     final Duration d5 = s.delayFor(const CardKey(Suit.spades, 5), g);
     final Duration d8 = s.delayFor(const CardKey(Suit.hearts, 8), g);
     expect(d5, isNot(equals(d8)));
-    expect(s.total, greaterThanOrEqualTo(GameMotion.move));
+    expect(s.totalFor(g), greaterThanOrEqualTo(GameMotion.move));
+  });
+
+  test('deal total scales to the animated-card count, not a fixed 52', () {
+    const DealSequence s = DealSequence();
+    final BoardGeometry g = BoardGeometry.resolve(
+      game: _dealt(),
+      width: 400,
+      height: 800,
+      shortestSide: 400,
+      isLandscape: false,
+      wasteVisibleCount: 1,
+    );
+    // _dealt lays out only its two tableau cards (empty stock/waste/foundations
+    // show as slots), so the controller is sized for those, not a full deck.
+    final Duration expected =
+        GameMotion.dealStagger * (g.cards.length - 1) + GameMotion.move;
+    expect(s.totalFor(g), expected);
+    final Duration fullDeck = GameMotion.dealStagger * 51 + GameMotion.move;
+    expect(s.totalFor(g), lessThan(fullDeck));
   });
 
   test('WinSequence pulse starts and returns to rest scale', () {
