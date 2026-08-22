@@ -134,6 +134,52 @@ Future<GameBloc> _pump(
   return bloc;
 }
 
+/// Like [_pump] but stops after the first frame — the deal set-piece is *still
+/// playing*, so tests can observe cards mid-deal instead of at rest.
+Future<GameBloc> _startDeal(
+  WidgetTester tester,
+  Size size, {
+  required GameState state,
+}) async {
+  SharedPreferences.setMockInitialValues(<String, Object>{});
+  final RecordsRepository repo = SharedPrefsRecordsRepository(
+    await SharedPreferences.getInstance(),
+  );
+  final GameBloc bloc = GameBloc(
+    variant: 'klondike-draw1',
+    repository: repo,
+    seed: 1,
+    state: state,
+  );
+  addTearDown(bloc.close);
+
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: MediaQuery(
+        data: MediaQueryData(size: size),
+        child: Scaffold(
+          body: BlocProvider<GameBloc>.value(value: bloc, child: const Board()),
+        ),
+      ),
+    ),
+  );
+  await tester.pump(); // first frame — deal starts, nothing settled
+  return bloc;
+}
+
+Finder _faceDown(Suit s, int rank) => find.byWidgetPredicate(
+  (Widget w) =>
+      w is CardFace &&
+      w.card.suit == s &&
+      w.card.rank == rank &&
+      !w.card.faceUp,
+);
+
 void main() {
   testWidgets('board renders every card exactly once inside a single Stack', (
     WidgetTester tester,
@@ -291,6 +337,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(_cardFace(Suit.spades, 7), findsOneWidget);
     expect(_cardFace(Suit.hearts, 8), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'a card waiting at the deal origin shows its back, not its face',
+    (WidgetTester tester) async {
+      await _startDeal(tester, const Size(400, 800), state: _dragPair());
+      // hearts-8 is the second card in paint order, so it waits at the origin
+      // until ~40ms. Sample at 20ms, while it is still parked there.
+      await tester.pump(const Duration(milliseconds: 20));
+      // It must read as a face-down back at the origin, not its (face-up) face.
+      expect(_cardFace(Suit.hearts, 8), findsNothing);
+      expect(_faceDown(Suit.hearts, 8), findsOneWidget);
+      // Once dealt it lands face up.
+      await tester.pumpAndSettle();
+      expect(_cardFace(Suit.hearts, 8), findsOneWidget);
+    },
+  );
+
+  testWidgets('the deal ends without every card lurching back to the origin', (
+    WidgetTester tester,
+  ) async {
+    await _startDeal(tester, const Size(400, 800), state: _dragPair());
+    // Play the deal out in real frames so the card genuinely settles at rest.
+    for (int t = 0; t < 500; t += 40) {
+      await tester.pump(const Duration(milliseconds: 40));
+    }
+    final double rest = tester.getTopLeft(_cardFace(Suit.hearts, 8)).dy;
+    // Keep stepping across the controller-completion boundary (~2260ms). The
+    // card is long settled and must not move: a regression re-pended every card
+    // to the origin on the completion frame, so all cards lurched back.
+    for (int i = 0; i < 60; i++) {
+      await tester.pump(const Duration(milliseconds: 40)); // 540ms .. 2940ms
+      expect(
+        tester.getTopLeft(_cardFace(Suit.hearts, 8)).dy,
+        closeTo(rest, 2.0),
+        reason: 'card lurched toward the origin at step $i',
+      );
+    }
     expect(tester.takeException(), isNull);
   });
 

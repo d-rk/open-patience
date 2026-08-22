@@ -329,9 +329,16 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     // for non-foundation cards) the scale is 1.0, so this is a no-op transform
     // that never interferes with drags, taps or the deal set-piece.
     final double winScale = _winScaleFor(pile);
-    final Widget child = winScale == 1.0
+    Widget child = winScale == 1.0
         ? flip
         : Transform.scale(scale: winScale, child: flip);
+    // While a card waits at the fly-from origin it shows a plain face-down back,
+    // so the stack building up at the origin reads as the deck being dealt from
+    // rather than a confusing hovering face-up card. It swaps to its real face
+    // (via the CardFlip above) the moment it activates and glides to its slot.
+    if (isDealing) {
+      child = CardFace(card: placement.card.faceDownCard, size: cardSize);
+    }
     return AnimatedPositioned(
       key: key.widgetKey,
       duration: isSettling ? Duration.zero : moveDuration,
@@ -412,9 +419,13 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// delay has not yet elapsed. False once no set-piece is playing.
   bool _isDealPending(CardKey key, BoardGeometry geometry) {
     final AnimationController? controller = _dealController;
-    if (controller == null) {
+    if (controller == null || controller.isCompleted) {
       return false;
     }
+    // Once the controller completes it stops its ticker, which nulls
+    // `lastElapsedDuration`; the `isCompleted` guard above catches that frame so
+    // the `?? Duration.zero` fallback below (meaning "not started, all pending")
+    // never fires post-completion and re-pends every settled card to the origin.
     final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
     return elapsed < _dealSequence.delayFor(key, geometry);
   }
