@@ -229,4 +229,20 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    '6-cell FreeCell phone landscape keeps parking beside the foundations',
+    (WidgetTester tester) async {
+      await _pumpBoard(tester, const Size(800, 360), state: _freecell6Board());
+
+      expect(tester.takeException(), isNull);
+      // Landscape has the width to keep the 6+4 top on a single row: parking
+      // (free cells) on the left, foundations on the right — same row, not
+      // stacked as in portrait.
+      final Offset parked = tester.getCenter(_cardFace(Suit.spades, 7));
+      final Offset ace = tester.getCenter(_cardFace(Suit.clubs, aceRank));
+      expect(parked.dx, lessThan(ace.dx));
+      expect((parked.dy - ace.dy).abs(), lessThan(1.0));
+    },
+  );
 }

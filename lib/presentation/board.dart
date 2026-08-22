@@ -63,11 +63,13 @@ class Board extends StatelessWidget {
         }
 
         // The top area normally sits on one row (free cells / stock+waste on
-        // the left, foundations on the right). When those groups together would
-        // out-number the tableau columns (6-cell FreeCell: 6 + 4 > 8) it splits
-        // into two tray rows — foundations above, free cells below.
+        // the left, foundations on the right). In portrait, when those groups
+        // together would out-number the tableau columns (6-cell FreeCell:
+        // 6 + 4 > 8) it splits into two tray rows — foundations above, free
+        // cells below. Landscape has the width to keep them side by side, so it
+        // stays on one row (which also buys slightly taller cards).
         final bool twoRowTop =
-            upper.length + foundations.length > tableau.length;
+            !isLandscape && upper.length + foundations.length > tableau.length;
         final int topRows = twoRowTop ? 2 : 1;
         final int topRowSlots = twoRowTop
             ? math.max(upper.length, foundations.length)
@@ -175,8 +177,18 @@ class Board extends StatelessWidget {
     if (!centred) {
       return content;
     }
-    final double contentWidth =
+    final double tableauWidth =
         cardSize.width * tableau.length + _pad * (tableau.length + 1);
+    // A single-row top places both trays side by side (free cells + foundations)
+    // and can be wider than the tableau, so the centred frame must fit it too.
+    double trayWidth(int slots) =>
+        slots * cardSize.width +
+        (slots - 1) * _pad +
+        2 * BoardMetrics.trayInset;
+    final double topWidth = twoRowTop
+        ? math.max(trayWidth(upper.length), trayWidth(foundations.length))
+        : trayWidth(upper.length) + trayWidth(foundations.length);
+    final double contentWidth = math.max(tableauWidth, topWidth + _pad * 2);
     return Center(
       child: SizedBox(width: contentWidth, child: content),
     );
