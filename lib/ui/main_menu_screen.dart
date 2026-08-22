@@ -171,15 +171,13 @@ class _ContinueSection extends StatelessWidget {
             key: ValueKey<String>('continue-${saved.variant}'),
             direction: DismissDirection.endToStart,
             onDismissed: (DismissDirection _) => onDelete(saved),
+            // Transparent reveal (just the trash icon over the felt): a coloured
+            // panel behind the rounded card let the felt peek at its corners
+            // mid-swipe, which read as an artefact.
             background: Container(
-              margin: const EdgeInsets.all(4),
               alignment: Alignment.centerRight,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: GamePalette.cardRed,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.delete, color: GamePalette.cardFace),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Icon(Icons.delete, color: GamePalette.cardRed),
             ),
             child: Card(
               child: ListTile(
