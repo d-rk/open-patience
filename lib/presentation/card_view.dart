@@ -107,7 +107,16 @@ class CardView extends StatelessWidget {
     return Draggable<CardDragData>(
       data: dragData,
       maxSimultaneousDrags: locked ? 0 : 1,
-      dragAnchorStrategy: childDragAnchorStrategy,
+      // Center the grabbed card on the finger. Flutter always hit-tests drop
+      // targets at the pointer, so pinning the card's center there makes drops
+      // land where the card *looks* like it is — far more forgiving than
+      // aiming with a finger that leads the card by wherever it was grabbed.
+      dragAnchorStrategy:
+          (
+            Draggable<Object> draggable,
+            BuildContext context,
+            Offset position,
+          ) => Offset(size.width / 2, size.height / 2),
       feedback: _DragFeedback(cards: stack, size: size),
       childWhenDragging: dimmed,
       onDragStarted: () => activeDrag?.value = dragData,
