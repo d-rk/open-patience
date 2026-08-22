@@ -105,13 +105,14 @@ Future<GameBloc> _pump(
   Size size, {
   required GameState state,
   bool disableAnimations = false,
+  String variant = 'klondike-draw1',
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final RecordsRepository repo = SharedPrefsRecordsRepository(
     await SharedPreferences.getInstance(),
   );
   final GameBloc bloc = GameBloc(
-    variant: 'klondike-draw1',
+    variant: variant,
     repository: repo,
     seed: 1,
     state: state,
@@ -182,6 +183,30 @@ Finder _faceDown(Suit s, int rank) => find.byWidgetPredicate(
       w.card.rank == rank &&
       !w.card.faceUp,
 );
+
+/// The paint-order index (low = painted first/behind, high = on top) of the
+/// [AnimatedPositioned] whose subtree holds [s]/[rank]'s [CardFace]. The board
+/// Stack paints children in element-list order, so this reflects z-order.
+int _paintIndexOf(WidgetTester tester, Suit s, int rank) {
+  final List<Element> positioned = tester
+      .elementList(find.byType(AnimatedPositioned))
+      .toList();
+  for (int i = 0; i < positioned.length; i++) {
+    CardFace? face;
+    void visit(Element el) {
+      if (el.widget is CardFace) {
+        face ??= el.widget as CardFace;
+      }
+      el.visitChildren(visit);
+    }
+
+    positioned[i].visitChildren(visit);
+    if (face != null && face!.card.suit == s && face!.card.rank == rank) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 void main() {
   testWidgets('board renders every card exactly once inside a single Stack', (
@@ -358,6 +383,47 @@ void main() {
       expect(_cardFace(Suit.hearts, 8), findsOneWidget);
     },
   );
+
+  testWidgets('draw-3 leaves the top waste card painted on top', (
+    WidgetTester tester,
+  ) async {
+    // Stock holds three face-down cards; only its top is rendered before the
+    // draw. Drawing surfaces all three to the waste — the buried two merely
+    // appear (they never fly), so they must not be lifted above the flying top
+    // card, or the fan's z-order scrambles (middle card ends up on top).
+    final GameState state = GameState(
+      piles: <Pile>[
+        Pile(
+          kind: PileKind.stock,
+          cards: const <Card>[
+            Card(suit: Suit.clubs, rank: 3),
+            Card(suit: Suit.clubs, rank: 4),
+            Card(suit: Suit.clubs, rank: 5), // top of stock -> top of waste
+          ],
+        ),
+        Pile(kind: PileKind.waste),
+        for (int i = 0; i < 4; i++) Pile(kind: PileKind.foundation),
+        for (int i = 0; i < 7; i++) Pile(kind: PileKind.tableau),
+      ],
+    );
+    await _pump(
+      tester,
+      const Size(400, 800),
+      state: state,
+      variant: 'klondike-draw3',
+    );
+
+    await tester.tap(find.byType(GestureDetector).first); // tap the stock
+    await tester.pumpAndSettle();
+
+    // The waste is [3,4,5]; the playable top (5) must paint above 4 above 3.
+    final int z3 = _paintIndexOf(tester, Suit.clubs, 3);
+    final int z4 = _paintIndexOf(tester, Suit.clubs, 4);
+    final int z5 = _paintIndexOf(tester, Suit.clubs, 5);
+    expect(z3, isNonNegative);
+    expect(z4, greaterThan(z3));
+    expect(z5, greaterThan(z4));
+  });
 
   testWidgets('no card is ever shown face up at the deal origin', (
     WidgetTester tester,
