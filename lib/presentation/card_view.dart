@@ -36,6 +36,11 @@ class CardView extends StatelessWidget {
 
   static const double aspectRatio = 1.4;
 
+  /// Vertical gap between successive cards in the multi-card drag feedback, as a
+  /// fraction of card height. Shared so the board can settle a dropped run from
+  /// the same fanned offsets the feedback used (no split on landing).
+  static const double dragFanGapFactor = 0.28;
+
   final Card card;
   final Size size;
 
@@ -438,7 +443,7 @@ class _DragFeedback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double gap = size.height * 0.28;
+    final double gap = size.height * CardView.dragFanGapFactor;
     return Material(
       color: Colors.transparent,
       child: SizedBox(

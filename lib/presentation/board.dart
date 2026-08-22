@@ -64,6 +64,10 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// and corrupt the paint order.
   Set<CardKey> _renderedKeys = <CardKey>{};
 
+  /// The card size from the last build, so [_drop] can fan a settling multi-card
+  /// run by the same gap the drag feedback used.
+  Size _cardSize = Size.zero;
+
   /// The board's [Stack] container. Its render box spans the board-local area,
   /// so its top-left is [BoardGeometry]'s origin `(0,0)` — the one place a drop's
   /// global offset is converted to board-local coordinates.
@@ -195,6 +199,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     Duration moveDuration,
   ) {
     final Size cardSize = geometry.cardSize;
+    _cardSize = cardSize;
     // Remember what is on screen this frame, so the next transition only lifts
     // cards that were actually here to fly from (see [_renderedKeys]).
     _renderedKeys = <CardKey>{
@@ -664,12 +669,23 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     if (!MediaQuery.of(context).disableAnimations) {
       final Pile pile = bloc.state.state.pileAt(data.fromPile);
       if (data.cardIndex >= 0 && data.cardIndex < pile.length) {
-        final CardKey key = CardKey.of(pile.cards[data.cardIndex]);
         final RenderBox? box =
             _stackKey.currentContext?.findRenderObject() as RenderBox?;
         if (box != null) {
+          // The whole grabbed run rode in the drag feedback, fanned by
+          // [CardView.dragFanGapFactor]. Seed every card in it at that same
+          // fanned offset from the release point, so the run settles from where
+          // it was let go as one piece — seeding only the grabbed card would
+          // leave the cards below it flying back from the source (a split
+          // flicker on a multi-card drop).
           final Offset local = box.globalToLocal(globalDrop);
-          setState(() => _settleFrom[key] = local);
+          final double gap = _cardSize.height * CardView.dragFanGapFactor;
+          setState(() {
+            for (int i = data.cardIndex; i < pile.length; i++) {
+              final CardKey key = CardKey.of(pile.cards[i]);
+              _settleFrom[key] = local.translate(0, gap * (i - data.cardIndex));
+            }
+          });
         }
       }
     }
