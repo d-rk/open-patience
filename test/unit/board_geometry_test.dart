@@ -46,8 +46,25 @@ GameState _freecell() => GameState(
   ],
 );
 
+/// A 6-cell (relaxed) FreeCell board: 6 free cells + 4 foundations + 8 tableau,
+/// whose 6 + 4 top overflows a single portrait row and splits into two.
+GameState _freecell6() => GameState(
+  piles: <Pile>[
+    Pile(kind: PileKind.freecell, cards: <Card>[_up(Suit.spades, 7)]),
+    for (int i = 0; i < 5; i++) Pile(kind: PileKind.freecell),
+    Pile(kind: PileKind.foundation, cards: <Card>[_up(Suit.clubs, aceRank)]),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    Pile(kind: PileKind.foundation),
+    for (int i = 0; i < 8; i++) Pile(kind: PileKind.tableau),
+  ],
+);
+
 Rect _rectOf(BoardGeometry g, Suit s, int r) =>
     g.cards.firstWhere((CardPlacement p) => p.key == CardKey(s, r)).rect;
+
+Rect _trayOf(BoardGeometry g, TrayKind kind) =>
+    g.trays.firstWhere((TrayPlacement t) => t.kind == kind).rect;
 
 void main() {
   group('CardKey', () {
@@ -245,6 +262,95 @@ void main() {
         expect(p.rect.right, lessThanOrEqualTo(1200 + 0.5));
         expect(p.rect.bottom, lessThanOrEqualTo(800 + 0.5));
       }
+    });
+  });
+
+  group('zone trays', () {
+    test('portrait single-row top: a foundation tray and a parking tray '
+        'wrap their groups, above the tableau', () {
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: _klondike(),
+        width: 400,
+        height: 800,
+        shortestSide: 400,
+        isLandscape: false,
+        wasteVisibleCount: 1,
+      );
+      expect(g.trays.length, 2);
+      expect(g.trays.map((TrayPlacement t) => t.kind).toSet(), <TrayKind>{
+        TrayKind.foundation,
+        TrayKind.parking,
+      });
+      final Rect foundationTray = _trayOf(g, TrayKind.foundation);
+      final Rect parkingTray = _trayOf(g, TrayKind.parking);
+      // Each tray wraps its own group's cards.
+      expect(
+        foundationTray.contains(_rectOf(g, Suit.clubs, aceRank).center),
+        isTrue,
+      );
+      expect(
+        parkingTray.contains(_rectOf(g, Suit.clubs, 9).center), // stock card
+        isTrue,
+      );
+      // The foundation tray does not wrap the parking group's card.
+      expect(
+        foundationTray.contains(_rectOf(g, Suit.clubs, 9).center),
+        isFalse,
+      );
+      // Trays sit above the tableau (single row: side by side, same top).
+      expect(
+        foundationTray.bottom,
+        lessThanOrEqualTo(_rectOf(g, Suit.spades, 5).top + 0.5),
+      );
+      expect((foundationTray.top - parkingTray.top).abs(), lessThan(0.5));
+      // Side by side, not overlapping.
+      expect(parkingTray.right, lessThanOrEqualTo(foundationTray.left + 0.5));
+    });
+
+    test('portrait two-row top (6-cell FreeCell): the foundation tray stacks '
+        'above the parking tray without overlap', () {
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: _freecell6(),
+        width: 400,
+        height: 800,
+        shortestSide: 400,
+        isLandscape: false,
+        wasteVisibleCount: 1,
+      );
+      expect(g.trays.length, 2);
+      final Rect foundationTray = _trayOf(g, TrayKind.foundation);
+      final Rect parkingTray = _trayOf(g, TrayKind.parking);
+      expect(foundationTray.center.dy, lessThan(parkingTray.center.dy));
+      expect(foundationTray.bottom, lessThanOrEqualTo(parkingTray.top + 0.5));
+      // The parked free cell lives in the parking tray, the ace in the
+      // foundation tray.
+      expect(parkingTray.contains(_rectOf(g, Suit.spades, 7).center), isTrue);
+      expect(
+        foundationTray.contains(_rectOf(g, Suit.clubs, aceRank).center),
+        isTrue,
+      );
+    });
+
+    test('tablet landscape: the parking tray sits left of the foundation '
+        'tray, both within the viewport', () {
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: _freecell(),
+        width: 1200,
+        height: 800,
+        shortestSide: 800,
+        isLandscape: true,
+        wasteVisibleCount: 1,
+      );
+      expect(g.trays.length, 2);
+      final Rect foundationTray = _trayOf(g, TrayKind.foundation);
+      final Rect parkingTray = _trayOf(g, TrayKind.parking);
+      expect(parkingTray.right, lessThanOrEqualTo(foundationTray.left + 0.5));
+      expect(foundationTray.right, lessThanOrEqualTo(1200 + 0.5));
+      expect(parkingTray.contains(_rectOf(g, Suit.spades, 7).center), isTrue);
+      expect(
+        foundationTray.contains(_rectOf(g, Suit.clubs, aceRank).center),
+        isTrue,
+      );
     });
   });
 }
