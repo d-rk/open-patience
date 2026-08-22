@@ -126,6 +126,6 @@ void main() {
     final RecordsRepository repo = await _repo();
     await tester.pumpWidget(_host(MainMenuScreen(repository: repo)));
     await tester.pumpAndSettle();
-    expect(find.text('a game by Dirk Wilden'), findsOneWidget);
+    expect(find.text('made by Dirk Wilden'), findsOneWidget);
   });
 }
