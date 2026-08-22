@@ -91,4 +91,32 @@ void main() {
       expect(await repo.loadGame('freecell'), isNull);
     });
   });
+
+  group('SharedPrefsRecordsRepository loadAllSaves', () {
+    test('returns every saved game and skips corrupt blobs', () async {
+      final GameState k = GameState.newGame(
+        GameRegistry.rulesFor('klondike-draw1'),
+        seed: 11,
+      );
+      final GameState f = GameState.newGame(
+        GameRegistry.rulesFor('freecell'),
+        seed: 22,
+      );
+      await repo.saveGame(variant: 'klondike-draw1', seed: 11, state: k);
+      await repo.saveGame(variant: 'freecell', seed: 22, state: f);
+      await prefs.setString('save:corrupt', 'not json');
+
+      final List<SavedGame> all = await repo.loadAllSaves();
+      final Map<String, SavedGame> byVariant = <String, SavedGame>{
+        for (final SavedGame s in all) s.variant: s,
+      };
+      expect(byVariant.keys.toSet(), <String>{'klondike-draw1', 'freecell'});
+      expect(byVariant['klondike-draw1']!.seed, 11);
+      expect(byVariant['freecell']!.seed, 22);
+    });
+
+    test('returns empty when there are no saves', () async {
+      expect(await repo.loadAllSaves(), isEmpty);
+    });
+  });
 }

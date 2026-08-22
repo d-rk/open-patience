@@ -11,12 +11,16 @@ class GameRegistry {
   static const String klondikeDraw1 = 'klondike-draw1';
   static const String klondikeDraw3 = 'klondike-draw3';
   static const String freecell = 'freecell';
+  static const String freecellCells2 = 'freecell-cells2';
+  static const String freecellCells6 = 'freecell-cells6';
 
   /// All known variant ids, in menu order.
   static const List<String> ids = <String>[
     klondikeDraw1,
     klondikeDraw3,
     freecell,
+    freecellCells2,
+    freecellCells6,
   ];
 
   /// A fresh rules instance for [id]. Throws [ArgumentError] for an unknown id
@@ -29,6 +33,10 @@ class GameRegistry {
         return KlondikeRules(drawCount: 3);
       case freecell:
         return FreecellRules();
+      case freecellCells2:
+        return FreecellRules(freecellCount: 2);
+      case freecellCells6:
+        return FreecellRules(freecellCount: 6);
       default:
         throw ArgumentError.value(id, 'id', 'Unknown variant');
     }

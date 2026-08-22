@@ -234,3 +234,22 @@ class GameActionTile extends StatelessWidget {
     );
   }
 }
+
+/// Centres menu content and caps its width so the menu never stretches
+/// uncomfortably wide on tablets; the felt fills the margins.
+class MenuWidthLimit extends StatelessWidget {
+  const MenuWidthLimit({required this.child, this.maxWidth = 520, super.key});
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      ),
+    );
+  }
+}

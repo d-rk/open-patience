@@ -1,27 +1,81 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../core/game_registry.dart';
+import '../core/game_catalog.dart';
 import '../persistence/records_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
+import 'game_options_screen.dart';
 import 'game_screen.dart';
-import 'records_screen.dart';
+import 'theme/game_palette.dart';
 import 'theme/widgets.dart';
 import 'variant_labels.dart';
 import 'widgets/menu_banner.dart';
 
-/// The entry screen: one card per variant with Play, Resume (when a save
-/// exists) and Records. Building a game here is just constructing a [GameBloc]
-/// and pushing a [GameScreen]; the menu holds no game logic.
-class MainMenuScreen extends StatelessWidget {
+/// The entry screen: a Continue section (every in-progress deal, one-tap
+/// resume) above the list of games. Selecting a game opens its options page.
+/// The menu holds no game logic — it only navigates, builds blocs, and
+/// reloads its saves after returning from a pushed route so the Continue
+/// section always reflects the repository's current state.
+class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({required this.repository, this.autoTick, super.key});
 
   final RecordsRepository repository;
 
   /// Forwarded to each [GameScreen]; null in tests to avoid pending timers.
   final Duration? autoTick;
+
+  @override
+  State<MainMenuScreen> createState() => _MainMenuScreenState();
+}
+
+class _MainMenuScreenState extends State<MainMenuScreen> {
+  late Future<List<SavedGame>> _savesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _savesFuture = widget.repository.loadAllSaves();
+  }
+
+  void _reload() {
+    setState(() {
+      _savesFuture = widget.repository.loadAllSaves();
+    });
+  }
+
+  Future<void> _openGame(BuildContext context, String gameId) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => GameOptionsScreen(
+          gameId: gameId,
+          repository: widget.repository,
+          autoTick: widget.autoTick,
+        ),
+      ),
+    );
+    if (mounted) {
+      _reload();
+    }
+  }
+
+  Future<void> _resume(BuildContext context, SavedGame saved) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => BlocProvider<GameBloc>(
+          create: (BuildContext context) => GameBloc(
+            variant: saved.variant,
+            repository: widget.repository,
+            seed: saved.seed,
+            state: saved.state,
+          ),
+          child: GameScreen(autoTick: widget.autoTick),
+        ),
+      ),
+    );
+    if (mounted) {
+      _reload();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,16 +88,31 @@ class MainMenuScreen extends StatelessWidget {
               const MenuBanner(),
               const GameWordmark(),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: <Widget>[
-                    for (final String id in GameRegistry.ids)
-                      _VariantCard(
-                        variant: id,
-                        repository: repository,
-                        autoTick: autoTick,
+                child: MenuWidthLimit(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: <Widget>[
+                      _ContinueSection(
+                        savesFuture: _savesFuture,
+                        onResume: (SavedGame s) => _resume(context, s),
                       ),
-                  ],
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Games',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      for (final Game game in GameCatalog.games)
+                        Card(
+                          child: ListTile(
+                            title: Text(gameTitle(game.id)),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _openGame(context, game.id),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const GameSignature(),
@@ -55,111 +124,54 @@ class MainMenuScreen extends StatelessWidget {
   }
 }
 
-class _VariantCard extends StatelessWidget {
-  const _VariantCard({
-    required this.variant,
-    required this.repository,
-    required this.autoTick,
-  });
+/// The "Continue playing" block: one resume row per in-progress deal, hidden
+/// entirely when there are no saves. Dumb — it renders the saves it is handed
+/// and forwards a resume request upward.
+class _ContinueSection extends StatelessWidget {
+  const _ContinueSection({required this.savesFuture, required this.onResume});
 
-  final String variant;
-  final RecordsRepository repository;
-  final Duration? autoTick;
-
-  void _open(BuildContext context, GameBloc bloc) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) => BlocProvider<GameBloc>(
-          create: (BuildContext context) => bloc,
-          child: GameScreen(autoTick: autoTick),
-        ),
-      ),
-    );
-  }
-
-  void _newGame(BuildContext context) {
-    final int seed = Random().nextInt(1 << 32);
-    _open(
-      context,
-      GameBloc.newGame(variant: variant, repository: repository, seed: seed),
-    );
-  }
-
-  Future<void> _resume(BuildContext context) async {
-    final SavedGame? saved = await repository.loadGame(variant);
-    if (!context.mounted) {
-      return;
-    }
-    if (saved == null) {
-      _newGame(context);
-      return;
-    }
-    _open(
-      context,
-      GameBloc(
-        variant: variant,
-        repository: repository,
-        seed: saved.seed,
-        state: saved.state,
-      ),
-    );
-  }
-
-  void _openRecords(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) => RecordsScreen(
-          repository: repository,
-          variant: variant,
-          title: variantTitle(variant),
-        ),
-      ),
-    );
-  }
+  final Future<List<SavedGame>> savesFuture;
+  final void Function(SavedGame) onResume;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return FutureBuilder<List<SavedGame>>(
+      future: savesFuture,
+      builder: (BuildContext context, AsyncSnapshot<List<SavedGame>> snapshot) {
+        final List<SavedGame> saves = snapshot.data ?? const <SavedGame>[];
+        if (saves.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text(
-              variantTitle(variant),
-              style: Theme.of(context).textTheme.titleLarge,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Continue playing',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
-            const SizedBox(height: 12),
-            FutureBuilder<bool>(
-              future: repository.hasSave(variant),
-              builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-                final bool hasSave = snapshot.data ?? false;
-                return Wrap(
-                  spacing: 8,
-                  children: <Widget>[
-                    FilledButton.icon(
-                      onPressed: () => _newGame(context),
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('New game'),
-                    ),
-                    if (hasSave)
-                      OutlinedButton.icon(
-                        onPressed: () => _resume(context),
-                        icon: const Icon(Icons.restore),
-                        label: const Text('Resume'),
-                      ),
-                    TextButton.icon(
-                      onPressed: () => _openRecords(context),
-                      icon: const Icon(Icons.leaderboard),
-                      label: const Text('Records'),
-                    ),
-                  ],
-                );
-              },
-            ),
+            for (final SavedGame saved in saves)
+              Card(
+                child: ListTile(
+                  title: Text(variantTitle(saved.variant)),
+                  subtitle: Text(
+                    '${formatDuration(saved.state.elapsedSeconds)} · '
+                    '${saved.state.moveCount} moves',
+                  ),
+                  trailing: TextButton.icon(
+                    onPressed: () => onResume(saved),
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Resume'),
+                  ),
+                  onTap: () => onResume(saved),
+                ),
+              ),
+            const SizedBox(height: 8),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

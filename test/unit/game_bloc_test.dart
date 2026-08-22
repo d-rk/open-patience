@@ -50,6 +50,9 @@ class _FakeRepo implements RecordsRepository {
   Future<void> clearSave(String variant) async {
     calls.add('clear:$variant');
   }
+
+  @override
+  Future<List<SavedGame>> loadAllSaves() async => <SavedGame>[];
 }
 
 Card _up(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
@@ -289,6 +292,109 @@ void main() {
       ],
       verify: (_) {
         expect(repo.calls, contains('record:klondike-draw1:true:123:1'));
+        expect(repo.calls, contains('clear:klondike-draw1'));
+        // A winning move clears the slot; it must never leave a resumable save.
+        expect(repo.calls, isNot(contains('save:klondike-draw1:7')));
+      },
+    );
+  });
+
+  group('autosave (resume survives leaving the play screen)', () {
+    late _FakeRepo repo;
+
+    blocTest<GameBloc, GameBlocState>(
+      'a legal move persists the current game so it can be resumed',
+      build: () {
+        repo = _FakeRepo();
+        return _bloc(
+          repo,
+          _klondikeBoard(
+            col6: <Card>[_up(Suit.spades, 7)],
+            col7: <Card>[_up(Suit.hearts, 8)],
+          ),
+          seed: 71,
+        );
+      },
+      act: (GameBloc bloc) =>
+          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0)),
+      verify: (_) {
+        expect(repo.calls, contains('save:klondike-draw1:71'));
+        expect(repo.savedState!.moveCount, 1);
+      },
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'a stock draw persists the current game',
+      build: () {
+        repo = _FakeRepo();
+        return _bloc(
+          repo,
+          GameState.newGame(KlondikeRules(), seed: 3),
+          seed: 3,
+        );
+      },
+      act: (GameBloc bloc) => bloc.add(const TapMoveRequested(fromPile: stock)),
+      verify: (_) {
+        expect(repo.calls, contains('save:klondike-draw1:3'));
+      },
+    );
+
+    test('undo persists the reverted game (fresh move count)', () async {
+      final _FakeRepo repo = _FakeRepo();
+      final GameBloc bloc = _bloc(
+        repo,
+        _klondikeBoard(
+          col6: <Card>[_up(Suit.spades, 7)],
+          col7: <Card>[_up(Suit.hearts, 8)],
+        ),
+        seed: 72,
+      );
+      addTearDown(bloc.close);
+
+      bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0));
+      await bloc.stream.firstWhere((GameBlocState s) => s.state.moveCount == 1);
+      bloc.add(const UndoRequested());
+      await bloc.stream.firstWhere((GameBlocState s) => s.state.moveCount == 0);
+      // Let the post-emit persistence microtask flush.
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repo.savedState!.moveCount, 0);
+    });
+
+    blocTest<GameBloc, GameBlocState>(
+      'SaveRequested does not persist a completed (won) game',
+      build: () {
+        repo = _FakeRepo();
+        return _bloc(
+          repo,
+          _klondikeBoard(
+            foundationClubs: _run(Suit.clubs, kingRank),
+            foundationDiamonds: _run(Suit.diamonds, kingRank),
+            foundationHearts: _run(Suit.hearts, kingRank),
+            foundationSpades: _run(Suit.spades, kingRank),
+          ),
+          seed: 88,
+        );
+      },
+      act: (GameBloc bloc) => bloc.add(const SaveRequested()),
+      expect: () => <Matcher>[],
+      verify: (_) {
+        expect(repo.calls, isNot(contains('save:klondike-draw1:88')));
+      },
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'restart clears the save so a stale deal is not resumable',
+      build: () {
+        repo = _FakeRepo();
+        return _bloc(
+          repo,
+          GameState.newGame(KlondikeRules(), seed: 44),
+          seed: 44,
+        );
+      },
+      act: (GameBloc bloc) => bloc.add(const RestartDealRequested()),
+      verify: (_) {
         expect(repo.calls, contains('clear:klondike-draw1'));
       },
     );
