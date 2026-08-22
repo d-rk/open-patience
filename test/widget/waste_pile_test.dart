@@ -20,8 +20,9 @@ Finder _cardFace(Suit s, int rank) => find.byWidgetPredicate(
       w is CardFace && w.card.suit == s && w.card.rank == rank && w.card.faceUp,
 );
 
-/// Counts the dimmed drag placeholders currently in the tree (cards rendered at
-/// 0.3 opacity because they belong to a stack being dragged).
+/// Counts any dimmed drag "ghost" left behind in a pile (a card rendered at
+/// 0.3 opacity because it belongs to a stack being dragged). Dragging leaves no
+/// such ghost anymore, so this should always find nothing.
 Finder _placeholders() => find.byWidgetPredicate(
   (Widget w) => w is Opacity && (w.opacity - 0.3).abs() < 1e-3,
 );
@@ -151,9 +152,11 @@ void main() {
       await gesture.moveBy(const Offset(0, -80));
       await tester.pump();
 
-      // Mid-drag: the lifted card dims in place and the card underneath it
-      // is still there to be seen.
-      expect(_placeholders(), findsOneWidget);
+      // Mid-drag: the lifted card leaves no ghost behind (it rides in the
+      // floating feedback and appears exactly once), and the card underneath
+      // it is still there to be seen.
+      expect(_placeholders(), findsNothing);
+      expect(top, findsOneWidget);
       expect(below, findsOneWidget);
 
       await gesture.up();

@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,8 +18,9 @@ Finder _cardFace(Suit s, int rank) => find.byWidgetPredicate(
       w is CardFace && w.card.suit == s && w.card.rank == rank && w.card.faceUp,
 );
 
-/// Counts the dimmed drag placeholders currently in the tree (cards rendered at
-/// 0.3 opacity because they belong to a stack being dragged).
+/// Counts any dimmed drag "ghost" left behind in a pile (a card rendered at
+/// 0.3 opacity because it belongs to a stack being dragged). Dragging leaves no
+/// such ghost anymore, so this should always find nothing.
 Finder _placeholders() => find.byWidgetPredicate(
   (Widget w) => w is Opacity && (w.opacity - 0.3).abs() < 1e-3,
 );
@@ -100,25 +99,22 @@ void main() {
     await gesture.moveTo(here);
     await tester.pump();
 
-    // During the drag there are two copies of the card: the dimmed placeholder
-    // left behind in the pile, and the floating feedback that follows the
-    // finger. The feedback's center must sit on the finger — so hit-testing
-    // (always at the finger) effectively targets the card's center.
+    // During the drag the only copy of the card is the floating feedback that
+    // follows the finger; the source slot is left empty (no ghost). The
+    // feedback's center must sit on the finger — so hit-testing (always at the
+    // finger) effectively targets the card's center.
     final Iterable<Element> faces = card.evaluate();
-    expect(faces.length, 2);
-    final double nearest = faces
-        .map(
-          (Element e) =>
-              (tester.getRect(find.byWidget(e.widget)).center - here).distance,
-        )
-        .reduce(math.min);
-    expect(nearest, lessThan(1.0));
+    expect(faces.length, 1);
+    final double dist =
+        (tester.getRect(find.byWidget(faces.single.widget)).center - here)
+            .distance;
+    expect(dist, lessThan(1.0));
 
     await gesture.up();
     await tester.pumpAndSettle();
   });
 
-  testWidgets('dragging a mid-stack card dims the whole moving sub-stack', (
+  testWidgets('dragging a mid-stack card leaves no ghost behind in the pile', (
     WidgetTester tester,
   ) async {
     final RecordsRepository repo = await _repo();
@@ -146,9 +142,13 @@ void main() {
     await gesture.moveBy(const Offset(0, -120));
     await tester.pump();
 
-    // Both the grabbed queen and the trailing jack are dimmed in place; the
-    // king above them is not.
-    expect(_placeholders(), findsNWidgets(2));
+    // No dimmed ghost is left behind. The grabbed queen and the trailing jack
+    // ride along in the floating feedback and appear exactly once each — not
+    // duplicated in place — while the king above them stays put.
+    expect(_placeholders(), findsNothing);
+    expect(_cardFace(Suit.hearts, 12), findsOneWidget);
+    expect(_cardFace(Suit.spades, 11), findsOneWidget);
+    expect(_cardFace(Suit.spades, kingRank), findsOneWidget);
 
     await gesture.up();
     await tester.pumpAndSettle();

@@ -66,34 +66,37 @@ class CardView extends StatelessWidget {
         context,
       );
       if (activeDrag == null) {
-        return _draggable(stack, face, child, null);
+        return _draggable(stack, child, null);
       }
       return ValueListenableBuilder<CardDragData?>(
         valueListenable: activeDrag,
         builder: (BuildContext context, CardDragData? active, _) =>
-            _draggable(stack, face, child, activeDrag, active),
+            _draggable(stack, child, activeDrag, active),
       );
     }
     return child;
   }
 
   /// Builds the draggable card, coordinating with the board's [activeDrag] so
-  /// only one drag runs at a time and the whole moving stack dims in place.
+  /// only one drag runs at a time and the whole moving stack lifts away
+  /// cleanly, leaving no ghost behind in the pile.
   Widget _draggable(
     List<Card> stack,
-    Widget face,
     Widget child,
     ValueNotifier<CardDragData?>? activeDrag, [
     CardDragData? active,
   ]) {
-    final Widget dimmed = Opacity(opacity: 0.3, child: face);
+    // While dragging, the moving cards ride in the floating feedback and leave
+    // no ghost behind — the source slot is simply empty. A same-size, invisible
+    // box keeps the pile's layout footprint unchanged.
+    final Widget placeholder = SizedBox.fromSize(size: size);
 
     if (active != null && active.fromPile == dragData!.fromPile) {
       // A card in this same pile is being dragged. Everything from the grabbed
-      // card down rides along, so it becomes a dimmed, inert placeholder; the
+      // card down rides along, so it becomes an inert, empty placeholder; the
       // grabbed card itself is handled by its own `childWhenDragging` below.
       if (dragData!.cardIndex > active.cardIndex) {
-        return IgnorePointer(child: dimmed);
+        return IgnorePointer(child: placeholder);
       }
     }
 
@@ -118,7 +121,7 @@ class CardView extends StatelessWidget {
             Offset position,
           ) => Offset(size.width / 2, size.height / 2),
       feedback: _DragFeedback(cards: stack, size: size),
-      childWhenDragging: dimmed,
+      childWhenDragging: placeholder,
       onDragStarted: () => activeDrag?.value = dragData,
       onDragEnd: (_) => activeDrag?.value = null,
       child: locked ? IgnorePointer(child: child) : child,
