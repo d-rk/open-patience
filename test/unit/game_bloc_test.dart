@@ -50,6 +50,9 @@ class _FakeRepo implements RecordsRepository {
   Future<void> clearSave(String variant) async {
     calls.add('clear:$variant');
   }
+
+  @override
+  Future<List<SavedGame>> loadAllSaves() async => <SavedGame>[];
 }
 
 Card _up(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
