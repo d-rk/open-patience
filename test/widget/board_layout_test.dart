@@ -229,4 +229,62 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'phone landscape keeps a long face-up run legible, not just its top card',
+    (WidgetTester tester) async {
+      // A long alternating-color descending run, all face up, in one column —
+      // the kind of deep cascade that used to compress to an unreadable sliver
+      // once the fan hit the old minimum-gap floor.
+      final List<Card> longRun = <Card>[
+        _up(Suit.spades, kingRank),
+        _up(Suit.hearts, kingRank - 1),
+        _up(Suit.spades, kingRank - 2),
+        _up(Suit.hearts, kingRank - 3),
+        _up(Suit.spades, kingRank - 4),
+        _up(Suit.hearts, kingRank - 5),
+        _up(Suit.spades, kingRank - 6),
+      ];
+      final GameState state = GameState(
+        piles: <Pile>[
+          Pile(kind: PileKind.stock),
+          Pile(kind: PileKind.waste),
+          Pile(kind: PileKind.foundation),
+          Pile(kind: PileKind.foundation),
+          Pile(kind: PileKind.foundation),
+          Pile(kind: PileKind.foundation),
+          Pile(kind: PileKind.tableau, cards: longRun),
+          for (int i = 0; i < 6; i++) Pile(kind: PileKind.tableau),
+        ],
+      );
+      await _pumpBoard(tester, const Size(800, 360), state: state);
+
+      expect(tester.takeException(), isNull);
+      final double cardHeight = tester
+          .getSize(_cardFace(Suit.spades, kingRank))
+          .height;
+      final double gap =
+          tester.getCenter(_cardFace(Suit.hearts, kingRank - 1)).dy -
+          tester.getCenter(_cardFace(Suit.spades, kingRank)).dy;
+      // Enough of a peek to read the covered card's rank digit, not just its
+      // uncovered top-of-pile neighbour.
+      expect(gap, greaterThanOrEqualTo(cardHeight * 0.18));
+    },
+  );
+
+  testWidgets(
+    '6-cell FreeCell phone landscape keeps parking beside the foundations',
+    (WidgetTester tester) async {
+      await _pumpBoard(tester, const Size(800, 360), state: _freecell6Board());
+
+      expect(tester.takeException(), isNull);
+      // Landscape has the width to keep the 6+4 top on a single row: parking
+      // (free cells) on the left, foundations on the right — same row, not
+      // stacked as in portrait.
+      final Offset parked = tester.getCenter(_cardFace(Suit.spades, 7));
+      final Offset ace = tester.getCenter(_cardFace(Suit.clubs, aceRank));
+      expect(parked.dx, lessThan(ace.dx));
+      expect((parked.dy - ace.dy).abs(), lessThan(1.0));
+    },
+  );
 }
