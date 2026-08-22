@@ -68,6 +68,22 @@ class SlotPlacement {
   final Rect rect;
 }
 
+/// The two kinds of zone tray drawn behind the top-area (or side-column)
+/// groups: warm gold behind the foundations (aces build up here), cool felt
+/// behind the parking zone (free cells / stock+waste).
+enum TrayKind { foundation, parking }
+
+/// A translucent panel drawn *behind* a group of slots — the foundations or the
+/// parking zone — to visually bind them together. Its [rect] is the group's
+/// bounding box expanded by [BoardMetrics.trayInset] on every side.
+@immutable
+class TrayPlacement {
+  const TrayPlacement({required this.kind, required this.rect});
+
+  final TrayKind kind;
+  final Rect rect;
+}
+
 /// The pure, measurement-free resolution of a whole board: every card's
 /// board-local [Rect], every empty pile's slot rect, and a drop-target rect per
 /// pile. Computed from a [GameState] and the available space via
@@ -81,12 +97,14 @@ class BoardGeometry {
     required this.metrics,
     required this.cards,
     required this.slots,
+    required this.trays,
     required this.dropTargets,
   });
 
   final BoardMetrics metrics;
   final List<CardPlacement> cards;
   final List<SlotPlacement> slots;
+  final List<TrayPlacement> trays;
   final Map<int, Rect> dropTargets;
 
   Size get cardSize => metrics.cardSize;
@@ -135,12 +153,13 @@ class BoardGeometry {
     final bool twoRowTop =
         !isLandscape && upper.length + foundations.length > tableau.length;
     final int topRows = twoRowTop ? 2 : 1;
-    // The widest single top line, so cards can be sized to fit its width. On one
-    // row the top spans within the tableau, so it never binds (0 = no extra
-    // constraint); on two rows the wider of the two lines must fit.
+    // The widest single top line, so cards can be sized to fit its width and its
+    // zone-tray chrome. One row carries both trays (parking + foundations) side
+    // by side; two rows carry one tray each, so the wider line binds.
     final int topRowSlots = twoRowTop
         ? math.max(upper.length, foundations.length)
-        : 0;
+        : upper.length + foundations.length;
+    final int topTrays = twoRowTop ? 1 : 2;
 
     final BoardMetrics metrics = BoardMetrics.resolve(
       width: width,
@@ -152,9 +171,7 @@ class BoardGeometry {
       sideStackCount: math.max(upper.length, foundations.length),
       topRows: topRows,
       topRowSlots: topRowSlots,
-      // The geometry paints no tray chrome, so reserve none — the top area is
-      // budgeted as bare card rows.
-      topTrays: 0,
+      topTrays: topTrays,
     );
 
     final _Builder builder = _Builder(
@@ -179,6 +196,7 @@ class BoardGeometry {
       metrics: metrics,
       cards: builder.cards,
       slots: builder.slots,
+      trays: builder.trays,
       dropTargets: builder.dropTargets,
     );
   }
@@ -214,16 +232,18 @@ class _Builder {
 
   final List<CardPlacement> cards = <CardPlacement>[];
   final List<SlotPlacement> slots = <SlotPlacement>[];
+  final List<TrayPlacement> trays = <TrayPlacement>[];
   final Map<int, Rect> dropTargets = <int, Rect>{};
 
   static const double _pad = BoardMetrics.pad;
+  static const double _trayInset = BoardMetrics.trayInset;
 
   double get _cardW => metrics.cardSize.width;
   double get _cardH => metrics.cardSize.height;
 
   /// Records a single-card (stock/foundation/free-cell) or empty slot at
-  /// [origin].
-  void _placeSingleOrSlot(int pileIndex, Offset origin) {
+  /// [origin]. Returns the board-local rect it occupies.
+  Rect _placeSingleOrSlot(int pileIndex, Offset origin) {
     final Pile pile = game.pileAt(pileIndex);
     final Rect slotRect = origin & metrics.cardSize;
     if (pile.isEmpty) {
@@ -231,7 +251,7 @@ class _Builder {
         SlotPlacement(pileIndex: pileIndex, kind: pile.kind, rect: slotRect),
       );
       dropTargets[pileIndex] = slotRect;
-      return;
+      return slotRect;
     }
     final int topIndex = pile.length - 1;
     cards.add(
@@ -244,11 +264,13 @@ class _Builder {
       ),
     );
     dropTargets[pileIndex] = slotRect;
+    return slotRect;
   }
 
   /// Records the waste's fanned cards (last [wasteVisibleCount] + a backing
-  /// card when older draws remain), mirroring PileView._wasteFan.
-  void _placeWaste(int pileIndex, Offset origin) {
+  /// card when older draws remain), mirroring PileView._wasteFan. Returns the
+  /// board-local rect the fan occupies.
+  Rect _placeWaste(int pileIndex, Offset origin) {
     final Pile pile = game.pileAt(pileIndex);
     if (pile.isEmpty) {
       final Rect slotRect = origin & metrics.cardSize;
@@ -260,7 +282,7 @@ class _Builder {
         ),
       );
       dropTargets[pileIndex] = slotRect;
-      return;
+      return slotRect;
     }
     final int visible = math.min(wasteVisibleCount, pile.length);
     final double step = _cardW * BoardGeometry._wasteStep;
@@ -293,7 +315,9 @@ class _Builder {
       );
     }
     final double fanWidth = _cardW + step * (visible - 1);
-    dropTargets[pileIndex] = origin & Size(fanWidth, _cardH);
+    final Rect fanRect = origin & Size(fanWidth, _cardH);
+    dropTargets[pileIndex] = fanRect;
+    return fanRect;
   }
 
   /// Records a fanned tableau column at [origin] with the given gaps.
@@ -359,46 +383,105 @@ class _Builder {
     );
   }
 
+  /// The width of a horizontal group of [slotCount] slots plus its tray chrome
+  /// ([_trayInset] on each side).
+  double _horizontalTrayWidth(int slotCount) =>
+      slotCount * _cardW + (slotCount - 1) * _pad + 2 * _trayInset;
+
+  /// The width a horizontal run of [slotCount] cards occupies (no tray chrome).
+  double _groupWidth(int slotCount) =>
+      slotCount * _cardW + (slotCount - 1) * _pad;
+
+  /// Places [indices] left-to-right from ([x], [y]), each [_cardW] + [_pad]
+  /// apart, and returns the union of the rects they occupy (null if empty).
+  Rect? _placeHorizontalGroup(List<int> indices, double x, double y) {
+    Rect? bounds;
+    double cx = x;
+    for (final int i in indices) {
+      final Rect r = game.pileAt(i).kind == PileKind.waste
+          ? _placeWaste(i, Offset(cx, y))
+          : _placeSingleOrSlot(i, Offset(cx, y));
+      bounds = bounds == null ? r : bounds.expandToInclude(r);
+      cx += _cardW + _pad;
+    }
+    return bounds;
+  }
+
+  /// Records a [kind] tray wrapping [groupBounds] with [_trayInset] of chrome on
+  /// every side. No-op when the group placed nothing (an all-empty board still
+  /// places slot markers, so this is only null defensively).
+  void _addTray(TrayKind kind, Rect? groupBounds) {
+    if (groupBounds == null) {
+      return;
+    }
+    trays.add(TrayPlacement(kind: kind, rect: groupBounds.inflate(_trayInset)));
+  }
+
   void stacked() {
     final bool centred = metrics.layout == BoardLayout.phoneLandscape;
     final int cols = tableau.length;
+    final int topRows = twoRowTop ? 2 : 1;
+    // A tray-wrapped card row is one card tall plus a tray inset above and
+    // below; rows are separated by a pad.
+    final double rowHeight = _cardH + 2 * _trayInset;
+    final double topAreaHeight = topRows * rowHeight + (topRows - 1) * _pad;
+
     final double originX;
     final double innerW;
     if (centred) {
-      final double contentW = _cardW * cols + _pad * (cols + 1);
-      originX = (width - contentW) / 2 + _pad;
-      innerW = _cardW * cols + _pad * (cols - 1);
+      // Centre the content, but widen the frame so both top trays fit beside the
+      // tableau — matching the old widget layout, so the parking and foundation
+      // trays never overlap when the top row is wider than the tableau.
+      final double tableauInnerW = _groupWidth(cols);
+      final double topInnerW = twoRowTop
+          ? math.max(
+              _horizontalTrayWidth(upper.length),
+              _horizontalTrayWidth(foundations.length),
+            )
+          : _horizontalTrayWidth(upper.length) +
+                _horizontalTrayWidth(foundations.length);
+      innerW = math.max(tableauInnerW, topInnerW);
+      originX = (width - (innerW + 2 * _pad)) / 2 + _pad;
     } else {
       originX = _pad;
       innerW = width - 2 * _pad;
     }
     const double topY = _pad;
-    final int topRows = twoRowTop ? 2 : 1;
-    final double topAreaHeight = topRows * _cardH + (topRows - 1) * _pad;
+    const double slotY0 = topY + _trayInset;
 
     if (twoRowTop) {
       // Two rows: foundations on top, free cells (parking) below — both
-      // left-aligned. Portrait-only, when 6 free cells + 4 foundations would
-      // overflow a single row.
-      _placeTopRow(foundations, originX, topY);
-      _placeTopRow(upper, originX, topY + _cardH + _pad);
+      // left-aligned. Portrait-only, when the free cells + foundations would
+      // overflow a single row (6-cell FreeCell).
+      final Rect? foundBounds = _placeHorizontalGroup(
+        foundations,
+        originX + _trayInset,
+        slotY0,
+      );
+      final Rect? parkBounds = _placeHorizontalGroup(
+        upper,
+        originX + _trayInset,
+        topY + rowHeight + _pad + _trayInset,
+      );
+      _addTray(TrayKind.foundation, foundBounds);
+      _addTray(TrayKind.parking, parkBounds);
     } else {
-      // One row: upper piles left-aligned, foundations right-aligned.
-      double ux = originX;
-      for (final int i in upper) {
-        if (game.pileAt(i).kind == PileKind.waste) {
-          _placeWaste(i, Offset(ux, topY));
-        } else {
-          _placeSingleOrSlot(i, Offset(ux, topY));
-        }
-        ux += _cardW + _pad;
-      }
-      double fx = originX + innerW;
-      for (int k = foundations.length - 1; k >= 0; k--) {
-        fx -= _cardW;
-        _placeSingleOrSlot(foundations[k], Offset(fx, topY));
-        fx -= _pad;
-      }
+      // One row: the parking tray (free cells / stock+waste) left-aligned, the
+      // foundation tray right-aligned to the inner edge.
+      final Rect? parkBounds = _placeHorizontalGroup(
+        upper,
+        originX + _trayInset,
+        slotY0,
+      );
+      final double foundStartX =
+          originX + innerW - _trayInset - _groupWidth(foundations.length);
+      final Rect? foundBounds = _placeHorizontalGroup(
+        foundations,
+        foundStartX,
+        slotY0,
+      );
+      _addTray(TrayKind.parking, parkBounds);
+      _addTray(TrayKind.foundation, foundBounds);
     }
 
     // Tableau row.
@@ -415,20 +498,6 @@ class _Builder {
       final double centerX = originX + colW * j + colW / 2;
       final double cardX = centerX - _cardW / 2;
       _placeTableau(tableau[j], Offset(cardX, tableauTop), upGap, downGap);
-    }
-  }
-
-  /// Places [indices] as a left-aligned run of single/waste slots starting at
-  /// [x], all at [y], each [_cardW] + [_pad] apart. Used for the two-row top.
-  void _placeTopRow(List<int> indices, double x, double y) {
-    double cx = x;
-    for (final int i in indices) {
-      if (game.pileAt(i).kind == PileKind.waste) {
-        _placeWaste(i, Offset(cx, y));
-      } else {
-        _placeSingleOrSlot(i, Offset(cx, y));
-      }
-      cx += _cardW + _pad;
     }
   }
 
@@ -453,24 +522,31 @@ class _Builder {
       );
     }
 
-    // Right side column: two centered sub-columns (upper left, foundations
-    // right). The min-width row (2*cardW + pad) is centred in sideColumnWidth
-    // (2*cardW + 3*pad), so it is inset one pad on each side.
+    // Right side column: two tray-wrapped sub-columns (parking left, foundations
+    // right). sideColumnWidth = 2*cardW + 3*pad + 4*trayInset holds both trays
+    // (each cardW + 2*trayInset wide), a pad between them and a pad inset each
+    // side.
     final double sideLeft = _pad + tableauAreaW + _pad;
-    final double upperX = sideLeft + _pad;
-    final double foundX = upperX + _cardW + _pad;
+    final double parkSlotX = sideLeft + _pad + _trayInset;
+    final double foundSlotX = parkSlotX + _cardW + 2 * _trayInset + _pad;
+    const double slotY0 = topY + _trayInset;
+
+    Rect? parkBounds;
     for (int i = 0; i < upper.length; i++) {
-      final double y = topY + i * (_cardH + _pad);
+      final double y = slotY0 + i * (_cardH + _pad);
       final int idx = upper[i];
-      if (game.pileAt(idx).kind == PileKind.waste) {
-        _placeWaste(idx, Offset(upperX, y));
-      } else {
-        _placeSingleOrSlot(idx, Offset(upperX, y));
-      }
+      final Rect r = game.pileAt(idx).kind == PileKind.waste
+          ? _placeWaste(idx, Offset(parkSlotX, y))
+          : _placeSingleOrSlot(idx, Offset(parkSlotX, y));
+      parkBounds = parkBounds == null ? r : parkBounds.expandToInclude(r);
     }
+    Rect? foundBounds;
     for (int i = 0; i < foundations.length; i++) {
-      final double y = topY + i * (_cardH + _pad);
-      _placeSingleOrSlot(foundations[i], Offset(foundX, y));
+      final double y = slotY0 + i * (_cardH + _pad);
+      final Rect r = _placeSingleOrSlot(foundations[i], Offset(foundSlotX, y));
+      foundBounds = foundBounds == null ? r : foundBounds.expandToInclude(r);
     }
+    _addTray(TrayKind.parking, parkBounds);
+    _addTray(TrayKind.foundation, foundBounds);
   }
 }

@@ -15,6 +15,7 @@ import 'board_sequence.dart';
 import 'card_view.dart';
 import 'drag_scope.dart';
 import 'slot_placeholder.dart';
+import 'zone_tray.dart';
 
 /// The responsive board. Reads the current [GameState] from the [GameBloc] and
 /// resolves every card, slot and drop-target rect for the available space via
@@ -162,10 +163,11 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     );
   }
 
-  /// Paints the whole board as one [Stack], bottom to top: the empty-pile slot
-  /// markers first, then every card in [BoardGeometry.cards] paint order
-  /// (pile-major, bottom-to-top per pile), then the invisible per-pile
-  /// drop-target hit regions on top.
+  /// Paints the whole board as one [Stack], bottom to top: the decorative zone
+  /// trays first (behind everything, non-interactive), then the empty-pile slot
+  /// markers, then every card in [BoardGeometry.cards] paint order (pile-major,
+  /// bottom-to-top per pile), then the invisible per-pile drop-target hit
+  /// regions on top.
   ///
   /// The drop targets sit *above* the cards deliberately. A [DragTarget]
   /// defaults to [HitTestBehavior.translucent] and its child here is an empty
@@ -183,6 +185,11 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   ) {
     final Size cardSize = geometry.cardSize;
     final List<Widget> children = <Widget>[
+      for (final TrayPlacement tray in geometry.trays)
+        Positioned.fromRect(
+          rect: tray.rect,
+          child: IgnorePointer(child: ZoneTray(kind: tray.kind)),
+        ),
       for (final SlotPlacement slot in geometry.slots)
         _positionedSlot(context, slot, cardSize),
       for (final CardPlacement placement in _paintOrdered(geometry))
