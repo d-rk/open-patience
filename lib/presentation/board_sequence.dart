@@ -144,20 +144,17 @@ class WinSequence implements SpecialSequence {
   }
 }
 
-/// The deal fly-from point: the stock slot's top-left in board-local
-/// coordinates. Prefers an empty stock's [SlotPlacement]; when the stock holds
-/// cards it has no slot, so falls back to the first card placement (paint order
-/// is pile-major with the stock/waste region first, so this is the stock's top
-/// card). Falls back to [Offset.zero] for a variant with neither (e.g. an
-/// empty board) so it can never crash.
+/// The deal fly-from point: the bottom-centre of the board, as a card-sized
+/// slot's top-left in board-local coordinates. Cards fly up and out from the
+/// player's edge, like dealing from a hand. Falls back to [Offset.zero] only for
+/// a degenerate zero-size board so it can never crash.
 Offset dealOriginOf(BoardGeometry geometry) {
-  for (final SlotPlacement slot in geometry.slots) {
-    if (slot.kind == PileKind.stock) {
-      return slot.rect.topLeft;
-    }
+  final Size card = geometry.cardSize;
+  final Size board = geometry.size;
+  if (board.isEmpty) {
+    return Offset.zero;
   }
-  if (geometry.cards.isNotEmpty) {
-    return geometry.cards.first.rect.topLeft;
-  }
-  return Offset.zero;
+  final double dx = (board.width - card.width) / 2;
+  final double dy = board.height - card.height;
+  return Offset(dx, dy);
 }
