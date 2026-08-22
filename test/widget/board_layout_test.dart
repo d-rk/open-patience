@@ -63,6 +63,23 @@ GameState _freecellBoard() {
   );
 }
 
+/// A 6-cell (relaxed) FreeCell board: 6 free cells + 4 foundations + 8 tableau.
+/// A distinctive card parks in the first free cell and a distinctive ace sits on
+/// the first foundation, to locate the two top zones.
+GameState _freecell6Board() {
+  return GameState(
+    piles: <Pile>[
+      Pile(kind: PileKind.freecell, cards: <Card>[_up(Suit.spades, 7)]),
+      for (int i = 0; i < 5; i++) Pile(kind: PileKind.freecell),
+      Pile(kind: PileKind.foundation, cards: <Card>[_up(Suit.clubs, aceRank)]),
+      Pile(kind: PileKind.foundation),
+      Pile(kind: PileKind.foundation),
+      Pile(kind: PileKind.foundation),
+      for (int i = 0; i < 8; i++) Pile(kind: PileKind.tableau),
+    ],
+  );
+}
+
 Future<RecordsRepository> _repo() async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   return SharedPrefsRecordsRepository(await SharedPreferences.getInstance());
@@ -187,4 +204,29 @@ void main() {
       lessThan(tester.getCenter(_cardFace(Suit.spades, 5)).dy),
     );
   });
+
+  testWidgets('classic 4-cell FreeCell portrait fits without overflow', (
+    WidgetTester tester,
+  ) async {
+    // Regression: the 4+4 single-row top used to overflow ~6px in portrait.
+    await _pumpBoard(tester, const Size(400, 800), state: _freecellBoard());
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(CardFace), findsWidgets);
+  });
+
+  testWidgets(
+    '6-cell FreeCell portrait fits and stacks foundations over free cells',
+    (WidgetTester tester) async {
+      await _pumpBoard(tester, const Size(400, 800), state: _freecell6Board());
+
+      // The 6+4 top no longer overflows the row.
+      expect(tester.takeException(), isNull);
+      // Two-row top area: the foundation ace sits above the parked free cell.
+      expect(
+        tester.getCenter(_cardFace(Suit.clubs, aceRank)).dy,
+        lessThan(tester.getCenter(_cardFace(Suit.spades, 7)).dy),
+      );
+    },
+  );
 }
