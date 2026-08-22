@@ -21,6 +21,11 @@ class GameMotion {
   static const Curve moveCurve = Curves.easeOutCubic;
   static const Curve flipCurve = Curves.easeInOut;
 
+  /// Perspective depth for the card flip (the `(3,2)` entry of the rotation
+  /// matrix). Non-zero so the turning card foreshortens like a real card
+  /// pivoting in space instead of squashing flat. Tuned for card-sized widgets.
+  static const double flipPerspective = 0.002;
+
   /// The effective duration honoring the OS reduce-motion setting: [base] when
   /// motion is allowed, [Duration.zero] (instant snap) when [reduceMotion].
   static Duration resolve(Duration base, {required bool reduceMotion}) =>

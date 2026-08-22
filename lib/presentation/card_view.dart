@@ -208,23 +208,37 @@ class _CardFlipState extends State<CardFlip>
       child: widget.child,
       builder: (BuildContext context, Widget? child) {
         final Card? fromCard = _fromCard;
-        double angle = 0;
-        Widget shown = child!;
-        if (_controller.isAnimating && fromCard != null) {
-          final double t = GameMotion.flipCurve.transform(_controller.value);
-          if (t < 0.5) {
-            // Outgoing (prior) face turning away: 0 → π/2.
-            angle = t * math.pi;
-            shown = CardFace(card: fromCard, size: widget.size);
-          } else {
-            // Incoming (new) face completing the turn: −π/2 → 0.
-            angle = (t - 1) * math.pi;
-          }
+        if (!_controller.isAnimating || fromCard == null) {
+          // At rest the flip is the identity transform, so it never disturbs
+          // hit-testing, taps or drag feedback.
+          return Transform(
+            key: const Key('cardFlip'),
+            alignment: Alignment.center,
+            transform: Matrix4.identity(),
+            child: child,
+          );
         }
+        final double t = GameMotion.flipCurve.transform(_controller.value);
+        final double angle;
+        final Widget shown;
+        if (t < 0.5) {
+          // Outgoing (prior) face turning away: 0 → π/2.
+          angle = t * math.pi;
+          shown = CardFace(card: fromCard, size: widget.size);
+        } else {
+          // Incoming (new) face completing the turn: −π/2 → 0.
+          angle = (t - 1) * math.pi;
+          shown = child!;
+        }
+        // Perspective (the `(3,2)` entry) makes the turning card foreshorten in
+        // 3D — reads as a real card pivoting rather than a flat sideways squash.
+        final Matrix4 transform = Matrix4.identity()
+          ..setEntry(3, 2, GameMotion.flipPerspective)
+          ..rotateY(angle);
         return Transform(
           key: const Key('cardFlip'),
           alignment: Alignment.center,
-          transform: Matrix4.rotationY(angle),
+          transform: transform,
           child: shown,
         );
       },
