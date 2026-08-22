@@ -170,7 +170,7 @@ class GameSignature extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.only(top: 4, bottom: 12),
       child: Text(
-        'a game by Dirk Wilden',
+        'made by Dirk Wilden',
         textAlign: TextAlign.center,
         style: TextStyle(
           fontFamily: GameFonts.signature,

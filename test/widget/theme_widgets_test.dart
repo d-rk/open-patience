@@ -51,10 +51,12 @@ void main() {
     'GameSignature renders the handwritten credit in the script font',
     (WidgetTester tester) async {
       await _pump(tester, const GameSignature());
-      final Finder credit = find.text('a game by Dirk Wilden');
+      final Finder credit = find.text('made by Dirk Wilden');
       expect(credit, findsOneWidget);
       final Text text = tester.widget<Text>(credit);
       expect(text.style?.fontFamily, GameFonts.signature);
+      // Fully opaque black ink.
+      expect(text.style?.color, const Color(0xFF000000));
     },
   );
 }
