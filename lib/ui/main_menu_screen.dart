@@ -29,18 +29,29 @@ class MainMenuScreen extends StatefulWidget {
 }
 
 class _MainMenuScreenState extends State<MainMenuScreen> {
-  late Future<List<SavedGame>> _savesFuture;
+  // Null while the first load is in flight; the resolved list otherwise. Held in
+  // state (rather than fed as a Future) so a swipe-to-delete can remove a row
+  // synchronously, as Dismissible requires.
+  List<SavedGame>? _saves;
 
   @override
   void initState() {
     super.initState();
-    _savesFuture = widget.repository.loadAllSaves();
+    _reload();
   }
 
-  void _reload() {
-    setState(() {
-      _savesFuture = widget.repository.loadAllSaves();
-    });
+  Future<void> _reload() async {
+    final List<SavedGame> saves = await widget.repository.loadAllSaves();
+    if (mounted) {
+      setState(() => _saves = saves);
+    }
+  }
+
+  void _deleteSave(SavedGame saved) {
+    // Remove from the model synchronously (Dismissible has already animated the
+    // row out), then clear the persisted slot.
+    setState(() => _saves?.remove(saved));
+    widget.repository.clearSave(saved.variant);
   }
 
   Future<void> _openGame(BuildContext context, String gameId) async {
@@ -93,8 +104,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     padding: const EdgeInsets.all(16),
                     children: <Widget>[
                       _ContinueSection(
-                        savesFuture: _savesFuture,
+                        saves: _saves ?? const <SavedGame>[],
                         onResume: (SavedGame s) => _resume(context, s),
+                        onDelete: _deleteSave,
                       ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
@@ -125,53 +137,66 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 }
 
 /// The "Continue playing" block: one resume row per in-progress deal, hidden
-/// entirely when there are no saves. Dumb — it renders the saves it is handed
-/// and forwards a resume request upward.
+/// entirely when there are no saves. Each row can be swiped away to discard that
+/// game. Dumb — it renders the saves it is handed and forwards resume/delete
+/// requests upward.
 class _ContinueSection extends StatelessWidget {
-  const _ContinueSection({required this.savesFuture, required this.onResume});
+  const _ContinueSection({
+    required this.saves,
+    required this.onResume,
+    required this.onDelete,
+  });
 
-  final Future<List<SavedGame>> savesFuture;
+  final List<SavedGame> saves;
   final void Function(SavedGame) onResume;
+  final void Function(SavedGame) onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<SavedGame>>(
-      future: savesFuture,
-      builder: (BuildContext context, AsyncSnapshot<List<SavedGame>> snapshot) {
-        final List<SavedGame> saves = snapshot.data ?? const <SavedGame>[];
-        if (saves.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                'Continue playing',
-                style: Theme.of(context).textTheme.titleMedium,
+    if (saves.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Continue playing',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        for (final SavedGame saved in saves)
+          Dismissible(
+            key: ValueKey<String>('continue-${saved.variant}'),
+            direction: DismissDirection.endToStart,
+            onDismissed: (DismissDirection _) => onDelete(saved),
+            // Transparent reveal (just the trash icon over the felt): a coloured
+            // panel behind the rounded card let the felt peek at its corners
+            // mid-swipe, which read as an artefact.
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Icon(Icons.delete, color: GamePalette.cardRed),
+            ),
+            child: Card(
+              child: ListTile(
+                title: Text(variantTitle(saved.variant)),
+                subtitle: Text(
+                  '${formatDuration(saved.state.elapsedSeconds)} · '
+                  '${saved.state.moveCount} moves',
+                ),
+                trailing: TextButton.icon(
+                  onPressed: () => onResume(saved),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Resume'),
+                ),
+                onTap: () => onResume(saved),
               ),
             ),
-            for (final SavedGame saved in saves)
-              Card(
-                child: ListTile(
-                  title: Text(variantTitle(saved.variant)),
-                  subtitle: Text(
-                    '${formatDuration(saved.state.elapsedSeconds)} · '
-                    '${saved.state.moveCount} moves',
-                  ),
-                  trailing: TextButton.icon(
-                    onPressed: () => onResume(saved),
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Resume'),
-                  ),
-                  onTap: () => onResume(saved),
-                ),
-              ),
-            const SizedBox(height: 8),
-          ],
-        );
-      },
+          ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
