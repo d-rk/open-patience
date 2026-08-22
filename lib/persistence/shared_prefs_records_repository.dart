@@ -89,4 +89,32 @@ class SharedPrefsRecordsRepository implements RecordsRepository {
   Future<void> clearSave(String variant) async {
     await _prefs.remove('$savePrefix$variant');
   }
+
+  @override
+  Future<List<SavedGame>> loadAllSaves() async {
+    final List<SavedGame> saves = <SavedGame>[];
+    for (final String key in _prefs.getKeys()) {
+      if (!key.startsWith(savePrefix)) {
+        continue;
+      }
+      final String? raw = _prefs.getString(key);
+      if (raw == null) {
+        continue;
+      }
+      try {
+        final Map<String, dynamic> blob =
+            jsonDecode(raw) as Map<String, dynamic>;
+        saves.add(
+          SavedGame(
+            variant: blob['variant'] as String,
+            seed: blob['seed'] as int,
+            state: GameState.fromJson(blob['state'] as Map<String, dynamic>),
+          ),
+        );
+      } on Object {
+        continue;
+      }
+    }
+    return saves;
+  }
 }
