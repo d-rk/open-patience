@@ -1,0 +1,438 @@
+{
+  "METADATA_VERSION": 20002,
+  "allow_disabled_algorithms": false,
+  "open-patience-testing-1.apk": {
+    "hash": "f2b16842ba4354094bef25d1350efd1ef6768c00eb6a52876f94af447f6c451a",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 1,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr2-add-card-move-animations",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50645900,
+    "apkName": "open-patience-testing-1.apk",
+    "added": 1787314868.247517
+  },
+  "open-patience-testing-2.apk": {
+    "hash": "218f0f88267aba28beec9aa23cba466824f1864892652192340c7c659f7b304b",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 2,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr3-feat-two-level-main-menu-games",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50932192,
+    "apkName": "open-patience-testing-2.apk",
+    "added": 1787383509.045772
+  },
+  "open-patience-testing-3.apk": {
+    "hash": "e3b7a9f84dfd129c4449563f946af6f0539709238fefbf5699e4527fb4645055",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 3,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr3-feat-two-level-main-menu-games",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50932188,
+    "apkName": "open-patience-testing-3.apk",
+    "added": 1787386574.16126
+  },
+  "open-patience-testing-4.apk": {
+    "hash": "51be1c543c168120a1eb4589da30e9a0f7c9a9526e90d3cae4666a66ca5ee0f2",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 4,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr3-feat-two-level-main-menu-games",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50932192,
+    "apkName": "open-patience-testing-4.apk",
+    "added": 1787389090.12453
+  },
+  "open-patience-testing-5.apk": {
+    "hash": "35709be322def7d17c779321f389ab9e7264d9dbcfe8cce1b9e1c19026e90ccb",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 5,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr4-feat-swipe-to-delete-running-g",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50965008,
+    "apkName": "open-patience-testing-5.apk",
+    "added": 1787392227.173334
+  },
+  "open-patience-testing-6.apk": {
+    "hash": "dbe29145488f8f0f02fbe8352c2dfc9ed55814f5d1388a90021e41760cc71091",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 6,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr5-feat-footer-credit-made-by-dir",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50932192,
+    "apkName": "open-patience-testing-6.apk",
+    "added": 1787392858.2361
+  },
+  "open-patience-testing-7.apk": {
+    "hash": "f0b5fe4110f9e0852b0671ee4fcbc2ab667fbee8b3780e7c81f3c09a05d0a01d",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 7,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr5-feat-footer-credit-made-by-dir",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50948576,
+    "apkName": "open-patience-testing-7.apk",
+    "added": 1787395948.073929
+  },
+  "open-patience-testing-8.apk": {
+    "hash": "f1fe41c94cb2eb8e5d7237dcb167f725213b77a6b798e5383de146320c8c3cd1",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 8,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr4-feat-swipe-to-delete-running-g",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50981392,
+    "apkName": "open-patience-testing-8.apk",
+    "added": 1787396930.686566
+  },
+  "open-patience-testing-9.apk": {
+    "hash": "a616ae2e5e7b20641b9ae608be9be4df359ea73f2fd80291b18d378119eba4d4",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 9,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr6-landscape-stats-to-top-bar-par",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50981392,
+    "apkName": "open-patience-testing-9.apk",
+    "added": 1787400700.217335
+  },
+  "open-patience-testing-10.apk": {
+    "hash": "60b4c91988a01bbfb574a1743532bfe6038094bd7bc85cef88c38d8a391e9530",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 10,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr6-landscape-stats-to-top-bar-par",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 50981392,
+    "apkName": "open-patience-testing-10.apk",
+    "added": 1787404573.111155
+  },
+  "open-patience-testing-11.apk": {
+    "hash": "5fae48adc39451a26bfd9f9c0b1f95eb9cce54cd81a1bc422931f8cd8a03a627",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 11,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr2-add-card-move-animations",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 51079688,
+    "apkName": "open-patience-testing-11.apk",
+    "added": 1787409981.918846
+  },
+  "open-patience-testing-12.apk": {
+    "hash": "fee90a61c6a9c49a1519e7983a98e2b055fca861b0a4997b005bb8b9989d9951",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 12,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr2-add-card-move-animations",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 51096072,
+    "apkName": "open-patience-testing-12.apk",
+    "added": 1787421039.805226
+  },
+  "open-patience-testing-13.apk": {
+    "hash": "99fc5a05cafb9e5d2a0f9ac135a9a15d5646652f8dee517eff9964f2acd7a60e",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 13,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr2-add-card-move-animations",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 51096072,
+    "apkName": "open-patience-testing-13.apk",
+    "added": 1787423693.777708
+  },
+  "open-patience-testing-14.apk": {
+    "hash": "5d6cd9aa988b0849ca8e575dad59ac26bc36a374315e97e8043f4b2353ea9c43",
+    "hashType": "sha256",
+    "uses-permission": [
+      [
+        "io.github.d_rk.openpatience.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        null
+      ]
+    ],
+    "uses-permission-sdk-23": [],
+    "features": [],
+    "icons_src": {},
+    "icons": {},
+    "antiFeatures": {},
+    "packageName": "io.github.d_rk.openpatience.debug",
+    "versionCode": 14,
+    "name": "Open Patience (Testing)",
+    "versionName": "pr2-add-card-move-animations",
+    "minSdkVersion": 24,
+    "targetSdkVersion": 36,
+    "nativecode": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "sig": "493b3d082285afc267cc590ced89461f",
+    "signer": "d406119d8b4e3ce90eefc4b944f16bae8156ac7833bd2db186ab3395159cd5ee",
+    "size": 51096072,
+    "apkName": "open-patience-testing-14.apk",
+    "added": 1787424057.816198
+  }
+}
