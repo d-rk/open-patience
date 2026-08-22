@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,6 +77,47 @@ Offset _grab(WidgetTester tester, Finder card) {
 }
 
 void main() {
+  testWidgets('the dragged card centers on the finger, not the grab point', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    final GameBloc bloc = _bloc(
+      repo,
+      _game(<List<Card>>[
+        <Card>[_up(Suit.spades, 7)],
+      ]),
+    );
+    addTearDown(bloc.close);
+
+    await _pump(tester, bloc);
+
+    // Grab the card near its top edge (well off-center), then drag.
+    final Finder card = _cardFace(Suit.spades, 7);
+    final Offset finger = _grab(tester, card);
+    final TestGesture gesture = await tester.startGesture(finger);
+    await tester.pump(const Duration(milliseconds: 200));
+    final Offset here = finger + const Offset(0, -120);
+    await gesture.moveTo(here);
+    await tester.pump();
+
+    // During the drag there are two copies of the card: the dimmed placeholder
+    // left behind in the pile, and the floating feedback that follows the
+    // finger. The feedback's center must sit on the finger — so hit-testing
+    // (always at the finger) effectively targets the card's center.
+    final Iterable<Element> faces = card.evaluate();
+    expect(faces.length, 2);
+    final double nearest = faces
+        .map(
+          (Element e) =>
+              (tester.getRect(find.byWidget(e.widget)).center - here).distance,
+        )
+        .reduce(math.min);
+    expect(nearest, lessThan(1.0));
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('dragging a mid-stack card dims the whole moving sub-stack', (
     WidgetTester tester,
   ) async {
