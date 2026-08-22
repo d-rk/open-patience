@@ -40,14 +40,6 @@ class GamePalette {
   static const Color parkingTrayFill = Color(0x2E0B321E);
   static const Color parkingTrayBorder = Color(0x4DA9D4BC);
 
-  // Menu action tiles.
-  static const Color actionRestartBg = Color(0xFFD6F0DD);
-  static const Color actionRestartFg = Color(0xFF14532D);
-  static const Color actionShuffleBg = Color(0xFFFFE6A8);
-  static const Color actionShuffleFg = Color(0xFF7A5A00);
-  static const Color actionExitBg = Color(0xFFF6D2CE);
-  static const Color actionExitFg = Color(0xFF8A2B22);
-
   // Handwritten signature footer: solid black ink pressed into the felt, lifted
   // by a faint light emboss edge. Ink is fully opaque black, emboss white at ~10%.
   static const Color signatureInk = Color(0xFF000000);

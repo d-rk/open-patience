@@ -15,69 +15,74 @@ Future<void> showGameMenu(BuildContext context, GameBloc bloc) {
   return showDialog<void>(
     context: context,
     builder: (BuildContext dialogContext) {
-      return Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: GamePalette.gold, width: 3),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            _Banner(bloc: bloc),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: GameActionTile(
-                          icon: Icons.replay,
-                          label: 'Restart',
-                          background: GamePalette.actionRestartBg,
-                          foreground: GamePalette.actionRestartFg,
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            bloc.add(const RestartDealRequested());
-                          },
+      return MenuWidthLimit(
+        maxWidth: 380,
+        child: Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: const BorderSide(color: GamePalette.gold, width: 3),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _Banner(bloc: bloc),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: GameActionTile(
+                            icon: Icons.replay,
+                            label: 'Restart Deal',
+                            background: GamePalette.feltGreenMid,
+                            foreground: GamePalette.cardFace,
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                              bloc.add(const RestartDealRequested());
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GameActionTile(
-                          icon: Icons.shuffle,
-                          label: 'Shuffle',
-                          background: GamePalette.actionShuffleBg,
-                          foreground: GamePalette.actionShuffleFg,
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            bloc.add(const NewDealRequested());
-                          },
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GameActionTile(
+                            icon: Icons.shuffle,
+                            label: 'New Deal',
+                            background: GamePalette.feltGreenMid,
+                            foreground: GamePalette.cardFace,
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                              bloc.add(const NewDealRequested());
+                            },
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: GameActionTile(
-                      icon: Icons.logout,
-                      label: 'Exit to menu',
-                      background: GamePalette.actionExitBg,
-                      foreground: GamePalette.actionExitFg,
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop(); // close dialog
-                        Navigator.of(context).pop(); // leave the play screen
-                      },
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Divider(color: GamePalette.gold.withValues(alpha: 0.4)),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      width: double.infinity,
+                      child: GameActionTile(
+                        icon: Icons.logout,
+                        label: 'Exit to menu',
+                        background: GamePalette.feltGreenDark,
+                        foreground: GamePalette.gold,
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop(); // close dialog
+                          Navigator.of(context).pop(); // leave the play screen
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     },
