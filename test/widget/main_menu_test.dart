@@ -70,6 +70,47 @@ void main() {
     expect(find.byType(Board), findsOneWidget);
   });
 
+  testWidgets('Continue refreshes when returning from a pushed route', (
+    WidgetTester tester,
+  ) async {
+    // Landscape surface (defensive; the menu itself renders no Board).
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final RecordsRepository repo = await _repo();
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(
+          size: Size(1200, 800),
+          disableAnimations: true,
+        ),
+        child: MaterialApp(home: MainMenuScreen(repository: repo)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Continue playing'), findsNothing);
+
+    // Leave the menu for a pushed route (game options).
+    await tester.tap(find.text('Klondike'));
+    await tester.pumpAndSettle();
+
+    // A save materialises while we are away from the menu.
+    await repo.saveGame(
+      variant: 'freecell',
+      seed: 9,
+      state: GameState.newGame(GameRegistry.rulesFor('freecell'), seed: 9),
+    );
+
+    // Return to the menu; it must reflect the repository's current state.
+    final NavigatorState nav = tester.state(find.byType(Navigator));
+    nav.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Continue playing'), findsOneWidget);
+  });
+
   testWidgets('no Continue section when nothing is in progress', (
     WidgetTester tester,
   ) async {

@@ -13,8 +13,10 @@ import 'widgets/menu_banner.dart';
 
 /// The entry screen: a Continue section (every in-progress deal, one-tap
 /// resume) above the list of games. Selecting a game opens its options page.
-/// The menu holds no game logic.
-class MainMenuScreen extends StatelessWidget {
+/// The menu holds no game logic — it only navigates, builds blocs, and
+/// reloads its saves after returning from a pushed route so the Continue
+/// section always reflects the repository's current state.
+class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({required this.repository, this.autoTick, super.key});
 
   final RecordsRepository repository;
@@ -22,32 +24,57 @@ class MainMenuScreen extends StatelessWidget {
   /// Forwarded to each [GameScreen]; null in tests to avoid pending timers.
   final Duration? autoTick;
 
-  void _openGame(BuildContext context, String gameId) {
-    Navigator.of(context).push(
+  @override
+  State<MainMenuScreen> createState() => _MainMenuScreenState();
+}
+
+class _MainMenuScreenState extends State<MainMenuScreen> {
+  late Future<List<SavedGame>> _savesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _savesFuture = widget.repository.loadAllSaves();
+  }
+
+  void _reload() {
+    setState(() {
+      _savesFuture = widget.repository.loadAllSaves();
+    });
+  }
+
+  Future<void> _openGame(BuildContext context, String gameId) async {
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (BuildContext context) => GameOptionsScreen(
           gameId: gameId,
-          repository: repository,
-          autoTick: autoTick,
+          repository: widget.repository,
+          autoTick: widget.autoTick,
         ),
       ),
     );
+    if (mounted) {
+      _reload();
+    }
   }
 
-  void _resume(BuildContext context, SavedGame saved) {
-    Navigator.of(context).push(
+  Future<void> _resume(BuildContext context, SavedGame saved) async {
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (BuildContext context) => BlocProvider<GameBloc>(
           create: (BuildContext context) => GameBloc(
             variant: saved.variant,
-            repository: repository,
+            repository: widget.repository,
             seed: saved.seed,
             state: saved.state,
           ),
-          child: GameScreen(autoTick: autoTick),
+          child: GameScreen(autoTick: widget.autoTick),
         ),
       ),
     );
+    if (mounted) {
+      _reload();
+    }
   }
 
   @override
@@ -66,8 +93,15 @@ class MainMenuScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     children: <Widget>[
                       _ContinueSection(
-                        repository: repository,
+                        savesFuture: _savesFuture,
                         onResume: (SavedGame s) => _resume(context, s),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Games',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
                       for (final Game game in GameCatalog.games)
                         Card(
@@ -91,18 +125,18 @@ class MainMenuScreen extends StatelessWidget {
 }
 
 /// The "Continue playing" block: one resume row per in-progress deal, hidden
-/// entirely when there are no saves. Dumb — it only reads saves and forwards a
-/// resume request upward.
+/// entirely when there are no saves. Dumb — it renders the saves it is handed
+/// and forwards a resume request upward.
 class _ContinueSection extends StatelessWidget {
-  const _ContinueSection({required this.repository, required this.onResume});
+  const _ContinueSection({required this.savesFuture, required this.onResume});
 
-  final RecordsRepository repository;
+  final Future<List<SavedGame>> savesFuture;
   final void Function(SavedGame) onResume;
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<SavedGame>>(
-      future: repository.loadAllSaves(),
+      future: savesFuture,
       builder: (BuildContext context, AsyncSnapshot<List<SavedGame>> snapshot) {
         final List<SavedGame> saves = snapshot.data ?? const <SavedGame>[];
         if (saves.isEmpty) {
@@ -134,8 +168,6 @@ class _ContinueSection extends StatelessWidget {
                   onTap: () => onResume(saved),
                 ),
               ),
-            const SizedBox(height: 8),
-            Text('Games', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
           ],
         );
