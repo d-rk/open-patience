@@ -31,6 +31,15 @@ class GamePalette {
   static const Color freecellSlotFill = Color(0xA60B321E);
   static const Color slotGlyph = Color(0x66F6C65B);
 
+  // Zone trays: translucent panels behind the two top-area groups so a player
+  // can tell the foundation zone (aces build up) from the parking zone (free
+  // cells) at a glance. Foundations get a warm gold wash + border; the parking
+  // zone a cool, darker felt wash + a cool light border.
+  static const Color foundationTrayFill = Color(0x1FF6C65B);
+  static const Color foundationTrayBorder = Color(0x4DF6C65B);
+  static const Color parkingTrayFill = Color(0x2E0B321E);
+  static const Color parkingTrayBorder = Color(0x4DA9D4BC);
+
   // Menu action tiles.
   static const Color actionRestartBg = Color(0xFFD6F0DD);
   static const Color actionRestartFg = Color(0xFF14532D);
