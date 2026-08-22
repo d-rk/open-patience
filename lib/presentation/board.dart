@@ -295,7 +295,10 @@ class Board extends StatelessWidget {
       return defaultGap;
     }
     final double fitGap = (bottomHeight - cardHeight) / (maxLen - 1);
-    return math.max(cardHeight * 0.06, math.min(defaultGap, fitGap));
+    return math.max(
+      cardHeight * BoardMetrics.minFanFactor,
+      math.min(defaultGap, fitGap),
+    );
   }
 
   /// The top area above the tableau. One row (free cells / stock+waste on the

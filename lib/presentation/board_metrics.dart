@@ -44,9 +44,12 @@ class BoardMetrics {
   /// Card height / width. Matches `CardView.aspectRatio`.
   static const double aspect = 1.4;
 
-  /// The minimum fan gap as a fraction of card height; a fan compressed to this
-  /// still separates cards enough to read. Used to reserve vertical room.
-  static const double minFanFactor = 0.06;
+  /// The minimum fan gap as a fraction of card height, even when a pile is deep
+  /// enough to force the fan to its tightest legal spacing. Tuned to keep a
+  /// covered face-up card's rank digit peeking out (see the corner index's
+  /// layout in `CardFace`) rather than collapsing to an unreadable sliver —
+  /// the card shrinks instead to make room. Used to reserve vertical room.
+  static const double minFanFactor = 0.20;
 
   /// Material's phone/tablet boundary, measured on the shorter screen edge.
   static const double tabletBreakpoint = 600;
