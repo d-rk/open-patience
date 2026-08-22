@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' hide Card;
 import '../core/card.dart';
 import '../ui/theme/game_fonts.dart';
 import '../ui/theme/game_palette.dart';
+import 'card_back_pattern.dart';
 import 'drag_scope.dart';
 
 /// The payload a dragged card carries: enough for a drop target to describe the
@@ -181,6 +182,8 @@ class CardFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final double radius = size.width * 0.12;
     if (!card.faceUp) {
+      final double innerInset = size.width * 0.05;
+      final double patternInset = size.width * 0.085;
       return Semantics(
         label: _semanticLabel,
         child: Container(
@@ -190,8 +193,8 @@ class CardFace extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(color: GamePalette.gold, width: 2),
             gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
               colors: <Color>[
                 GamePalette.feltGreenDark,
                 GamePalette.feltGreenMid,
@@ -202,6 +205,39 @@ class CardFace extends StatelessWidget {
                 color: Colors.black26,
                 blurRadius: 3,
                 offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              // Thin inner gold hairline; the gradient shows through the band
+              // between it and the outer border.
+              Padding(
+                padding: EdgeInsets.all(innerInset),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(radius - innerInset),
+                    border: Border.all(
+                      color: GamePalette.gold.withValues(alpha: 0.55),
+                      width: 1,
+                    ),
+                  ),
+                ),
+              ),
+              // Fine diamond-and-pip texture, kept strictly inside the inner
+              // hairline and clipped to the rounded corners.
+              Padding(
+                padding: EdgeInsets.all(patternInset),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(radius - patternInset),
+                  child: CardBackPattern(
+                    size: Size(
+                      size.width - 2 * patternInset,
+                      size.height - 2 * patternInset,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

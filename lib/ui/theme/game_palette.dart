@@ -48,9 +48,9 @@ class GamePalette {
   static const Color actionExitBg = Color(0xFFF6D2CE);
   static const Color actionExitFg = Color(0xFF8A2B22);
 
-  // Handwritten signature footer: dark ink pressed into the felt, lifted by a
-  // faint light emboss edge. Ink is black at ~44%, emboss white at ~10%.
-  static const Color signatureInk = Color(0x70000000);
+  // Handwritten signature footer: solid black ink pressed into the felt, lifted
+  // by a faint light emboss edge. Ink is fully opaque black, emboss white at ~10%.
+  static const Color signatureInk = Color(0xFF000000);
   static const Color signatureEmboss = Color(0x1AFFFFFF);
 }
 
