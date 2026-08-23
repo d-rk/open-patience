@@ -378,4 +378,53 @@ void main() {
       greaterThan(tester.getRect(find.byType(Board)).bottom),
     );
   });
+
+  group('auto-solve button', () {
+    GameState solvable() => _board(
+      foundationClubs: _run(Suit.clubs, 13),
+      foundationDiamonds: _run(Suit.diamonds, 13),
+      foundationHearts: _run(Suit.hearts, 13),
+      foundationSpades: _run(Suit.spades, 12),
+      col6: <Card>[_up(Suit.spades, 13)],
+    );
+
+    testWidgets('is absent when the board is not solvable', (
+      WidgetTester tester,
+    ) async {
+      final RecordsRepository repo = await _repo();
+      final GameBloc bloc = GameBloc(
+        variant: 'klondike-draw1',
+        repository: repo,
+        seed: 1,
+        state: _board(
+          col6: <Card>[_up(Suit.spades, 7)],
+          col7: <Card>[_up(Suit.hearts, 8)],
+        ),
+        autoSolveStep: Duration.zero,
+      );
+      addTearDown(bloc.close);
+      await _pump(tester, bloc);
+      expect(find.byTooltip('Solve'), findsNothing);
+    });
+
+    testWidgets('appears when solvable and drives to the win screen', (
+      WidgetTester tester,
+    ) async {
+      final RecordsRepository repo = await _repo();
+      final GameBloc bloc = GameBloc(
+        variant: 'klondike-draw1',
+        repository: repo,
+        seed: 1,
+        state: solvable(),
+        autoSolveStep: Duration.zero,
+      );
+      addTearDown(bloc.close);
+      await _pump(tester, bloc);
+      expect(find.byTooltip('Solve'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Solve'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RecordsScreen), findsOneWidget);
+    });
+  });
 }
