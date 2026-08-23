@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show appFlavor;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/game_catalog.dart';
@@ -61,6 +62,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           gameId: gameId,
           repository: widget.repository,
           autoTick: widget.autoTick,
+          debugDeals: appFlavor == 'testing',
         ),
       ),
     );

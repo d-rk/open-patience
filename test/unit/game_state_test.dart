@@ -33,6 +33,28 @@ List<Pile> _klondikePiles({
 void main() {
   final KlondikeRules rules = KlondikeRules(drawCount: 1);
 
+  group('GameState.newGame', () {
+    test('almostWon deals the near-win layout instead of a real shuffle', () {
+      final GameState state = GameState.newGame(
+        rules,
+        seed: 1,
+        almostWon: true,
+      );
+      expect(state, equals(GameState(piles: rules.dealAlmostWon())));
+      expect(rules.isWon(state), isFalse);
+    });
+
+    test('almostWon defaults to false, preserving the seeded real deal', () {
+      final GameState withDefault = GameState.newGame(rules, seed: 5);
+      final GameState explicitFalse = GameState.newGame(
+        rules,
+        seed: 5,
+        almostWon: false,
+      );
+      expect(withDefault, equals(explicitFalse));
+    });
+  });
+
   group('GameState move / undo / redo', () {
     test(
       'a legal move applies, then undo restores an exact prior snapshot',

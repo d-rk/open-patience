@@ -456,4 +456,21 @@ void main() {
       );
     });
   });
+
+  group('GameBloc.newGame', () {
+    test('almostWon deals the near-win layout for the chosen variant', () {
+      final _FakeRepo repo = _FakeRepo();
+      final GameBloc bloc = GameBloc.newGame(
+        variant: 'klondike-draw1',
+        repository: repo,
+        seed: 3,
+        almostWon: true,
+      );
+      addTearDown(bloc.close);
+      expect(
+        bloc.state.state.piles,
+        KlondikeRules(drawCount: 1).dealAlmostWon(),
+      );
+    });
+  });
 }
