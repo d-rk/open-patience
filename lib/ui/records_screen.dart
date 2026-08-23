@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../persistence/records_repository.dart';
 import '../persistence/stats.dart';
+import 'theme/game_fonts.dart';
 import 'theme/game_palette.dart';
 import 'theme/widgets.dart';
 
@@ -50,29 +51,78 @@ class RecordsScreen extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: <Widget>[
-            _RecordTile(label: 'Games played', value: '${stats.gamesPlayed}'),
-            _RecordTile(label: 'Games won', value: '${stats.gamesWon}'),
-            _RecordTile(
-              label: 'Win rate',
-              value: '${stats.winPercentage.toStringAsFixed(1)}%',
-            ),
-            _RecordTile(
-              label: 'Best time',
-              value: stats.bestTimeSeconds == null
-                  ? '—'
-                  : formatDuration(stats.bestTimeSeconds!),
-            ),
-            _RecordTile(
-              label: 'Fewest moves',
-              value: stats.fewestMoves?.toString() ?? '—',
-            ),
-            _RecordTile(
-              label: 'Current streak',
-              value: '${stats.currentStreak}',
-            ),
-            _RecordTile(
-              label: 'Longest streak',
-              value: '${stats.longestStreak}',
+            MenuWidthLimit(
+              maxWidth: 480,
+              child: Column(
+                children: <Widget>[
+                  _WinRateHero(stats: stats),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.style,
+                          value: '${stats.gamesPlayed}',
+                          label: 'Played',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.emoji_events,
+                          value: '${stats.gamesWon}',
+                          label: 'Won',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.timer,
+                          value: stats.bestTimeSeconds == null
+                              ? '—'
+                              : formatDuration(stats.bestTimeSeconds!),
+                          label: 'Best time',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.directions_walk,
+                          value: stats.fewestMoves?.toString() ?? '—',
+                          label: 'Fewest moves',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.local_fire_department,
+                          iconColor: stats.currentStreak > 0
+                              ? GamePalette.gold
+                              : GamePalette.gold.withValues(alpha: 0.3),
+                          value: '${stats.currentStreak}',
+                          label: 'Current streak',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.trending_up,
+                          value: '${stats.longestStreak}',
+                          label: 'Longest streak',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         );
@@ -81,31 +131,124 @@ class RecordsScreen extends StatelessWidget {
   }
 }
 
-class _RecordTile extends StatelessWidget {
-  const _RecordTile({required this.label, required this.value});
+/// Win rate as a gold progress ring with the won/played breakdown beside it.
+class _WinRateHero extends StatelessWidget {
+  const _WinRateHero({required this.stats});
 
-  final String label;
-  final String value;
+  final Stats stats;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text(
-          label,
-          style: const TextStyle(
-            color: GamePalette.feltGreenDark,
-            fontWeight: FontWeight.w600,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: GamePalette.gold.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: 72,
+            height: 72,
+            child: Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                CircularProgressIndicator(
+                  value: stats.winPercentage / 100,
+                  strokeWidth: 6,
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    GamePalette.gold,
+                  ),
+                ),
+                Text(
+                  '${stats.winPercentage.round()}%',
+                  style: TextStyle(
+                    color: GamePalette.cardFace,
+                    fontWeight: FontWeight.w800,
+                    fontSize: stats.winPercentage.round() >= 100 ? 13 : 16,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        trailing: Text(
-          value,
-          style: const TextStyle(
-            color: GamePalette.cardRed,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Win rate',
+                  style: TextStyle(
+                    color: GamePalette.cardFace.withValues(alpha: 0.75),
+                    fontFamily: GameFonts.body,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${stats.gamesWon} won / ${stats.gamesPlayed} played',
+                  style: TextStyle(
+                    color: GamePalette.cardFace.withValues(alpha: 0.55),
+                    fontFamily: GameFonts.body,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A single stat as an icon, a large value and a small label.
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.iconColor = GamePalette.gold,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: GamePalette.cardFace.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: <Widget>[
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: GamePalette.cardFace,
+              fontWeight: FontWeight.w800,
+              fontSize: 20,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: GamePalette.cardFace.withValues(alpha: 0.7),
+              fontFamily: GameFonts.body,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }

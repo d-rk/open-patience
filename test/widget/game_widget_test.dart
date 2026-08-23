@@ -232,7 +232,7 @@ void main() {
     await _tapCard(tester, _cardFace(Suit.spades, kingRank));
 
     expect(find.byType(RecordsScreen), findsOneWidget);
-    expect(find.text('Games won'), findsOneWidget);
+    expect(find.text('Win rate'), findsOneWidget);
     final Stats stats = await repo.statsFor('klondike-draw1');
     expect(stats.gamesWon, 1);
   });
