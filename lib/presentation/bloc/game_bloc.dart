@@ -27,6 +27,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     required int seed,
     required GameState state,
     Random? random,
+    this.autoSolveStep = const Duration(milliseconds: 120),
   }) : rules = GameRegistry.rulesFor(variant),
        _seed = seed,
        _state = state,
@@ -41,6 +42,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     on<RestartDealRequested>(_onRestartDealRequested);
     on<SaveRequested>(_onSaveRequested);
     on<Tick>(_onTick);
+    on<AutoSolveRequested>(_onAutoSolveRequested);
   }
 
   /// Deals a fresh game and wraps it in a bloc. Convenience for the menu.
@@ -52,6 +54,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     required int seed,
     Random? random,
     bool almostWon = false,
+    Duration autoSolveStep = const Duration(milliseconds: 120),
   }) {
     final GameState state = GameState.newGame(
       GameRegistry.rulesFor(variant),
@@ -64,6 +67,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       seed: seed,
       state: state,
       random: random,
+      autoSolveStep: autoSolveStep,
     );
   }
 
@@ -71,6 +75,11 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
   final RecordsRepository repository;
   final GameRules rules;
   final Random _random;
+
+  /// Delay between moves while the auto-solver cascade plays out.
+  final Duration autoSolveStep;
+
+  bool _solving = false;
 
   int _seed;
   GameState _state;
@@ -96,6 +105,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     MoveRequested event,
     Emitter<GameBlocState> emit,
   ) async {
+    if (_solving) {
+      return;
+    }
     final Pile source = _state.pileAt(event.fromPile);
     if (event.cardIndex < 0 || event.cardIndex >= source.length) {
       return;
@@ -115,6 +127,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     TapMoveRequested event,
     Emitter<GameBlocState> emit,
   ) async {
+    if (_solving) {
+      return;
+    }
     final Pile source = _state.pileAt(event.fromPile);
 
     // A tap on the stock draws (or, once exhausted, recycles). What a stock tap
@@ -162,6 +177,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     DoubleTapRequested event,
     Emitter<GameBlocState> emit,
   ) async {
+    if (_solving) {
+      return;
+    }
     final Pile source = _state.pileAt(event.fromPile);
     if (source.isEmpty) {
       return;
@@ -191,6 +209,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     UndoRequested event,
     Emitter<GameBlocState> emit,
   ) async {
+    if (_solving) {
+      return;
+    }
     if (!_state.canUndo) {
       return;
     }
@@ -205,6 +226,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     RedoRequested event,
     Emitter<GameBlocState> emit,
   ) async {
+    if (_solving) {
+      return;
+    }
     if (!_state.canRedo) {
       return;
     }
@@ -243,6 +267,42 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       return;
     }
     await repository.saveGame(variant: variant, seed: _seed, state: _state);
+  }
+
+  Future<void> _onAutoSolveRequested(
+    AutoSolveRequested event,
+    Emitter<GameBlocState> emit,
+  ) async {
+    if (_solving) {
+      return;
+    }
+    final List<Move>? solution = solveGreedy(_state, rules);
+    if (solution == null) {
+      return;
+    }
+    _solving = true;
+    try {
+      for (final Move move in solution) {
+        _state.applyMove(move);
+        if (_state.isWon(rules)) {
+          final int elapsed = _state.elapsedSeconds;
+          final int moves = _state.moveCount;
+          await repository.recordResult(
+            variant: variant,
+            won: true,
+            timeSeconds: elapsed,
+            moves: moves,
+          );
+          await repository.clearSave(variant);
+          emit(GameWon(_state.copy(), elapsed: elapsed, moves: moves));
+          return;
+        }
+        emit(_snapshotOf(_state, rules));
+        await Future<void>.delayed(autoSolveStep);
+      }
+    } finally {
+      _solving = false;
+    }
   }
 
   void _onTick(Tick event, Emitter<GameBlocState> emit) {

@@ -92,13 +92,19 @@ GameState _klondikeBoard({
   );
 }
 
-GameBloc _bloc(_FakeRepo repo, GameState state, {int seed = 7}) {
+GameBloc _bloc(
+  _FakeRepo repo,
+  GameState state, {
+  int seed = 7,
+  Duration autoSolveStep = Duration.zero,
+}) {
   return GameBloc(
     variant: 'klondike-draw1',
     repository: repo,
     seed: seed,
     state: state,
     random: Random(1),
+    autoSolveStep: autoSolveStep,
   );
 }
 
@@ -500,5 +506,45 @@ void main() {
       addTearDown(bloc.close);
       expect((bloc.state as GameInProgress).canAutoSolve, isTrue);
     });
+  });
+
+  group('AutoSolveRequested', () {
+    GameState solvableBoard() => _klondikeBoard(
+      foundationClubs: _run(Suit.clubs, 13),
+      foundationDiamonds: _run(Suit.diamonds, 13),
+      foundationHearts: _run(Suit.hearts, 13),
+      foundationSpades: _run(Suit.spades, 12),
+      col6: <Card>[_up(Suit.spades, 13)],
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'plays the solution out to a recorded win',
+      build: () => _bloc(_FakeRepo(), solvableBoard()),
+      act: (GameBloc bloc) => bloc.add(const AutoSolveRequested()),
+      expect: () => <Matcher>[isA<GameWon>()],
+      verify: (GameBloc bloc) {
+        final _FakeRepo repo = bloc.repository as _FakeRepo;
+        expect(
+          repo.calls.any(
+            (String c) => c.startsWith('record:klondike-draw1:true'),
+          ),
+          isTrue,
+        );
+        expect(repo.calls.contains('clear:klondike-draw1'), isTrue);
+      },
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'is a no-op on a board that is not solvable',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          col6: <Card>[_up(Suit.spades, 7)],
+          col7: <Card>[_up(Suit.hearts, 8)],
+        ),
+      ),
+      act: (GameBloc bloc) => bloc.add(const AutoSolveRequested()),
+      expect: () => <Matcher>[],
+    );
   });
 }
