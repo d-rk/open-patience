@@ -519,7 +519,7 @@ void main() {
     expect(_cardFace(Suit.spades, 7), findsOneWidget);
   });
 
-  testWidgets('winning plays a flourish and then rests without error', (
+  testWidgets('winning plays a cascade and then rests without error', (
     WidgetTester tester,
   ) async {
     // Drive the win with a real final move: tap the lone King up to its
@@ -533,22 +533,50 @@ void main() {
     // A card that also handles double-tap defers its onTap until the
     // double-tap window closes; let that timer elapse so the move fires.
     await tester.pump(const Duration(milliseconds: 350)); // fire onTap
-    await tester.pump(); // rebuild: GameWon, the flourish begins
-    await tester.pump(const Duration(milliseconds: 100)); // mid-flourish
-    // The pulse scales a foundation card up (>1.0); nothing else scales up, so a
-    // Transform with an x-scale above 1 proves the flourish is playing.
+    await tester.pump(); // rebuild: GameWon, the cascade begins
+    await tester.pump(const Duration(milliseconds: 100)); // mid-cascade
+    // The cascade translates a foundation card downward (a positive
+    // y-translation); nothing else in the board translates, so a Transform
+    // with one proves the cascade is playing.
     final Iterable<Transform> transforms = tester.widgetList<Transform>(
       find.byType(Transform),
     );
     expect(
-      transforms.any((Transform t) => t.transform.storage[0] > 1.001),
+      transforms.any((Transform t) => t.transform.storage[13] > 0.5),
       isTrue,
-      reason: 'expected a foundation card scaled up mid-flourish',
+      reason: 'expected a foundation card translated downward mid-cascade',
     );
     await tester.pumpAndSettle();
     expect(bloc.state.state.isWon(bloc.rules), isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'a buried foundation card revealed by the cascade is not interactive',
+    (WidgetTester tester) async {
+      // The clubs foundation has two cards once won (Ace then King); the
+      // cascade must reveal the buried Ace as a plain, non-draggable face —
+      // only the real top card is ever interactive.
+      final GameBloc bloc = await _pump(
+        tester,
+        const Size(400, 800),
+        state: _almostWon(),
+      );
+      await tester.tap(_cardFace(Suit.spades, kingRank));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump(); // rebuild: GameWon, the cascade begins
+      final Finder buriedAce = _cardFace(Suit.clubs, aceRank);
+      expect(buriedAce, findsOneWidget);
+      expect(tester.widget<CardFace>(buriedAce).card.faceUp, isTrue);
+      expect(
+        find.ancestor(of: buriedAce, matching: find.byType(CardView)),
+        findsNothing,
+      );
+      await tester.pumpAndSettle();
+      expect(bloc.state.state.isWon(bloc.rules), isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('reduce-motion shows the flipped face immediately', (
     WidgetTester tester,
