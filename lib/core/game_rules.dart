@@ -1,6 +1,7 @@
 import 'card.dart';
 import 'deck.dart';
 import 'game_state.dart';
+import 'move.dart';
 import 'pile.dart';
 
 /// The extensibility hinge of the engine. Everything variant-specific lives
@@ -41,4 +42,10 @@ abstract class GameRules {
   /// current free capacity (free cells / empty columns). [toPile], when given,
   /// excludes an empty destination column from the capacity math.
   int maxMovable(GameState state, {int? toPile});
+
+  /// A system move that cycles the stock to expose new cards (a draw, or a
+  /// recycle once the stock is exhausted), or `null` for variants with no
+  /// stock or nothing left to cycle. Used by the auto-solver to reach buried
+  /// cards. Apply with [GameState.applyMove].
+  Move? advanceStock(GameState state);
 }

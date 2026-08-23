@@ -288,4 +288,12 @@ void main() {
       expect(rules.isWon(won), isTrue);
     });
   });
+
+  group('advanceStock', () {
+    test('returns null — FreeCell has no stock to cycle', () {
+      final FreecellRules rules = FreecellRules();
+      final GameState state = GameState.newGame(rules, seed: 3);
+      expect(rules.advanceStock(state), isNull);
+    });
+  });
 }
