@@ -175,31 +175,39 @@ class _VariantRow extends StatelessWidget {
               future: hasSave,
               builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
                 final bool saved = snapshot.data ?? false;
-                return Wrap(
-                  spacing: 8,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    FilledButton.icon(
-                      onPressed: onPlay,
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Play'),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        FilledButton.icon(
+                          onPressed: onPlay,
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Play'),
+                        ),
+                        if (saved)
+                          OutlinedButton.icon(
+                            onPressed: onResume,
+                            icon: const Icon(Icons.restore),
+                            label: const Text('Resume'),
+                          ),
+                        TextButton.icon(
+                          onPressed: onRecords,
+                          icon: const Icon(Icons.leaderboard),
+                          label: const Text('Records'),
+                        ),
+                      ],
                     ),
-                    if (saved)
-                      OutlinedButton.icon(
-                        onPressed: onResume,
-                        icon: const Icon(Icons.restore),
-                        label: const Text('Resume'),
-                      ),
-                    TextButton.icon(
-                      onPressed: onRecords,
-                      icon: const Icon(Icons.leaderboard),
-                      label: const Text('Records'),
-                    ),
-                    if (onPlayAlmostWon != null)
+                    if (onPlayAlmostWon != null) ...<Widget>[
+                      const SizedBox(height: 8),
                       OutlinedButton.icon(
                         onPressed: onPlayAlmostWon,
                         icon: const Icon(Icons.bug_report),
                         label: const Text('Test win'),
                       ),
+                    ],
                   ],
                 );
               },
