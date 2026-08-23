@@ -110,6 +110,43 @@ void main() {
     );
   });
 
+  test(
+    'CascadeSequence runs longer than a second and a half for a full win',
+    () {
+      const CascadeSequence c = CascadeSequence();
+      final Duration total = c.totalFor(_won());
+      expect(total, greaterThan(const Duration(milliseconds: 1800)));
+    },
+  );
+
+  test('CascadeSequence rebounds to a meaningful height, not a token hop', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double floor = _board.height - _origin.bottom;
+    bool touchedFloorOnce = false;
+    double minDyAfterFirstBounce = floor;
+    for (int ms = 0; ms <= 2500; ms += 5) {
+      final double dy = c
+          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
+          .dy;
+      if (!touchedFloorOnce) {
+        if (dy >= floor - 5) {
+          touchedFloorOnce = true;
+        }
+        continue;
+      }
+      if (dy < minDyAfterFirstBounce) {
+        minDyAfterFirstBounce = dy;
+      }
+    }
+    expect(
+      minDyAfterFirstBounce,
+      lessThan(floor * 0.6),
+      reason: 'the rebound after the first bounce was too shallow',
+    );
+  });
+
   test('CascadeSequence offset is zero exactly at activation', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();

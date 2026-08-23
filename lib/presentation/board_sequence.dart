@@ -137,31 +137,34 @@ class CascadeSequence {
 
   /// How long a single card's fall takes, from the moment it activates to the
   /// moment it's settled at the floor and mostly drifted clear of the board.
-  static const Duration flight = Duration(milliseconds: 1100);
+  static const Duration flight = Duration(milliseconds: 1600);
 
-  /// Downward acceleration, in logical pixels per second squared. Tuned (with
-  /// [_launchSpeed] and [_restitution]) so a card bounces two or three times
-  /// within [flight] rather than free-falling in one slow arc.
-  static const double _gravity = 8000;
+  /// Downward acceleration, in logical pixels per second squared. Lower than
+  /// real gravity so the fall and each bounce hang in the air a beat longer —
+  /// tuned (with [_launchSpeed] and [_restitution]) for a slower, floatier
+  /// cascade with two or three clearly-visible bounces within [flight].
+  static const double _gravity = 5000;
 
   /// The upward "pop" a card launches with, in pixels per second — sells the
   /// peel-off as a flick rather than a drop.
-  static const double _launchSpeed = 500;
+  static const double _launchSpeed = 650;
 
   /// Fraction of a bounce's impact speed kept as its next rise: energy lost
-  /// per bounce, so each one is visibly lower than the last.
-  static const double _restitution = 0.55;
+  /// per bounce, so each one is visibly lower than the last. High enough that
+  /// the first rebound is a real bounce, not a token hop off the floor.
+  static const double _restitution = 0.65;
 
   /// Bounces allowed before a card is treated as settled at the floor.
-  static const int _maxBounces = 3;
+  static const int _maxBounces = 4;
 
   /// Fraction of the board's width a card crosses sideways over one [flight]
   /// — tuned so it visibly clears the board edge, not just drifts partway.
   static const double _driftFraction = 0.85;
 
   /// Spin rate, in radians per second, applied for as long as a card is
-  /// falling — a continuous tumble rather than a single small tilt.
-  static const double _spinSpeed = 3.0;
+  /// falling — a continuous tumble rather than a single small tilt. Slower
+  /// than the fall/bounce rate so a longer [flight] doesn't read as frantic.
+  static const double _spinSpeed = 2.2;
 
   /// The controller duration for the whole cascade: long enough that even the
   /// last (deepest-buried) card both activates and finishes its flight.
