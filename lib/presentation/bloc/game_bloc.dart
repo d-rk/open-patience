@@ -241,6 +241,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     NewDealRequested event,
     Emitter<GameBlocState> emit,
   ) async {
+    if (_solving) {
+      return;
+    }
     _seed = event.seed ?? _random.nextInt(1 << 32);
     _state = GameState.newGame(rules, seed: _seed);
     await repository.clearSave(variant);
@@ -251,6 +254,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     RestartDealRequested event,
     Emitter<GameBlocState> emit,
   ) async {
+    if (_solving) {
+      return;
+    }
     _state = GameState.newGame(rules, seed: _seed);
     // The prior deal's autosave is now stale — drop it so the reset deal is
     // not resumable to its abandoned progress.
@@ -283,6 +289,12 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     _solving = true;
     try {
       for (final Move move in solution) {
+        // The play route may have been popped mid-cascade, closing the bloc
+        // while we were suspended on the delay below; emitting on a done
+        // emitter throws, so bail cleanly instead.
+        if (emit.isDone) {
+          return;
+        }
         _state.applyMove(move);
         if (_state.isWon(rules)) {
           final int elapsed = _state.elapsedSeconds;
@@ -294,6 +306,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
             moves: moves,
           );
           await repository.clearSave(variant);
+          if (emit.isDone) {
+            return;
+          }
           emit(GameWon(_state.copy(), elapsed: elapsed, moves: moves));
           return;
         }

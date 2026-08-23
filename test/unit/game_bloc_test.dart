@@ -546,5 +546,47 @@ void main() {
       act: (GameBloc bloc) => bloc.add(const AutoSolveRequested()),
       expect: () => <Matcher>[],
     );
+
+    // A board that needs several foundation moves, so the cascade is genuinely
+    // in-flight across an `await autoSolveStep` when a competing event arrives.
+    GameState multiMoveSolvableBoard() => _klondikeBoard(
+      foundationClubs: _run(Suit.clubs, 13),
+      foundationDiamonds: _run(Suit.diamonds, 13),
+      foundationHearts: _run(Suit.hearts, 13),
+      foundationSpades: _run(Suit.spades, 10),
+      col6: <Card>[_up(Suit.spades, 11)],
+      col7: <Card>[_up(Suit.spades, kingRank), _up(Suit.spades, 12)],
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'ignores deal-reset / undo dispatched mid-cascade and still wins',
+      build: () => _bloc(
+        _FakeRepo(),
+        multiMoveSolvableBoard(),
+        autoSolveStep: const Duration(milliseconds: 5),
+      ),
+      act: (GameBloc bloc) {
+        // Kick off the cascade, then — without awaiting — fire the events the
+        // in-game menu can dispatch while it plays out. The guard must make
+        // these no-ops so the cascade is not torn out from under itself.
+        bloc.add(const AutoSolveRequested());
+        bloc.add(const RestartDealRequested());
+        bloc.add(const NewDealRequested(seed: 99));
+        bloc.add(const UndoRequested());
+      },
+      wait: const Duration(milliseconds: 200),
+      errors: () => <Matcher>[],
+      verify: (GameBloc bloc) {
+        expect(bloc.state, isA<GameWon>());
+        final _FakeRepo repo = bloc.repository as _FakeRepo;
+        expect(
+          repo.calls.any(
+            (String c) => c.startsWith('record:klondike-draw1:true'),
+          ),
+          isTrue,
+        );
+        expect(repo.calls.contains('clear:klondike-draw1'), isTrue);
+      },
+    );
   });
 }
