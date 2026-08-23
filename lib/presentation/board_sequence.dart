@@ -8,14 +8,18 @@ import '../core/pile.dart';
 import '../ui/theme/game_motion.dart';
 import 'board_geometry.dart';
 
-/// The isolation seam for *set-piece* board animations (a deal, a win flourish,
-/// …). The board asks a [SpecialSequence] whether the current state transition
-/// is a set-piece; if so, it plays the sequence's per-card *activation*
-/// schedule: each card waits at a fly-from origin until its [delayFor] elapses,
-/// then reveals its real target so the existing `AnimatedPositioned` tweens it
-/// into place. The whole point of the seam is that a fancier deal or a win
-/// animation later is a *new* [SpecialSequence] implementation — `board.dart`
-/// and `board_geometry.dart` stay untouched.
+/// The isolation seam for *set-piece* board animations driven by a piles-diff
+/// — currently just the deal. The board asks a [SpecialSequence] whether the
+/// current state transition is a set-piece; if so, it plays the sequence's
+/// per-card *activation* schedule: each card waits at a fly-from origin until
+/// its [delayFor] elapses, then reveals its real target so the existing
+/// `AnimatedPositioned` tweens it into place. The whole point of the seam is
+/// that a fancier deal later is a *new* [SpecialSequence] implementation —
+/// `board.dart` and `board_geometry.dart` stay untouched.
+///
+/// Set-pieces engaged by a bloc *state type* rather than a piles-diff (the win
+/// cascade, [CascadeSequence]) don't implement this interface — see its own
+/// doc comment for why.
 abstract interface class SpecialSequence {
   /// Whether the transition from [previous] (null on the very first render) to
   /// [next] is this set-piece.
@@ -103,44 +107,132 @@ class DealSequence implements SpecialSequence {
   }
 }
 
-/// A modest win flourish: a brief, symmetric scale pulse of the foundation
-/// cards when the game is won. Kept deliberately small and isolated behind the
-/// [SpecialSequence] seam so a fuller arcade cascade can later replace it by
-/// swapping this one class (see `_winSequence` in `board.dart`).
+/// The win cascade: once the game is won, the cards resting in the foundation
+/// piles peel off from the top down and tumble off the bottom of the board —
+/// the classic solitaire "cascade" a completed game deserves. It replaces the
+/// modest foundation pulse this seam used to play; unlike that pulse it needs
+/// every card in each foundation pile individually placed (not just the top),
+/// which `board.dart` gets via `BoardGeometry.resolve(revealFoundationStacks:
+/// true)`.
 ///
-/// Unlike [DealSequence], its engagement is *not* driven by a piles-diff: the
-/// board plays it when the bloc emits a `GameWon` state — the win-ness the
-/// engine has already decided. So [matches] is intentionally conservative and
-/// unused for engagement (it always returns `false`), and [delayFor] is unused
-/// too: every foundation card pulses together, so it returns [Duration.zero].
-class WinSequence implements SpecialSequence {
-  const WinSequence();
+/// It is not a [SpecialSequence]: like the pulse before it, engagement is
+/// driven by the bloc reporting a `GameWon` state, not a piles-diff, and its
+/// per-card schedule is a property of the [GameState] alone (which foundation
+/// pile a card sits in, how many cards are stacked above it) rather than of a
+/// resolved [BoardGeometry] — so a caller only needs a board size for the fall
+/// distance, never a full geometry resolve.
+///
+/// All four foundations peel off together, rank by rank from the top (usually
+/// the King) down to the Ace, so same-rank cards across foundations fly in the
+/// same beat — the familiar rhythm of the genre's classic win animation.
+class CascadeSequence {
+  const CascadeSequence();
 
-  /// The peak extra scale at the pulse's midpoint (an 8% swell).
-  static const double _amplitude = 0.08;
+  /// Delay between successive ranks peeling off.
+  static const Duration stagger = Duration(milliseconds: 45);
 
-  @override
-  bool matches(GameState? previous, GameState next) => false;
+  /// How long a single card's tumble takes, from the moment it activates to
+  /// the moment it is fully clear of the board.
+  static const Duration flight = Duration(milliseconds: 900);
 
-  @override
-  Duration delayFor(CardKey key, BoardGeometry geometry) => Duration.zero;
+  /// The controller duration for the whole cascade: long enough that even the
+  /// last (deepest-buried) card both activates and finishes its flight.
+  Duration totalFor(GameState game) => stagger * _maxStep(game) + flight;
 
-  /// The flourish is a fixed, card-count-independent pulse.
-  Duration get total => const Duration(milliseconds: 600);
+  /// How long [key] waits before it starts tumbling: zero for the top card of
+  /// its foundation pile, one more [stagger] for each card beneath it.
+  /// [Duration.zero] (inert — [offsetAt] never moves it) if [key] isn't
+  /// currently sitting in a foundation pile.
+  Duration delayFor(CardKey key, GameState game) {
+    final int step = _stepFor(key, game);
+    return step < 0 ? Duration.zero : stagger * step;
+  }
 
-  @override
-  Duration totalFor(BoardGeometry geometry) => total;
-
-  /// The foundation-card scale at [elapsed] into the flourish: a symmetric ease
-  /// pulse that starts at 1.0, swells to `1 + _amplitude` (~1.08) at the
-  /// midpoint, and eases back to 1.0 at [total]. Flat at 1.0 before the start
-  /// and once the flourish is over, so it is safe to sample at any time.
-  double pulseAt(Duration elapsed) {
-    final double t = elapsed.inMicroseconds / total.inMicroseconds;
-    if (t <= 0.0 || t >= 1.0) {
-      return 1.0;
+  /// The board-local translation to apply to [key] at [elapsed] into the whole
+  /// cascade: [Offset.zero] until its own [delayFor] elapses, then an easing
+  /// fall guaranteed to clear [boardSize]'s height, with a small per-card
+  /// sideways drift. Holds at the fully-exited offset once its own [flight]
+  /// completes, so a settled card never snaps back.
+  Offset offsetAt(
+    CardKey key,
+    Duration elapsed,
+    GameState game,
+    Size boardSize,
+  ) {
+    final double t = _progress(key, elapsed, game);
+    if (t <= 0.0) {
+      return Offset.zero;
     }
-    return 1.0 + _amplitude * math.sin(math.pi * t);
+    final double fall = boardSize.height * 1.15 * Curves.easeIn.transform(t);
+    final double drift = _driftFor(key) * Curves.easeOut.transform(t);
+    return Offset(drift, fall);
+  }
+
+  /// A gentle tumble to accompany the fall, purely cosmetic: `0.0` until [key]
+  /// activates, easing up to a small fixed tilt (radians) by the time it
+  /// exits — a tumble, not a pinwheel.
+  double rotationAt(CardKey key, Duration elapsed, GameState game) {
+    final double t = _progress(key, elapsed, game);
+    return t <= 0.0 ? 0.0 : _spinFor(key) * Curves.easeOut.transform(t);
+  }
+
+  /// This card's `[0, 1]` progress through its own flight at [elapsed] into
+  /// the whole cascade: `0` before its [delayFor] elapses, `1` once its own
+  /// [flight] completes.
+  double _progress(CardKey key, Duration elapsed, GameState game) {
+    final Duration delay = delayFor(key, game);
+    if (elapsed <= delay) {
+      return 0.0;
+    }
+    return ((elapsed - delay).inMicroseconds / flight.inMicroseconds).clamp(
+      0.0,
+      1.0,
+    );
+  }
+
+  /// How many cards sit above [key] in its own foundation pile (`0` for the
+  /// top card), or `-1` if [key] isn't currently a foundation card.
+  int _stepFor(CardKey key, GameState game) {
+    for (final Pile pile in game.piles) {
+      if (pile.kind != PileKind.foundation) {
+        continue;
+      }
+      for (int i = 0; i < pile.length; i++) {
+        if (CardKey.of(pile.cards[i]) == key) {
+          return pile.length - 1 - i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  /// The deepest foundation pile's top-card step, so [totalFor] sizes the
+  /// controller for the slowest-to-activate card.
+  int _maxStep(GameState game) {
+    int maxLength = 0;
+    for (final Pile pile in game.piles) {
+      if (pile.kind == PileKind.foundation) {
+        maxLength = math.max(maxLength, pile.length);
+      }
+    }
+    return maxLength == 0 ? 0 : maxLength - 1;
+  }
+
+  /// A small, deterministic per-card sideways drift (logical pixels) so the
+  /// cascade fans out instead of falling as one uniform curtain. Derived from
+  /// the card's own identity rather than [math.Random] so a replay of the same
+  /// win — or a test — always tumbles the same way.
+  double _driftFor(CardKey key) {
+    const List<double> perSuitLane = <double>[-1.5, -0.5, 0.5, 1.5];
+    final double lane = perSuitLane[key.suit.index % perSuitLane.length];
+    final double jitter = (key.rank * 37) % 11 - 5; // -5..5
+    return lane * 60.0 + jitter * 3.0;
+  }
+
+  /// A small, deterministic per-card tilt (radians) for the tumble.
+  double _spinFor(CardKey key) {
+    final double turns = 0.3 + (key.rank % 4) * 0.08;
+    return key.rank.isEven ? turns : -turns;
   }
 }
 

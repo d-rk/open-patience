@@ -95,23 +95,23 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// identical).
   GameState? _lastDealState;
 
-  /// The set-piece the board plays when the game is won: a modest scale pulse of
-  /// the foundation cards. Like [_dealSequence] it is the only thing the board
-  /// knows about the win flourish — swapping in a fuller arcade cascade means
-  /// replacing this one field with a different [SpecialSequence].
-  final WinSequence _winSequence = const WinSequence();
+  /// The set-piece the board plays when the game is won: cards peel off the
+  /// foundations and tumble off the board. Like [_dealSequence] it is the only
+  /// thing the board knows about the win cascade — swapping in a different
+  /// effect means replacing this one field.
+  final CascadeSequence _cascadeSequence = const CascadeSequence();
 
-  /// Drives the win flourish: while it runs, foundation cards are scaled by
-  /// [_winSequence.pulseAt]. Null when no flourish is playing. Independent of
-  /// [_dealController] (a game never deals and wins in the same frame, but the
-  /// two controllers are kept separate defensively). Disposed on completion and
-  /// in [dispose].
-  AnimationController? _winController;
+  /// Drives the win cascade: while it runs, foundation cards are offset and
+  /// tilted by [_cascadeSequence]'s `offsetAt`/`rotationAt`. Null when no
+  /// cascade is playing. Independent of [_dealController] (a game never deals
+  /// and wins in the same frame, but the two controllers are kept separate
+  /// defensively). Disposed on completion and in [dispose].
+  AnimationController? _cascadeController;
 
-  /// The state instance last evaluated for the win flourish, so the flourish's
+  /// The state instance last evaluated for the win cascade, so the cascade's
   /// own per-tick rebuilds don't re-trigger it (the `GameWon` state is unchanged
   /// across those ticks, so it stays identical).
-  GameState? _lastWinState;
+  GameState? _lastCascadeState;
 
   @override
   void initState() {
@@ -122,7 +122,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   @override
   void dispose() {
     _disposeDeal();
-    _disposeWin();
+    _disposeCascade();
     super.dispose();
   }
 
@@ -168,9 +168,13 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
               shortestSide: shortestSide,
               isLandscape: isLandscape,
               wasteVisibleCount: wasteVisibleCount,
+              // The cascade animates every foundation card peeling off in
+              // turn, not just the one normally visible, so it needs a
+              // placement for each — see `_placeSingleOrSlot`.
+              revealFoundationStacks: blocState is GameWon,
             );
             _syncDeal(game, geometry, reduceMotion);
-            _syncWin(blocState, geometry, reduceMotion);
+            _syncCascade(blocState, reduceMotion);
             return _stack(context, game, geometry, moveDuration);
           },
         );
@@ -367,13 +371,27 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       size: cardSize,
       child: faceChild,
     );
-    // The win flourish scales foundation cards by a gentle pulse; at rest (and
-    // for non-foundation cards) the scale is 1.0, so this is a no-op transform
-    // that never interferes with drags, taps or the deal set-piece.
-    final double winScale = _winScaleFor(pile);
-    final Widget child = winScale == 1.0
+    // The win cascade offsets and tilts foundation cards as they tumble off
+    // the board; at rest (and for non-foundation cards) both are zero, so this
+    // is a no-op transform that never interferes with drags, taps or the deal
+    // set-piece.
+    final Offset cascadeOffset = _cascadeOffsetFor(
+      pile,
+      placement.card,
+      game,
+      geometry.size,
+    );
+    final double cascadeRotation = _cascadeRotationFor(
+      pile,
+      placement.card,
+      game,
+    );
+    final Widget child = cascadeOffset == Offset.zero && cascadeRotation == 0.0
         ? flip
-        : Transform.scale(scale: winScale, child: flip);
+        : Transform.translate(
+            offset: cascadeOffset,
+            child: Transform.rotate(angle: cascadeRotation, child: flip),
+          );
     return AnimatedPositioned(
       key: key.widgetKey,
       duration: isSettling ? Duration.zero : moveDuration,
@@ -497,58 +515,77 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     controller.dispose();
   }
 
-  /// Engages the win flourish when the bloc reports a `GameWon` state. Driven by
-  /// the bloc *state type* (the engine has already decided the game is won), not
-  /// a piles-diff — so [WinSequence.matches] stays unused here. Guarded by
-  /// [_lastWinState] so the flourish's own per-tick rebuilds don't re-trigger
-  /// it. Skipped under reduce-motion, so the win simply lands with no pulse.
-  void _syncWin(
-    GameBlocState blocState,
-    BoardGeometry geometry,
-    bool reduceMotion,
-  ) {
+  /// Engages the win cascade when the bloc reports a `GameWon` state. Driven by
+  /// the bloc *state type* (the engine has already decided the game is won),
+  /// not a piles-diff, and needs no [BoardGeometry] (see [CascadeSequence]).
+  /// Guarded by [_lastCascadeState] so the cascade's own per-tick rebuilds
+  /// don't re-trigger it. Skipped under reduce-motion, so the win simply lands
+  /// with no cascade.
+  void _syncCascade(GameBlocState blocState, bool reduceMotion) {
     final GameState next = blocState.state;
-    if (identical(_lastWinState, next)) {
+    if (identical(_lastCascadeState, next)) {
       return;
     }
-    _lastWinState = next;
+    _lastCascadeState = next;
     if (blocState is! GameWon || reduceMotion) {
-      _disposeWin();
+      _disposeCascade();
       return;
     }
-    _disposeWin();
+    _disposeCascade();
     final AnimationController controller = AnimationController(
       vsync: this,
-      duration: _winSequence.totalFor(geometry),
+      duration: _cascadeSequence.totalFor(next),
     );
-    _winController = controller;
-    controller.addListener(_onWinTick);
-    controller.addStatusListener(_onWinStatus);
+    _cascadeController = controller;
+    controller.addListener(_onCascadeTick);
+    controller.addStatusListener(_onCascadeStatus);
     controller.forward();
   }
 
-  /// The win-pulse scale for a card on [pile]: [WinSequence.pulseAt] of the
-  /// controller's elapsed time for foundation cards while the flourish plays,
-  /// and 1.0 (a no-op) otherwise.
-  double _winScaleFor(Pile pile) {
-    final AnimationController? controller = _winController;
+  /// The cascade's board-local translation for a card on [pile]:
+  /// [CascadeSequence.offsetAt] of the controller's elapsed time for
+  /// foundation cards while the cascade plays, and [Offset.zero] (a no-op)
+  /// otherwise.
+  Offset _cascadeOffsetFor(
+    Pile pile,
+    Card card,
+    GameState game,
+    Size boardSize,
+  ) {
+    final AnimationController? controller = _cascadeController;
     if (controller == null || pile.kind != PileKind.foundation) {
-      return 1.0;
+      return Offset.zero;
     }
     final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
-    return _winSequence.pulseAt(elapsed);
+    return _cascadeSequence.offsetAt(
+      CardKey.of(card),
+      elapsed,
+      game,
+      boardSize,
+    );
   }
 
-  /// Rebuilds each flourish tick so the foundation pulse advances.
-  void _onWinTick() {
+  /// The cascade's tilt for a card on [pile]: [CascadeSequence.rotationAt]
+  /// while the cascade plays, `0.0` (a no-op) otherwise.
+  double _cascadeRotationFor(Pile pile, Card card, GameState game) {
+    final AnimationController? controller = _cascadeController;
+    if (controller == null || pile.kind != PileKind.foundation) {
+      return 0.0;
+    }
+    final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
+    return _cascadeSequence.rotationAt(CardKey.of(card), elapsed, game);
+  }
+
+  /// Rebuilds each cascade tick so the fall advances.
+  void _onCascadeTick() {
     setState(() {});
   }
 
-  /// Tears the flourish controller down once it completes. Deferred to after the
+  /// Tears the cascade controller down once it completes. Deferred to after the
   /// frame so the controller is not disposed from inside its own callback while
   /// the ticker is still finishing, and mounted-guarded because the win
-  /// navigation may unmount the board mid-pulse.
-  void _onWinStatus(AnimationStatus status) {
+  /// navigation may unmount the board mid-cascade.
+  void _onCascadeStatus(AnimationStatus status) {
     if (status != AnimationStatus.completed) {
       return;
     }
@@ -556,19 +593,19 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       if (!mounted) {
         return;
       }
-      setState(_disposeWin);
+      setState(_disposeCascade);
     });
   }
 
-  /// Disposes the active win-flourish controller, if any. Idempotent.
-  void _disposeWin() {
-    final AnimationController? controller = _winController;
+  /// Disposes the active cascade controller, if any. Idempotent.
+  void _disposeCascade() {
+    final AnimationController? controller = _cascadeController;
     if (controller == null) {
       return;
     }
-    _winController = null;
-    controller.removeListener(_onWinTick);
-    controller.removeStatusListener(_onWinStatus);
+    _cascadeController = null;
+    controller.removeListener(_onCascadeTick);
+    controller.removeStatusListener(_onCascadeStatus);
     controller.dispose();
   }
 
@@ -609,6 +646,13 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         );
       case PileKind.foundation:
       case PileKind.freecell:
+        // Normally there is only ever one placement per pile (the top card),
+        // so `isTop` is trivially true — except a foundation pile revealed in
+        // full for the win cascade (see `_placeSingleOrSlot`), whose buried
+        // cards must stay plain and non-interactive, just like a tableau's.
+        if (!placement.isTop) {
+          return CardFace(card: placement.card, size: cardSize);
+        }
         return CardView(
           card: placement.card,
           size: cardSize,
