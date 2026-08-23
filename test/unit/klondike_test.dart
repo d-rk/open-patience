@@ -62,6 +62,70 @@ void main() {
     });
   });
 
+  group('Klondike almost-won debug deal', () {
+    test('conserves all 52 cards exactly once', () {
+      final List<Pile> piles = rules.dealAlmostWon();
+      final Map<Card, int> counts = <Card, int>{};
+      for (final Pile pile in piles) {
+        for (final Card card in pile.cards) {
+          counts[card.faceUpCard] = (counts[card.faceUpCard] ?? 0) + 1;
+        }
+      }
+      expect(counts.length, 52);
+      expect(counts.values.every((int n) => n == 1), isTrue);
+    });
+
+    test('foundations sit at Queen and stock/waste are empty', () {
+      final GameState state = GameState(piles: rules.dealAlmostWon());
+      for (int i = 0; i < KlondikeRules.foundationCount; i++) {
+        expect(
+          state.pileAt(KlondikeRules.firstFoundation + i).topCard!.rank,
+          12,
+        );
+      }
+      expect(state.pileAt(KlondikeRules.stockIndex).isEmpty, isTrue);
+      expect(state.pileAt(KlondikeRules.wasteIndex).isEmpty, isTrue);
+      expect(rules.isWon(state), isFalse);
+    });
+
+    test('the four Kings are face up and reachable on separate columns', () {
+      final GameState state = GameState(piles: rules.dealAlmostWon());
+      final List<Card> kings = <Card>[];
+      for (int col = 0; col < KlondikeRules.tableauCount; col++) {
+        final Pile pile = state.pileAt(KlondikeRules.firstTableau + col);
+        if (pile.isNotEmpty) {
+          expect(pile.length, 1);
+          expect(pile.topCard!.faceUp, isTrue);
+          expect(pile.topCard!.rank, 13);
+          kings.add(pile.topCard!);
+        }
+      }
+      expect(kings.map((Card c) => c.suit).toSet(), Suit.values.toSet());
+    });
+
+    test('moving all four Kings to their foundations wins the game', () {
+      final GameState state = GameState(piles: rules.dealAlmostWon());
+      for (int col = 0; col < KlondikeRules.tableauCount; col++) {
+        final Pile pile = state.pileAt(KlondikeRules.firstTableau + col);
+        if (pile.isEmpty) {
+          continue;
+        }
+        final Card king = pile.topCard!;
+        final int foundation = KlondikeRules.firstFoundation + king.suit.index;
+        final bool moved = state.tryMove(
+          Move(
+            fromPile: KlondikeRules.firstTableau + col,
+            toPile: foundation,
+            cards: <Card>[king],
+          ),
+          rules,
+        );
+        expect(moved, isTrue);
+      }
+      expect(rules.isWon(state), isTrue);
+    });
+  });
+
   group('Klondike legal / illegal moves', () {
     test('red-on-black descending tableau move is legal', () {
       final GameState state = GameState(

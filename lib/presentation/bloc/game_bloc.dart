@@ -43,15 +43,19 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
   }
 
   /// Deals a fresh game and wraps it in a bloc. Convenience for the menu.
+  /// [almostWon] is a debug-only shortcut (see [GameState.newGame]) for
+  /// testing the win/records flow without playing a full game.
   factory GameBloc.newGame({
     required String variant,
     required RecordsRepository repository,
     required int seed,
     Random? random,
+    bool almostWon = false,
   }) {
     final GameState state = GameState.newGame(
       GameRegistry.rulesFor(variant),
       seed: seed,
+      almostWon: almostWon,
     );
     return GameBloc(
       variant: variant,

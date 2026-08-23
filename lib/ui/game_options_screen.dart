@@ -19,12 +19,19 @@ class GameOptionsScreen extends StatelessWidget {
     required this.gameId,
     required this.repository,
     this.autoTick,
+    this.debugDeals = false,
     super.key,
   });
 
   final String gameId;
   final RecordsRepository repository;
   final Duration? autoTick;
+
+  /// Shows a per-variant "test win" trigger that opens a near-won board — one
+  /// move per foundation away from a win — for testing the win/records flow.
+  /// Wired to `appFlavor == 'testing'` at the app root, so it never appears
+  /// in a production build.
+  final bool debugDeals;
 
   void _open(BuildContext context, GameBloc bloc) {
     Navigator.of(context).push(
@@ -42,6 +49,19 @@ class GameOptionsScreen extends StatelessWidget {
     _open(
       context,
       GameBloc.newGame(variant: variant, repository: repository, seed: seed),
+    );
+  }
+
+  void _playAlmostWon(BuildContext context, String variant) {
+    final int seed = Random().nextInt(1 << 32);
+    _open(
+      context,
+      GameBloc.newGame(
+        variant: variant,
+        repository: repository,
+        seed: seed,
+        almostWon: true,
+      ),
     );
   }
 
@@ -102,6 +122,9 @@ class GameOptionsScreen extends StatelessWidget {
                           onPlay: () => _play(context, variant),
                           onResume: () => _resume(context, variant),
                           onRecords: () => _openRecords(context, variant),
+                          onPlayAlmostWon: debugDeals
+                              ? () => _playAlmostWon(context, variant)
+                              : null,
                         ),
                     ],
                   ),
@@ -122,6 +145,7 @@ class _VariantRow extends StatelessWidget {
     required this.onPlay,
     required this.onResume,
     required this.onRecords,
+    this.onPlayAlmostWon,
   });
 
   final String variant;
@@ -129,6 +153,9 @@ class _VariantRow extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onResume;
   final VoidCallback onRecords;
+
+  /// Null hides the "test win" trigger entirely (see [GameOptionsScreen.debugDeals]).
+  final VoidCallback? onPlayAlmostWon;
 
   @override
   Widget build(BuildContext context) {
@@ -167,6 +194,12 @@ class _VariantRow extends StatelessWidget {
                       icon: const Icon(Icons.leaderboard),
                       label: const Text('Records'),
                     ),
+                    if (onPlayAlmostWon != null)
+                      OutlinedButton.icon(
+                        onPressed: onPlayAlmostWon,
+                        icon: const Icon(Icons.bug_report),
+                        label: const Text('Test win'),
+                      ),
                   ],
                 );
               },
