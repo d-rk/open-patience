@@ -379,6 +379,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       pile,
       placement.card,
       game,
+      placement.rect,
       geometry.size,
     );
     final double cascadeRotation = _cascadeRotationFor(
@@ -542,14 +543,15 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     controller.forward();
   }
 
-  /// The cascade's board-local translation for a card on [pile]:
-  /// [CascadeSequence.offsetAt] of the controller's elapsed time for
+  /// The cascade's board-local translation for a card on [pile] resting at
+  /// [origin]: [CascadeSequence.offsetAt] of the controller's elapsed time for
   /// foundation cards while the cascade plays, and [Offset.zero] (a no-op)
   /// otherwise.
   Offset _cascadeOffsetFor(
     Pile pile,
     Card card,
     GameState game,
+    Rect origin,
     Size boardSize,
   ) {
     final AnimationController? controller = _cascadeController;
@@ -561,6 +563,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       CardKey.of(card),
       elapsed,
       game,
+      origin,
       boardSize,
     );
   }

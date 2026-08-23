@@ -110,7 +110,7 @@ void main() {
     );
   });
 
-  test('CascadeSequence offset is zero before a card activates', () {
+  test('CascadeSequence offset is zero exactly at activation', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
     final Duration delay = c.delayFor(const CardKey(Suit.clubs, aceRank), won);
@@ -119,65 +119,128 @@ void main() {
         const CardKey(Suit.clubs, aceRank),
         delay,
         won,
-        const Size(400, 800),
+        _origin,
+        _board,
       ),
       Offset.zero,
     );
   });
 
-  test('CascadeSequence falls clear of the board once a flight completes', () {
+  test('CascadeSequence never falls past the board floor', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
-    const Size board = Size(400, 800);
-    final Duration end =
-        c.delayFor(const CardKey(Suit.clubs, kingRank), won) +
-        CascadeSequence.flight;
-    final Offset offset = c.offsetAt(
-      const CardKey(Suit.clubs, kingRank),
-      end,
-      won,
-      board,
-    );
-    expect(offset.dy, greaterThan(board.height));
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double floor = _board.height - _origin.bottom;
+    for (int ms = 0; ms <= 5000; ms += 25) {
+      final double dy = c
+          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
+          .dy;
+      expect(
+        dy,
+        lessThanOrEqualTo(floor + 0.5),
+        reason: 'overshot the floor at $ms ms',
+      );
+    }
   });
 
-  test('CascadeSequence holds its landed offset past the flight end', () {
+  test('CascadeSequence bounces off the floor before settling', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
-    const Size board = Size(400, 800);
-    final Duration end =
-        c.delayFor(const CardKey(Suit.clubs, kingRank), won) +
-        CascadeSequence.flight;
-    final Offset atEnd = c.offsetAt(
-      const CardKey(Suit.clubs, kingRank),
-      end,
-      won,
-      board,
-    );
-    final Offset wellPast = c.offsetAt(
-      const CardKey(Suit.clubs, kingRank),
-      end + const Duration(seconds: 5),
-      won,
-      board,
-    );
-    expect(wellPast, atEnd);
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double floor = _board.height - _origin.bottom;
+    bool nearFloor = false;
+    bool roseAwayAfter = false;
+    for (int ms = 0; ms <= 1500; ms += 5) {
+      final double dy = c
+          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
+          .dy;
+      if (dy >= floor - 15) {
+        nearFloor = true;
+      } else if (nearFloor && dy <= floor - 50) {
+        roseAwayAfter = true;
+      }
+    }
+    expect(nearFloor, isTrue, reason: 'never reached the floor to bounce');
+    expect(roseAwayAfter, isTrue, reason: 'never rebounded off the floor');
+  });
+
+  test('CascadeSequence settles at the floor well after activating', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double floor = _board.height - _origin.bottom;
+    final double dy = c
+        .offsetAt(king, const Duration(seconds: 10), won, _origin, _board)
+        .dy;
+    expect(dy, closeTo(floor, 0.5));
   });
 
   test(
-    'CascadeSequence rotation is zero before activation and non-zero after',
+    'CascadeSequence drifts opposite foundations in opposite directions',
+    () {
+      const CascadeSequence c = CascadeSequence();
+      final GameState won = _won();
+      const CardKey clubsKing = CardKey(Suit.clubs, kingRank);
+      const CardKey heartsKing = CardKey(Suit.hearts, kingRank);
+      final double clubsDx = c
+          .offsetAt(
+            clubsKing,
+            const Duration(milliseconds: 400),
+            won,
+            _origin,
+            _board,
+          )
+          .dx;
+      final double heartsDx = c
+          .offsetAt(
+            heartsKing,
+            const Duration(milliseconds: 400),
+            won,
+            _origin,
+            _board,
+          )
+          .dx;
+      expect(clubsDx.sign, isNot(heartsDx.sign));
+    },
+  );
+
+  test('CascadeSequence horizontal drift grows over time', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double early = c
+        .offsetAt(king, const Duration(milliseconds: 200), won, _origin, _board)
+        .dx
+        .abs();
+    final double late = c
+        .offsetAt(king, const Duration(milliseconds: 800), won, _origin, _board)
+        .dx
+        .abs();
+    expect(late, greaterThan(early));
+  });
+
+  test(
+    'CascadeSequence rotation is zero at activation and grows afterward',
     () {
       const CascadeSequence c = CascadeSequence();
       final GameState won = _won();
       const CardKey king = CardKey(Suit.clubs, kingRank);
       final Duration delay = c.delayFor(king, won);
       expect(c.rotationAt(king, delay, won), 0.0);
-      expect(
-        c.rotationAt(king, delay + CascadeSequence.flight, won),
-        isNot(0.0),
-      );
+      final double early = c
+          .rotationAt(king, delay + const Duration(milliseconds: 200), won)
+          .abs();
+      final double late = c
+          .rotationAt(king, delay + const Duration(milliseconds: 800), won)
+          .abs();
+      expect(early, greaterThan(0.0));
+      expect(late, greaterThan(early));
     },
   );
 }
+
+const Rect _origin = Rect.fromLTWH(50, 20, 64, 90);
+const Size _board = Size(400, 800);
 
 /// A fully-won board: all four foundations run Ace..King.
 GameState _won() => GameState(
