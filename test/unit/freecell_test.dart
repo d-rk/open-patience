@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
 import 'package:open_patience/core/game_state.dart';
 import 'package:open_patience/core/games/freecell.dart';
+import 'package:open_patience/core/move.dart';
 import 'package:open_patience/core/pile.dart';
 
 Card _c(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
@@ -43,6 +44,68 @@ void main() {
         expect(state.pileAt(FreecellRules.firstFreecell + i).isEmpty, isTrue);
         expect(state.pileAt(rules.firstFoundation + i).isEmpty, isTrue);
       }
+    });
+  });
+
+  group('FreeCell almost-won debug deal', () {
+    test('conserves all 52 cards exactly once', () {
+      final List<Pile> piles = rules.dealAlmostWon();
+      final Map<Card, int> counts = <Card, int>{};
+      for (final Pile pile in piles) {
+        for (final Card card in pile.cards) {
+          counts[card.faceUpCard] = (counts[card.faceUpCard] ?? 0) + 1;
+        }
+      }
+      expect(counts.length, 52);
+      expect(counts.values.every((int n) => n == 1), isTrue);
+    });
+
+    test('foundations sit at Queen and every free cell is empty', () {
+      final GameState state = GameState(piles: rules.dealAlmostWon());
+      for (int i = 0; i < FreecellRules.foundationCount; i++) {
+        expect(state.pileAt(rules.firstFoundation + i).topCard!.rank, 12);
+      }
+      for (int i = 0; i < rules.freecellCount; i++) {
+        expect(state.pileAt(FreecellRules.firstFreecell + i).isEmpty, isTrue);
+      }
+      expect(rules.isWon(state), isFalse);
+    });
+
+    test('the four Kings are face up and reachable on separate columns', () {
+      final GameState state = GameState(piles: rules.dealAlmostWon());
+      final List<Card> kings = <Card>[];
+      for (int col = 0; col < FreecellRules.tableauCount; col++) {
+        final Pile pile = state.pileAt(rules.firstTableau + col);
+        if (pile.isNotEmpty) {
+          expect(pile.length, 1);
+          expect(pile.topCard!.faceUp, isTrue);
+          expect(pile.topCard!.rank, 13);
+          kings.add(pile.topCard!);
+        }
+      }
+      expect(kings.map((Card c) => c.suit).toSet(), Suit.values.toSet());
+    });
+
+    test('moving all four Kings to their foundations wins the game', () {
+      final GameState state = GameState(piles: rules.dealAlmostWon());
+      for (int col = 0; col < FreecellRules.tableauCount; col++) {
+        final Pile pile = state.pileAt(rules.firstTableau + col);
+        if (pile.isEmpty) {
+          continue;
+        }
+        final Card king = pile.topCard!;
+        final int foundation = rules.firstFoundation + king.suit.index;
+        final bool moved = state.tryMove(
+          Move(
+            fromPile: rules.firstTableau + col,
+            toPile: foundation,
+            cards: <Card>[king],
+          ),
+          rules,
+        );
+        expect(moved, isTrue);
+      }
+      expect(rules.isWon(state), isTrue);
     });
   });
 

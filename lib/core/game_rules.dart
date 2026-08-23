@@ -18,6 +18,12 @@ abstract class GameRules {
   /// state).
   List<Pile> deal(Deck deck);
 
+  /// A fixed, non-random layout for this variant with all four foundations
+  /// built up to Queen and the four Kings face up and reachable — one move
+  /// per King away from a win. Exists purely to exercise the win/records
+  /// pipeline quickly during testing; never used by a real deal.
+  List<Pile> dealAlmostWon();
+
   /// Whether moving [cards] (a contiguous top group of [fromPile], bottom-most
   /// of the group first) onto [toPile] is legal in the current [state].
   bool isLegalMove(GameState state, int fromPile, List<Card> cards, int toPile);

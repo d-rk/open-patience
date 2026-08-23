@@ -54,6 +54,27 @@ class KlondikeRules implements GameRules {
   }
 
   @override
+  List<Pile> dealAlmostWon() {
+    List<Card> aceToQueen(Suit suit) => <Card>[
+      for (int rank = aceRank; rank < kingRank; rank++)
+        Card(suit: suit, rank: rank, faceUp: true),
+    ];
+    return <Pile>[
+      Pile(kind: PileKind.stock),
+      Pile(kind: PileKind.waste),
+      for (final Suit suit in Suit.values)
+        Pile(kind: PileKind.foundation, cards: aceToQueen(suit)),
+      for (final Suit suit in Suit.values)
+        Pile(
+          kind: PileKind.tableau,
+          cards: <Card>[Card(suit: suit, rank: kingRank, faceUp: true)],
+        ),
+      for (int i = 0; i < tableauCount - Suit.values.length; i++)
+        Pile(kind: PileKind.tableau),
+    ];
+  }
+
+  @override
   bool isLegalMove(
     GameState state,
     int fromPile,

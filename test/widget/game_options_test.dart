@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart' hide Card;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/game_registry.dart';
 import 'package:open_patience/core/game_state.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
+import 'package:open_patience/presentation/bloc/game_bloc.dart';
 import 'package:open_patience/presentation/board.dart';
 import 'package:open_patience/ui/game_options_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -79,5 +81,49 @@ void main() {
     await tester.tap(find.text('Records').first);
     await tester.pumpAndSettle();
     expect(find.textContaining('Records'), findsWidgets);
+  });
+
+  testWidgets('debugDeals false hides the near-win test trigger', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    await tester.pumpWidget(
+      _host(GameOptionsScreen(gameId: 'freecell', repository: repo)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.bug_report), findsNothing);
+  });
+
+  testWidgets('debugDeals true opens a near-won board from the trigger', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final RecordsRepository repo = await _repo();
+    await tester.pumpWidget(
+      _host(
+        GameOptionsScreen(
+          gameId: 'freecell',
+          repository: repo,
+          debugDeals: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.bug_report), findsWidgets);
+
+    await tester.tap(find.byIcon(Icons.bug_report).first);
+    await tester.pumpAndSettle();
+    expect(find.byType(Board), findsOneWidget);
+
+    final GameBloc bloc = tester.element(find.byType(Board)).read<GameBloc>();
+    expect(bloc.rules.isWon(bloc.state.state), isFalse);
+    expect(
+      bloc.state.state.piles,
+      GameRegistry.rulesFor('freecell').dealAlmostWon(),
+    );
   });
 }
