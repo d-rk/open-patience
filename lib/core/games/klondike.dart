@@ -139,6 +139,10 @@ class KlondikeRules implements GameRules {
   @override
   int maxMovable(GameState state, {int? toPile}) => kingRank;
 
+  @override
+  Move? advanceStock(GameState state) =>
+      buildDraw(state) ?? buildRecycle(state);
+
   /// A stock->waste draw of up to [drawCount] cards, or `null` when the stock
   /// is empty. Apply it with [GameState.applyMove].
   Move? buildDraw(GameState state) {
