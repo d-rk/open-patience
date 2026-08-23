@@ -127,8 +127,11 @@ class DealSequence implements SpecialSequence {
 /// same beat — the familiar rhythm of the genre's classic win animation. Each
 /// card then falls under a small gravity simulation, bounces off the board's
 /// bottom edge a few times with diminishing height, and drifts sideways off
-/// one edge of the board — left or right depending on which foundation it
-/// came from, so a whole pile streams the same way.
+/// whichever edge of the board it started furthest from (see [_laneFor]) —
+/// deliberately a property of where a foundation actually renders, not of
+/// which pile it is, since the foundations sit in a horizontal row in
+/// portrait but a vertical column (all near one edge) in the tablet-landscape
+/// layout.
 class CascadeSequence {
   const CascadeSequence();
 
@@ -182,10 +185,11 @@ class CascadeSequence {
   /// The board-local translation to apply to [key] at [elapsed] into the
   /// whole cascade: [Offset.zero] until its own [delayFor] elapses, then a
   /// bouncing fall from [origin] toward [boardSize]'s bottom edge, plus a
-  /// sideways drift whose direction depends on [key]'s foundation pile (see
-  /// [_laneFor]). The vertical motion settles at the floor once its bounces
-  /// are spent; the horizontal drift keeps going, carrying a settled card off
-  /// the side of the board rather than leaving it resting mid-floor forever.
+  /// sideways drift whose direction depends on [origin]'s position within
+  /// [boardSize] (see [_laneFor]). The vertical motion settles at the floor
+  /// once its bounces are spent; the horizontal drift keeps going, carrying a
+  /// settled card off the side of the board rather than leaving it resting
+  /// mid-floor forever.
   Offset offsetAt(
     CardKey key,
     Duration elapsed,
@@ -202,21 +206,27 @@ class CascadeSequence {
     final double dy = _bounceFall(t, floor);
     final double flightSeconds = flight.inMicroseconds / 1e6;
     final double driftSpeed = boardSize.width * _driftFraction / flightSeconds;
-    final double dx = _laneFor(key, game) * driftSpeed * t;
+    final double dx = _laneFor(origin, boardSize.width) * driftSpeed * t;
     return Offset(dx, dy);
   }
 
   /// A continuous tumble to accompany the fall: `0.0` at the moment [key]
   /// activates, growing steadily (never capped — a bouncing card keeps
-  /// spinning for as long as it's in view) in the direction of its
+  /// spinning for as long as it's in view) in the direction of [origin]'s
   /// [_laneFor].
-  double rotationAt(CardKey key, Duration elapsed, GameState game) {
+  double rotationAt(
+    CardKey key,
+    Duration elapsed,
+    GameState game,
+    Rect origin,
+    Size boardSize,
+  ) {
     final Duration delay = delayFor(key, game);
     if (elapsed <= delay) {
       return 0.0;
     }
     final double t = (elapsed - delay).inMicroseconds / 1e6;
-    return _laneFor(key, game) * _spinSpeed * t;
+    return _laneFor(origin, boardSize.width) * _spinSpeed * t;
   }
 
   /// The vertical fall distance at [t] seconds into a card's own flight: a
@@ -282,25 +292,16 @@ class CascadeSequence {
     return maxLength == 0 ? 0 : maxLength - 1;
   }
 
-  /// `-1` (drifts left) or `1` (drifts right), fixed per foundation pile so a
-  /// whole pile streams the same way: the first half of the board's
-  /// foundation piles (in [GameState.piles] order) drift left, the rest
-  /// right. `1` (inert either way) if [key] isn't a foundation card.
-  double _laneFor(CardKey key, GameState game) {
-    final List<Pile> foundations = <Pile>[
-      for (final Pile pile in game.piles)
-        if (pile.kind == PileKind.foundation) pile,
-    ];
-    for (int i = 0; i < foundations.length; i++) {
-      final bool inThisPile = foundations[i].cards.any(
-        (Card c) => CardKey.of(c) == key,
-      );
-      if (inThisPile) {
-        return i < foundations.length / 2 ? -1.0 : 1.0;
-      }
-    }
-    return 1.0;
-  }
+  /// `1` (drifts right) if [origin] sits left-of-centre on a board of width
+  /// [boardWidth], `-1` (drifts left) otherwise — i.e. away from whichever
+  /// edge [origin] already sits closest to, so every card gets roughly the
+  /// same amount of width to fall across regardless of where its foundation
+  /// happens to render in the current layout. A pile-based lane would put a
+  /// foundation that's already hard against, say, the right edge (as every
+  /// foundation is in the tablet-landscape column layout) one flick from
+  /// leaving the board.
+  double _laneFor(Rect origin, double boardWidth) =>
+      origin.center.dx < boardWidth / 2 ? 1.0 : -1.0;
 }
 
 /// The deal fly-from point: the bottom-centre of the board, as a card-sized

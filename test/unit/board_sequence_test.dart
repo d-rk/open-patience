@@ -212,34 +212,48 @@ void main() {
     expect(dy, closeTo(floor, 0.5));
   });
 
-  test(
-    'CascadeSequence drifts opposite foundations in opposite directions',
-    () {
-      const CascadeSequence c = CascadeSequence();
-      final GameState won = _won();
-      const CardKey clubsKing = CardKey(Suit.clubs, kingRank);
-      const CardKey heartsKing = CardKey(Suit.hearts, kingRank);
-      final double clubsDx = c
-          .offsetAt(
-            clubsKing,
-            const Duration(milliseconds: 400),
-            won,
-            _origin,
-            _board,
-          )
-          .dx;
-      final double heartsDx = c
-          .offsetAt(
-            heartsKing,
-            const Duration(milliseconds: 400),
-            won,
-            _origin,
-            _board,
-          )
-          .dx;
-      expect(clubsDx.sign, isNot(heartsDx.sign));
-    },
-  );
+  test('CascadeSequence drifts away from whichever edge the foundation is '
+      'closest to, regardless of which pile it is', () {
+    // Same card identity, same board — only the on-screen position of its
+    // foundation differs, mirroring how a tablet layout puts every
+    // foundation near the right edge while portrait spreads them in a row.
+    // A pile-based lane (the old design) would send some of these off the
+    // near edge almost instantly; a position-based lane always gives every
+    // card the full width to fall across.
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    const Rect nearLeft = Rect.fromLTWH(10, 20, 64, 90);
+    const Rect nearRight = Rect.fromLTWH(326, 20, 64, 90);
+    final double dxFromLeft = c
+        .offsetAt(
+          king,
+          const Duration(milliseconds: 400),
+          won,
+          nearLeft,
+          _board,
+        )
+        .dx;
+    final double dxFromRight = c
+        .offsetAt(
+          king,
+          const Duration(milliseconds: 400),
+          won,
+          nearRight,
+          _board,
+        )
+        .dx;
+    expect(
+      dxFromLeft,
+      greaterThan(0),
+      reason: 'should drift right, away from the left edge',
+    );
+    expect(
+      dxFromRight,
+      lessThan(0),
+      reason: 'should drift left, away from the right edge',
+    );
+  });
 
   test('CascadeSequence horizontal drift grows over time', () {
     const CascadeSequence c = CascadeSequence();
@@ -263,12 +277,24 @@ void main() {
       final GameState won = _won();
       const CardKey king = CardKey(Suit.clubs, kingRank);
       final Duration delay = c.delayFor(king, won);
-      expect(c.rotationAt(king, delay, won), 0.0);
+      expect(c.rotationAt(king, delay, won, _origin, _board), 0.0);
       final double early = c
-          .rotationAt(king, delay + const Duration(milliseconds: 200), won)
+          .rotationAt(
+            king,
+            delay + const Duration(milliseconds: 200),
+            won,
+            _origin,
+            _board,
+          )
           .abs();
       final double late = c
-          .rotationAt(king, delay + const Duration(milliseconds: 800), won)
+          .rotationAt(
+            king,
+            delay + const Duration(milliseconds: 800),
+            won,
+            _origin,
+            _board,
+          )
           .abs();
       expect(early, greaterThan(0.0));
       expect(late, greaterThan(early));
