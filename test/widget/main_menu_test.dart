@@ -6,6 +6,7 @@ import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/board.dart';
 import 'package:open_patience/ui/main_menu_screen.dart';
+import 'package:open_patience/ui/widgets/menu_banner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<RecordsRepository> _repo() async {
@@ -150,5 +151,23 @@ void main() {
     await tester.pumpWidget(_host(MainMenuScreen(repository: repo)));
     await tester.pumpAndSettle();
     expect(find.text('made by Dirk Wilden'), findsOneWidget);
+  });
+
+  testWidgets('tapping the banner logo 10 times in a row unlocks debug mode', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    await tester.pumpWidget(_host(MainMenuScreen(repository: repo)));
+    await tester.pumpAndSettle();
+
+    for (int i = 0; i < 9; i++) {
+      await tester.tap(find.byType(MenuBanner));
+      await tester.pump();
+    }
+    expect(find.text('Debug mode enabled'), findsNothing);
+
+    await tester.tap(find.byType(MenuBanner));
+    await tester.pump();
+    expect(find.text('Debug mode enabled'), findsOneWidget);
   });
 }
