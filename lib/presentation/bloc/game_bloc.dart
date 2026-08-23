@@ -105,7 +105,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     MoveRequested event,
     Emitter<GameBlocState> emit,
   ) async {
-    if (_solving) {
+    if (_solving || state is GameWon) {
       return;
     }
     final Pile source = _state.pileAt(event.fromPile);
@@ -127,7 +127,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     TapMoveRequested event,
     Emitter<GameBlocState> emit,
   ) async {
-    if (_solving) {
+    if (_solving || state is GameWon) {
       return;
     }
     final Pile source = _state.pileAt(event.fromPile);
@@ -177,7 +177,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     DoubleTapRequested event,
     Emitter<GameBlocState> emit,
   ) async {
-    if (_solving) {
+    if (_solving || state is GameWon) {
       return;
     }
     final Pile source = _state.pileAt(event.fromPile);
@@ -209,7 +209,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     UndoRequested event,
     Emitter<GameBlocState> emit,
   ) async {
-    if (_solving) {
+    if (_solving || state is GameWon) {
       return;
     }
     if (!_state.canUndo) {
@@ -226,7 +226,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     RedoRequested event,
     Emitter<GameBlocState> emit,
   ) async {
-    if (_solving) {
+    if (_solving || state is GameWon) {
       return;
     }
     if (!_state.canRedo) {
@@ -279,7 +279,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     AutoSolveRequested event,
     Emitter<GameBlocState> emit,
   ) async {
-    if (_solving) {
+    if (_solving || state is GameWon) {
       return;
     }
     final List<Move>? solution = solveGreedy(_state, rules);
@@ -334,13 +334,21 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     if (_state.isWon(rules)) {
       final int elapsed = _state.elapsedSeconds;
       final int moves = _state.moveCount;
-      await repository.recordResult(
-        variant: variant,
-        won: true,
-        timeSeconds: elapsed,
-        moves: moves,
-      );
-      await repository.clearSave(variant);
+      // Block other handlers for the awaits below: they'd otherwise see a
+      // not-yet-won `_state` and could mutate it (e.g. undo the winning move)
+      // before the GameWon below is emitted.
+      _solving = true;
+      try {
+        await repository.recordResult(
+          variant: variant,
+          won: true,
+          timeSeconds: elapsed,
+          moves: moves,
+        );
+        await repository.clearSave(variant);
+      } finally {
+        _solving = false;
+      }
       emit(GameWon(_state.copy(), elapsed: elapsed, moves: moves));
     } else {
       emit(_snapshotOf(_state, rules));

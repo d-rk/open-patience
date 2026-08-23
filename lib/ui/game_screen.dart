@@ -116,8 +116,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     );
   }
 
+  // A completed game has nothing left to resume, so leaving its records
+  // screen should land back on the main menu rather than reopen the finished
+  // board underneath — hence pushAndRemoveUntil down to the app root instead
+  // of a plain push.
   void _showWin(BuildContext context, GameBloc bloc, GameWon won) {
-    Navigator.of(context).push(
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
         builder: (BuildContext context) => RecordsScreen(
           repository: bloc.repository,
@@ -125,6 +129,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           title: variantTitle(bloc.variant),
         ),
       ),
+      (Route<void> route) => route.isFirst,
     );
   }
 }

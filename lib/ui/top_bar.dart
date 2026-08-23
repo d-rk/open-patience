@@ -30,8 +30,12 @@ class TopBar extends StatelessWidget {
           buildWhen: (GameBlocState p, GameBlocState c) =>
               p.state.canUndo != c.state.canUndo ||
               p.state.canRedo != c.state.canRedo ||
-              _canSolve(p) != _canSolve(c),
+              _canSolve(p) != _canSolve(c) ||
+              p is GameWon != c is GameWon,
           builder: (BuildContext context, GameBlocState state) {
+            // A won game keeps its undo/redo history, but neither action
+            // should be available once play is over.
+            final bool won = state is GameWon;
             return Row(
               children: <Widget>[
                 if (_canSolve(state))
@@ -45,7 +49,7 @@ class TopBar extends StatelessWidget {
                   tooltip: 'Undo',
                   color: GamePalette.gold,
                   icon: const Icon(Icons.undo),
-                  onPressed: state.state.canUndo
+                  onPressed: !won && state.state.canUndo
                       ? () => bloc.add(const UndoRequested())
                       : null,
                 ),
@@ -53,7 +57,7 @@ class TopBar extends StatelessWidget {
                   tooltip: 'Redo',
                   color: GamePalette.gold,
                   icon: const Icon(Icons.redo),
-                  onPressed: state.state.canRedo
+                  onPressed: !won && state.state.canRedo
                       ? () => bloc.add(const RedoRequested())
                       : null,
                 ),

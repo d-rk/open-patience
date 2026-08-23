@@ -303,6 +303,31 @@ void main() {
         expect(repo.calls, isNot(contains('save:klondike-draw1:7')));
       },
     );
+
+    blocTest<GameBloc, GameBlocState>(
+      'ignores Undo once the game is won, even though undo history exists',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          foundationClubs: _run(Suit.clubs, kingRank),
+          foundationDiamonds: _run(Suit.diamonds, kingRank),
+          foundationHearts: _run(Suit.hearts, kingRank),
+          foundationSpades: _run(Suit.spades, 12),
+          col6: <Card>[_up(Suit.spades, kingRank)],
+        ),
+      ),
+      act: (GameBloc bloc) => bloc
+        ..add(
+          const MoveRequested(
+            fromPile: 6,
+            toPile: spadesFoundation,
+            cardIndex: 0,
+          ),
+        )
+        ..add(const UndoRequested()),
+      // Only the winning move's GameWon emits; the Undo afterwards is a no-op.
+      expect: () => <Matcher>[isA<GameWon>()],
+    );
   });
 
   group('autosave (resume survives leaving the play screen)', () {
