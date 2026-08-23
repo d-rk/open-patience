@@ -39,7 +39,16 @@ class GameState with Equatable {
        _redoStack = List<Move>.of(redoStack);
 
   /// Deals a fresh game for [rules] using a deterministic shuffle from [seed].
-  factory GameState.newGame(GameRules rules, {required int seed}) {
+  /// When [almostWon] is set, ignores [seed] and deals [GameRules.dealAlmostWon]
+  /// instead — a debug-only shortcut for testing the win/records flow.
+  factory GameState.newGame(
+    GameRules rules, {
+    required int seed,
+    bool almostWon = false,
+  }) {
+    if (almostWon) {
+      return GameState(piles: rules.dealAlmostWon());
+    }
     final Deck deck = Deck.standard()..shuffle(Random(seed));
     return GameState(piles: rules.deal(deck));
   }
