@@ -1,0 +1,160 @@
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart';
+
+import '../core/card.dart';
+import '../core/game_state.dart';
+import '../core/pile.dart';
+import '../ui/theme/game_motion.dart';
+import 'board_geometry.dart';
+
+/// The isolation seam for *set-piece* board animations (a deal, a win flourish,
+/// …). The board asks a [SpecialSequence] whether the current state transition
+/// is a set-piece; if so, it plays the sequence's per-card *activation*
+/// schedule: each card waits at a fly-from origin until its [delayFor] elapses,
+/// then reveals its real target so the existing `AnimatedPositioned` tweens it
+/// into place. The whole point of the seam is that a fancier deal or a win
+/// animation later is a *new* [SpecialSequence] implementation — `board.dart`
+/// and `board_geometry.dart` stay untouched.
+abstract interface class SpecialSequence {
+  /// Whether the transition from [previous] (null on the very first render) to
+  /// [next] is this set-piece.
+  bool matches(GameState? previous, GameState next);
+
+  /// How long [key] waits at the fly-from origin before it activates and glides
+  /// to its resolved target.
+  Duration delayFor(CardKey key, BoardGeometry geometry);
+
+  /// The controller duration for the whole set-piece: long enough that the last
+  /// card has both activated and finished its flight. Sized from [geometry] so a
+  /// small deal doesn't leave the controller running a long empty tail past the
+  /// last card.
+  Duration totalFor(BoardGeometry geometry);
+}
+
+/// A modest staggered deal: cards start at the stock origin and reveal their
+/// real target one after another on a fixed [GameMotion.dealStagger] cadence,
+/// walking [BoardGeometry.cards] in paint order (pile-major, bottom-to-top).
+class DealSequence implements SpecialSequence {
+  const DealSequence();
+
+  @override
+  bool matches(GameState? previous, GameState next) {
+    if (previous == null) {
+      return true;
+    }
+    final Set<CardKey> before = _allCardKeys(previous);
+    final List<CardKey> dealt = _dealtCardKeys(next);
+    if (dealt.isEmpty) {
+      return false;
+    }
+    for (final CardKey key in dealt) {
+      if (before.contains(key)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  Duration delayFor(CardKey key, BoardGeometry geometry) {
+    final int index = geometry.cards.indexWhere(
+      (CardPlacement placement) => placement.key == key,
+    );
+    if (index < 0) {
+      return Duration.zero;
+    }
+    return GameMotion.dealStagger * index;
+  }
+
+  @override
+  Duration totalFor(BoardGeometry geometry) {
+    // The last card in paint order activates at dealStagger*(count-1); add one
+    // move so the controller outlives its flight. Only the cards actually placed
+    // in the geometry animate (a deep stock shows a single top card), so this is
+    // usually far under a full 52-card deck.
+    final int count = math.max(geometry.cards.length, 1);
+    return GameMotion.dealStagger * (count - 1) + GameMotion.move;
+  }
+
+  /// Every card key anywhere in [state].
+  Set<CardKey> _allCardKeys(GameState state) {
+    final Set<CardKey> keys = <CardKey>{};
+    for (final Pile pile in state.piles) {
+      for (final Card card in pile.cards) {
+        keys.add(CardKey.of(card));
+      }
+    }
+    return keys;
+  }
+
+  /// The card keys in [state]'s tableau and stock piles — the cards a fresh
+  /// deal lays out.
+  List<CardKey> _dealtCardKeys(GameState state) {
+    final List<CardKey> keys = <CardKey>[];
+    for (final Pile pile in state.piles) {
+      if (pile.kind == PileKind.tableau || pile.kind == PileKind.stock) {
+        for (final Card card in pile.cards) {
+          keys.add(CardKey.of(card));
+        }
+      }
+    }
+    return keys;
+  }
+}
+
+/// A modest win flourish: a brief, symmetric scale pulse of the foundation
+/// cards when the game is won. Kept deliberately small and isolated behind the
+/// [SpecialSequence] seam so a fuller arcade cascade can later replace it by
+/// swapping this one class (see `_winSequence` in `board.dart`).
+///
+/// Unlike [DealSequence], its engagement is *not* driven by a piles-diff: the
+/// board plays it when the bloc emits a `GameWon` state — the win-ness the
+/// engine has already decided. So [matches] is intentionally conservative and
+/// unused for engagement (it always returns `false`), and [delayFor] is unused
+/// too: every foundation card pulses together, so it returns [Duration.zero].
+class WinSequence implements SpecialSequence {
+  const WinSequence();
+
+  /// The peak extra scale at the pulse's midpoint (an 8% swell).
+  static const double _amplitude = 0.08;
+
+  @override
+  bool matches(GameState? previous, GameState next) => false;
+
+  @override
+  Duration delayFor(CardKey key, BoardGeometry geometry) => Duration.zero;
+
+  /// The flourish is a fixed, card-count-independent pulse.
+  Duration get total => const Duration(milliseconds: 600);
+
+  @override
+  Duration totalFor(BoardGeometry geometry) => total;
+
+  /// The foundation-card scale at [elapsed] into the flourish: a symmetric ease
+  /// pulse that starts at 1.0, swells to `1 + _amplitude` (~1.08) at the
+  /// midpoint, and eases back to 1.0 at [total]. Flat at 1.0 before the start
+  /// and once the flourish is over, so it is safe to sample at any time.
+  double pulseAt(Duration elapsed) {
+    final double t = elapsed.inMicroseconds / total.inMicroseconds;
+    if (t <= 0.0 || t >= 1.0) {
+      return 1.0;
+    }
+    return 1.0 + _amplitude * math.sin(math.pi * t);
+  }
+}
+
+/// The deal fly-from point: the bottom-centre of the board, as a card-sized
+/// slot's top-left in board-local coordinates. Cards fly up and out from the
+/// player's edge, like dealing from a hand. Falls back to [Offset.zero] only for
+/// a degenerate zero-size board so it can never crash.
+Offset dealOriginOf(BoardGeometry geometry) {
+  final Size card = geometry.cardSize;
+  final Size board = geometry.size;
+  if (board.isEmpty) {
+    return Offset.zero;
+  }
+  final double dx = (board.width - card.width) / 2;
+  final double dy = board.height - card.height;
+  return Offset(dx, dy);
+}

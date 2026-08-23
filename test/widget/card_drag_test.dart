@@ -76,6 +76,40 @@ Offset _grab(WidgetTester tester, Finder card) {
 }
 
 void main() {
+  testWidgets('dropping a multi-card run lands both cards together', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    // col0: a movable run 6♥-5♠; col1: a 7♣ to drop it onto.
+    final GameBloc bloc = _bloc(
+      repo,
+      _game(<List<Card>>[
+        <Card>[_up(Suit.hearts, 6), _up(Suit.spades, 5)],
+        <Card>[_up(Suit.clubs, 7)],
+      ]),
+    );
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+
+    final Offset grab = _grab(tester, _cardFace(Suit.hearts, 6));
+    final Offset target = tester.getCenter(_cardFace(Suit.clubs, 7));
+    final TestGesture gesture = await tester.startGesture(grab);
+    await gesture.moveTo(target);
+    await tester.pump();
+    await gesture.up();
+    await tester.pump(); // the settle frame, before cards tween to their slots
+
+    // The move landed: 7♣, 6♥, 5♠ now stacked on the target column.
+    expect(bloc.state.state.pileAt(7).length, 3);
+    // On the settle frame both run cards must sit in the target column — the
+    // lower card must not still be back at the source (a split that flickers).
+    final double dx6 = tester.getCenter(_cardFace(Suit.hearts, 6)).dx;
+    final double dx5 = tester.getCenter(_cardFace(Suit.spades, 5)).dx;
+    final double cardW = tester.getSize(_cardFace(Suit.hearts, 6)).width;
+    expect((dx6 - dx5).abs(), lessThan(cardW * 0.5));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('the dragged card centers on the finger, not the grab point', (
     WidgetTester tester,
   ) async {

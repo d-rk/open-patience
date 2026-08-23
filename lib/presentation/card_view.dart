@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Card;
 
 import '../core/card.dart';
 import '../ui/theme/game_fonts.dart';
+import '../ui/theme/game_motion.dart';
 import '../ui/theme/game_palette.dart';
 import 'card_back_pattern.dart';
 import 'drag_scope.dart';
@@ -32,6 +35,11 @@ class CardView extends StatelessWidget {
   });
 
   static const double aspectRatio = 1.4;
+
+  /// Vertical gap between successive cards in the multi-card drag feedback, as a
+  /// fraction of card height. Shared so the board can settle a dropped run from
+  /// the same fanned offsets the feedback used (no split on landing).
+  static const double dragFanGapFactor = 0.28;
 
   final Card card;
   final Size size;
@@ -125,6 +133,115 @@ class CardView extends StatelessWidget {
       onDragStarted: () => activeDrag?.value = dragData,
       onDragEnd: (_) => activeDrag?.value = null,
       child: locked ? IgnorePointer(child: child) : child,
+    );
+  }
+}
+
+/// Wraps a card's whole widget subtree ([child]) and runs a short Y-axis flip
+/// whenever the card's `faceUp` changes. It is placed at a `faceUp`-invariant
+/// position — the immediate child of the board's per-card `AnimatedPositioned`
+/// (keyed by the physical card) — so it *persists* across the
+/// [CardFace]↔[CardView] swap that a draw or tableau reveal triggers, and can
+/// therefore see the orientation change in `didUpdateWidget` and animate it.
+///
+/// During the first half of the turn (angle `0 → π/2`) it shows the *prior*
+/// face — reconstructed as a [CardFace] from the cached previous [card] — and
+/// at the edge-on midpoint swaps to [child] (the new face), which completes the
+/// turn `−π/2 → 0`. At rest the wrapping [Transform] is the identity, so it
+/// never disturbs hit-testing, taps or drag feedback (flips only happen on a
+/// draw / reveal, never mid-drag). Honors the OS reduce-motion setting via
+/// [GameMotion.resolve]: a zero duration snaps straight to the new face with no
+/// rotation and no stuck frame.
+class CardFlip extends StatefulWidget {
+  const CardFlip({
+    required Key key,
+    required this.card,
+    required this.size,
+    required this.child,
+  }) : super(key: key);
+
+  final Card card;
+  final Size size;
+  final Widget child;
+
+  @override
+  State<CardFlip> createState() => _CardFlipState();
+}
+
+class _CardFlipState extends State<CardFlip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  /// The card as it was before the in-progress flip started, used to paint the
+  /// outgoing face during the first half of the turn. Null when not flipping.
+  Card? _fromCard;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+  }
+
+  @override
+  void didUpdateWidget(covariant CardFlip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.card.faceUp != oldWidget.card.faceUp) {
+      _fromCard = oldWidget.card;
+      _controller.duration = GameMotion.resolve(
+        GameMotion.flip,
+        reduceMotion: MediaQuery.of(context).disableAnimations,
+      );
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (BuildContext context, Widget? child) {
+        final Card? fromCard = _fromCard;
+        if (!_controller.isAnimating || fromCard == null) {
+          // At rest the flip is the identity transform, so it never disturbs
+          // hit-testing, taps or drag feedback.
+          return Transform(
+            key: const Key('cardFlip'),
+            alignment: Alignment.center,
+            transform: Matrix4.identity(),
+            child: child,
+          );
+        }
+        final double t = GameMotion.flipCurve.transform(_controller.value);
+        final double angle;
+        final Widget shown;
+        if (t < 0.5) {
+          // Outgoing (prior) face turning away: 0 → π/2.
+          angle = t * math.pi;
+          shown = CardFace(card: fromCard, size: widget.size);
+        } else {
+          // Incoming (new) face completing the turn: −π/2 → 0.
+          angle = (t - 1) * math.pi;
+          shown = child!;
+        }
+        // Perspective (the `(3,2)` entry) makes the turning card foreshorten in
+        // 3D — reads as a real card pivoting rather than a flat sideways squash.
+        final Matrix4 transform = Matrix4.identity()
+          ..setEntry(3, 2, GameMotion.flipPerspective)
+          ..rotateY(angle);
+        return Transform(
+          key: const Key('cardFlip'),
+          alignment: Alignment.center,
+          transform: transform,
+          child: shown,
+        );
+      },
     );
   }
 }
@@ -340,7 +457,7 @@ class _DragFeedback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double gap = size.height * 0.28;
+    final double gap = size.height * CardView.dragFanGapFactor;
     return Material(
       color: Colors.transparent,
       child: SizedBox(
