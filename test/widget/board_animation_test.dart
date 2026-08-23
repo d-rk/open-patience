@@ -534,7 +534,9 @@ void main() {
     // double-tap window closes; let that timer elapse so the move fires.
     await tester.pump(const Duration(milliseconds: 350)); // fire onTap
     await tester.pump(); // rebuild: GameWon, the cascade begins
-    await tester.pump(const Duration(milliseconds: 100)); // mid-cascade
+    // Mid-cascade, past the initial upward launch pop (so the card has
+    // clearly fallen, not just popped up off its foundation).
+    await tester.pump(const Duration(milliseconds: 300));
     // The cascade translates a foundation card downward (a positive
     // y-translation); nothing else in the board translates, so a Transform
     // with one proves the cascade is playing.
