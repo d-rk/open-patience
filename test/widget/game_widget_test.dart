@@ -237,6 +237,36 @@ void main() {
     expect(stats.gamesWon, 1);
   });
 
+  testWidgets(
+    'winning delays the records navigation until the cascade finishes',
+    (WidgetTester tester) async {
+      final RecordsRepository repo = await _repo();
+      final GameBloc bloc = _bloc(
+        repo,
+        _board(
+          foundationClubs: _run(Suit.clubs, kingRank),
+          foundationDiamonds: _run(Suit.diamonds, kingRank),
+          foundationHearts: _run(Suit.hearts, kingRank),
+          foundationSpades: _run(Suit.spades, 12),
+          col6: <Card>[_up(Suit.spades, kingRank)],
+        ),
+      );
+      addTearDown(bloc.close);
+
+      await _pump(tester, bloc);
+      await tester.tap(_cardFace(Suit.spades, kingRank));
+      await tester.pump(const Duration(milliseconds: 350)); // fire onTap
+      await tester.pump(); // rebuild: GameWon, the cascade begins
+
+      // Right after the win the cascade is still tumbling: the records screen
+      // must not have appeared yet, or the player never sees the cascade play.
+      expect(find.byType(RecordsScreen), findsNothing);
+
+      await tester.pumpAndSettle();
+      expect(find.byType(RecordsScreen), findsOneWidget);
+    },
+  );
+
   testWidgets('play screen shows a menu button and no AppBar', (
     WidgetTester tester,
   ) async {

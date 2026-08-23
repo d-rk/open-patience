@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
 import 'package:open_patience/core/game_state.dart';
@@ -67,10 +69,252 @@ void main() {
     expect(s.totalFor(g), lessThan(fullDeck));
   });
 
-  test('WinSequence pulse starts and returns to rest scale', () {
-    const WinSequence w = WinSequence();
-    expect(w.pulseAt(Duration.zero), closeTo(1.0, 0.001));
-    expect(w.pulseAt(w.total), closeTo(1.0, 0.02));
-    expect(w.pulseAt(w.total ~/ 2), greaterThan(1.0));
+  test('CascadeSequence delays deeper foundation cards more than the top', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    final Duration ace = c.delayFor(const CardKey(Suit.clubs, aceRank), won);
+    final Duration king = c.delayFor(const CardKey(Suit.clubs, kingRank), won);
+    expect(king, Duration.zero);
+    expect(ace, greaterThan(king));
   });
+
+  test(
+    'CascadeSequence delays the same rank across foundations identically',
+    () {
+      const CascadeSequence c = CascadeSequence();
+      final GameState won = _won();
+      final Duration clubsQueen = c.delayFor(
+        const CardKey(Suit.clubs, 12),
+        won,
+      );
+      final Duration heartsQueen = c.delayFor(
+        const CardKey(Suit.hearts, 12),
+        won,
+      );
+      expect(clubsQueen, heartsQueen);
+    },
+  );
+
+  test('CascadeSequence ignores a card not in a foundation pile', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState mid = _dealt();
+    expect(c.delayFor(const CardKey(Suit.spades, 5), mid), Duration.zero);
+  });
+
+  test('CascadeSequence total scales with the deepest foundation pile', () {
+    const CascadeSequence c = CascadeSequence();
+    final Duration total = c.totalFor(_won());
+    expect(
+      total,
+      CascadeSequence.stagger * (kingRank - aceRank) + CascadeSequence.flight,
+    );
+  });
+
+  test(
+    'CascadeSequence runs longer than a second and a half for a full win',
+    () {
+      const CascadeSequence c = CascadeSequence();
+      final Duration total = c.totalFor(_won());
+      expect(total, greaterThan(const Duration(milliseconds: 1800)));
+    },
+  );
+
+  test('CascadeSequence rebounds to a meaningful height, not a token hop', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double floor = _board.height - _origin.bottom;
+    bool touchedFloorOnce = false;
+    double minDyAfterFirstBounce = floor;
+    for (int ms = 0; ms <= 2500; ms += 5) {
+      final double dy = c
+          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
+          .dy;
+      if (!touchedFloorOnce) {
+        if (dy >= floor - 5) {
+          touchedFloorOnce = true;
+        }
+        continue;
+      }
+      if (dy < minDyAfterFirstBounce) {
+        minDyAfterFirstBounce = dy;
+      }
+    }
+    expect(
+      minDyAfterFirstBounce,
+      lessThan(floor * 0.6),
+      reason: 'the rebound after the first bounce was too shallow',
+    );
+  });
+
+  test('CascadeSequence offset is zero exactly at activation', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    final Duration delay = c.delayFor(const CardKey(Suit.clubs, aceRank), won);
+    expect(
+      c.offsetAt(
+        const CardKey(Suit.clubs, aceRank),
+        delay,
+        won,
+        _origin,
+        _board,
+      ),
+      Offset.zero,
+    );
+  });
+
+  test('CascadeSequence never falls past the board floor', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double floor = _board.height - _origin.bottom;
+    for (int ms = 0; ms <= 5000; ms += 25) {
+      final double dy = c
+          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
+          .dy;
+      expect(
+        dy,
+        lessThanOrEqualTo(floor + 0.5),
+        reason: 'overshot the floor at $ms ms',
+      );
+    }
+  });
+
+  test('CascadeSequence bounces off the floor before settling', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double floor = _board.height - _origin.bottom;
+    bool nearFloor = false;
+    bool roseAwayAfter = false;
+    for (int ms = 0; ms <= 1500; ms += 5) {
+      final double dy = c
+          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
+          .dy;
+      if (dy >= floor - 15) {
+        nearFloor = true;
+      } else if (nearFloor && dy <= floor - 50) {
+        roseAwayAfter = true;
+      }
+    }
+    expect(nearFloor, isTrue, reason: 'never reached the floor to bounce');
+    expect(roseAwayAfter, isTrue, reason: 'never rebounded off the floor');
+  });
+
+  test('CascadeSequence settles at the floor well after activating', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double floor = _board.height - _origin.bottom;
+    final double dy = c
+        .offsetAt(king, const Duration(seconds: 10), won, _origin, _board)
+        .dy;
+    expect(dy, closeTo(floor, 0.5));
+  });
+
+  test('CascadeSequence drifts away from whichever edge the foundation is '
+      'closest to, regardless of which pile it is', () {
+    // Same card identity, same board — only the on-screen position of its
+    // foundation differs, mirroring how a tablet layout puts every
+    // foundation near the right edge while portrait spreads them in a row.
+    // A pile-based lane (the old design) would send some of these off the
+    // near edge almost instantly; a position-based lane always gives every
+    // card the full width to fall across.
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    const Rect nearLeft = Rect.fromLTWH(10, 20, 64, 90);
+    const Rect nearRight = Rect.fromLTWH(326, 20, 64, 90);
+    final double dxFromLeft = c
+        .offsetAt(
+          king,
+          const Duration(milliseconds: 400),
+          won,
+          nearLeft,
+          _board,
+        )
+        .dx;
+    final double dxFromRight = c
+        .offsetAt(
+          king,
+          const Duration(milliseconds: 400),
+          won,
+          nearRight,
+          _board,
+        )
+        .dx;
+    expect(
+      dxFromLeft,
+      greaterThan(0),
+      reason: 'should drift right, away from the left edge',
+    );
+    expect(
+      dxFromRight,
+      lessThan(0),
+      reason: 'should drift left, away from the right edge',
+    );
+  });
+
+  test('CascadeSequence horizontal drift grows over time', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final double early = c
+        .offsetAt(king, const Duration(milliseconds: 200), won, _origin, _board)
+        .dx
+        .abs();
+    final double late = c
+        .offsetAt(king, const Duration(milliseconds: 800), won, _origin, _board)
+        .dx
+        .abs();
+    expect(late, greaterThan(early));
+  });
+
+  test(
+    'CascadeSequence rotation is zero at activation and grows afterward',
+    () {
+      const CascadeSequence c = CascadeSequence();
+      final GameState won = _won();
+      const CardKey king = CardKey(Suit.clubs, kingRank);
+      final Duration delay = c.delayFor(king, won);
+      expect(c.rotationAt(king, delay, won, _origin, _board), 0.0);
+      final double early = c
+          .rotationAt(
+            king,
+            delay + const Duration(milliseconds: 200),
+            won,
+            _origin,
+            _board,
+          )
+          .abs();
+      final double late = c
+          .rotationAt(
+            king,
+            delay + const Duration(milliseconds: 800),
+            won,
+            _origin,
+            _board,
+          )
+          .abs();
+      expect(early, greaterThan(0.0));
+      expect(late, greaterThan(early));
+    },
+  );
 }
+
+const Rect _origin = Rect.fromLTWH(50, 20, 64, 90);
+const Size _board = Size(400, 800);
+
+/// A fully-won board: all four foundations run Ace..King.
+GameState _won() => GameState(
+  piles: <Pile>[
+    Pile(kind: PileKind.stock),
+    Pile(kind: PileKind.waste),
+    for (final Suit s in Suit.values)
+      Pile(
+        kind: PileKind.foundation,
+        cards: <Card>[for (int r = aceRank; r <= kingRank; r++) _up(s, r)],
+      ),
+    for (int i = 0; i < 7; i++) Pile(kind: PileKind.tableau),
+  ],
+);
