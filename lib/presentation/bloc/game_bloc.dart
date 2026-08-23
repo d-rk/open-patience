@@ -9,6 +9,7 @@ import '../../core/game_state.dart';
 import '../../core/games/klondike.dart';
 import '../../core/move.dart';
 import '../../core/pile.dart';
+import '../../core/solver.dart';
 import '../../persistence/records_repository.dart';
 import 'game_bloc_state.dart';
 import 'game_event.dart';
@@ -85,7 +86,10 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
         moves: state.moveCount,
       );
     }
-    return GameInProgress(state.copy());
+    return GameInProgress(
+      state.copy(),
+      canAutoSolve: solveGreedy(state, rules) != null,
+    );
   }
 
   Future<void> _onMoveRequested(
@@ -216,7 +220,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     _seed = event.seed ?? _random.nextInt(1 << 32);
     _state = GameState.newGame(rules, seed: _seed);
     await repository.clearSave(variant);
-    emit(GameInProgress(_state.copy()));
+    emit(_snapshotOf(_state, rules));
   }
 
   Future<void> _onRestartDealRequested(
@@ -227,7 +231,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     // The prior deal's autosave is now stale — drop it so the reset deal is
     // not resumable to its abandoned progress.
     await repository.clearSave(variant);
-    emit(GameInProgress(_state.copy()));
+    emit(_snapshotOf(_state, rules));
   }
 
   Future<void> _onSaveRequested(
@@ -246,7 +250,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       return;
     }
     _state.tick();
-    emit(GameInProgress(_state.copy()));
+    emit(_snapshotOf(_state, rules));
   }
 
   /// After a successful move, emit — recording the win once on the transition
@@ -264,7 +268,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       await repository.clearSave(variant);
       emit(GameWon(_state.copy(), elapsed: elapsed, moves: moves));
     } else {
-      emit(GameInProgress(_state.copy()));
+      emit(_snapshotOf(_state, rules));
       await _persist();
     }
   }

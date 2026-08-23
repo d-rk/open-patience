@@ -17,9 +17,15 @@ sealed class GameBlocState extends Equatable {
   List<Object?> get props => <Object?>[state];
 }
 
-/// A game still being played.
+/// A game still being played. [canAutoSolve] is `true` when the board is
+/// trivially (greedily) solvable, which drives the top-bar solve button.
 class GameInProgress extends GameBlocState {
-  const GameInProgress(super.state);
+  const GameInProgress(super.state, {this.canAutoSolve = false});
+
+  final bool canAutoSolve;
+
+  @override
+  List<Object?> get props => <Object?>[state, canAutoSolve];
 }
 
 /// A completed win. Carries the final [elapsed] seconds and [moves] so the HUD

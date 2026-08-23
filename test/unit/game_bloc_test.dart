@@ -473,4 +473,32 @@ void main() {
       );
     });
   });
+
+  group('canAutoSolve detection', () {
+    test('false for an ordinary in-progress board', () {
+      final GameState state = _klondikeBoard(
+        col6: <Card>[_up(Suit.spades, 7)],
+        col7: <Card>[_up(Suit.hearts, 8)],
+      );
+      final GameBloc bloc = _bloc(_FakeRepo(), state);
+      addTearDown(bloc.close);
+      final GameBlocState s = bloc.state;
+      expect(s, isA<GameInProgress>());
+      expect((s as GameInProgress).canAutoSolve, isFalse);
+    });
+
+    test('true once the board is greedily solvable', () {
+      // Three suits complete, spades A..Q on foundation, K of spades in a column.
+      final GameState state = _klondikeBoard(
+        foundationClubs: _run(Suit.clubs, 13),
+        foundationDiamonds: _run(Suit.diamonds, 13),
+        foundationHearts: _run(Suit.hearts, 13),
+        foundationSpades: _run(Suit.spades, 12),
+        col6: <Card>[_up(Suit.spades, 13)],
+      );
+      final GameBloc bloc = _bloc(_FakeRepo(), state);
+      addTearDown(bloc.close);
+      expect((bloc.state as GameInProgress).canAutoSolve, isTrue);
+    });
+  });
 }
