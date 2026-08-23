@@ -386,6 +386,8 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       pile,
       placement.card,
       game,
+      placement.rect,
+      geometry.size,
     );
     final Widget child = cascadeOffset == Offset.zero && cascadeRotation == 0.0
         ? flip
@@ -568,15 +570,28 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     );
   }
 
-  /// The cascade's tilt for a card on [pile]: [CascadeSequence.rotationAt]
-  /// while the cascade plays, `0.0` (a no-op) otherwise.
-  double _cascadeRotationFor(Pile pile, Card card, GameState game) {
+  /// The cascade's tilt for a card on [pile] resting at [origin]:
+  /// [CascadeSequence.rotationAt] while the cascade plays, `0.0` (a no-op)
+  /// otherwise.
+  double _cascadeRotationFor(
+    Pile pile,
+    Card card,
+    GameState game,
+    Rect origin,
+    Size boardSize,
+  ) {
     final AnimationController? controller = _cascadeController;
     if (controller == null || pile.kind != PileKind.foundation) {
       return 0.0;
     }
     final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
-    return _cascadeSequence.rotationAt(CardKey.of(card), elapsed, game);
+    return _cascadeSequence.rotationAt(
+      CardKey.of(card),
+      elapsed,
+      game,
+      origin,
+      boardSize,
+    );
   }
 
   /// Rebuilds each cascade tick so the fall advances.
