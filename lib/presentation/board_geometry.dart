@@ -121,6 +121,12 @@ class BoardGeometry {
   ///
   /// [cards] is returned in paint order (pile-major: stock/waste/free-cell,
   /// then foundations, then tableau; each pile bottom-to-top).
+  ///
+  /// [revealFoundationStacks] places every card in a foundation pile (all at
+  /// the same rect, bottom-to-top) instead of just its top card. Normal play
+  /// never needs to see or animate a buried foundation card, so this defaults
+  /// to `false`; the win cascade turns it on so it has a placement for every
+  /// card it peels off.
   static BoardGeometry resolve({
     required GameState game,
     required double width,
@@ -128,6 +134,7 @@ class BoardGeometry {
     required double shortestSide,
     required bool isLandscape,
     required int wasteVisibleCount,
+    bool revealFoundationStacks = false,
   }) {
     final List<int> upper = <int>[];
     final List<int> foundations = <int>[];
@@ -190,6 +197,7 @@ class BoardGeometry {
       tableau: tableau,
       wasteVisibleCount: wasteVisibleCount,
       twoRowTop: twoRowTop,
+      revealFoundationStacks: revealFoundationStacks,
     );
     switch (metrics.layout) {
       case BoardLayout.portrait:
@@ -222,6 +230,7 @@ class _Builder {
     required this.tableau,
     required this.wasteVisibleCount,
     required this.twoRowTop,
+    required this.revealFoundationStacks,
   });
 
   final GameState game;
@@ -237,6 +246,9 @@ class _Builder {
   /// below) because the two groups together out-number the tableau columns.
   final bool twoRowTop;
 
+  /// See [BoardGeometry.resolve]'s parameter of the same name.
+  final bool revealFoundationStacks;
+
   final List<CardPlacement> cards = <CardPlacement>[];
   final List<SlotPlacement> slots = <SlotPlacement>[];
   final List<TrayPlacement> trays = <TrayPlacement>[];
@@ -250,6 +262,10 @@ class _Builder {
 
   /// Records a single-card (stock/foundation/free-cell) or empty slot at
   /// [origin]. Returns the board-local rect it occupies.
+  ///
+  /// A foundation pile places only its top card, unless
+  /// [revealFoundationStacks] is on — then every card in the pile gets its own
+  /// placement, all at [origin], bottom-to-top (see [BoardGeometry.resolve]).
   Rect _placeSingleOrSlot(int pileIndex, Offset origin) {
     final Pile pile = game.pileAt(pileIndex);
     final Rect slotRect = origin & metrics.cardSize;
@@ -261,15 +277,29 @@ class _Builder {
       return slotRect;
     }
     final int topIndex = pile.length - 1;
-    cards.add(
-      CardPlacement(
-        card: pile.cards[topIndex],
-        pileIndex: pileIndex,
-        indexInPile: topIndex,
-        isTop: true,
-        rect: slotRect,
-      ),
-    );
+    if (revealFoundationStacks && pile.kind == PileKind.foundation) {
+      for (int i = 0; i <= topIndex; i++) {
+        cards.add(
+          CardPlacement(
+            card: pile.cards[i],
+            pileIndex: pileIndex,
+            indexInPile: i,
+            isTop: i == topIndex,
+            rect: slotRect,
+          ),
+        );
+      }
+    } else {
+      cards.add(
+        CardPlacement(
+          card: pile.cards[topIndex],
+          pileIndex: pileIndex,
+          indexInPile: topIndex,
+          isTop: true,
+          rect: slotRect,
+        ),
+      );
+    }
     dropTargets[pileIndex] = slotRect;
     return slotRect;
   }

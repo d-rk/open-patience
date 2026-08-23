@@ -8,6 +8,7 @@ import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
 import '../presentation/board.dart';
+import '../presentation/board_sequence.dart';
 import 'game_menu.dart';
 import 'records_screen.dart';
 import 'stat_bar.dart';
@@ -116,11 +117,28 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     );
   }
 
-  // A completed game has nothing left to resume, so leaving its records
-  // screen should land back on the main menu rather than reopen the finished
-  // board underneath — hence pushAndRemoveUntil down to the app root instead
-  // of a plain push.
-  void _showWin(BuildContext context, GameBloc bloc, GameWon won) {
+  /// Waits out the board's win cascade — so the player actually sees it play
+  /// before the screen changes underneath it — then pushes the records
+  /// screen. Skipped under reduce-motion, where the board plays no cascade at
+  /// all, so navigation stays instant. `context.mounted` is re-checked after
+  /// the wait since the delay spans a real gap where the screen could have
+  /// been popped (e.g. the app backgrounded and the route torn down).
+  ///
+  /// A completed game has nothing left to resume, so leaving its records
+  /// screen should land back on the main menu rather than reopen the finished
+  /// board underneath — hence pushAndRemoveUntil down to the app root instead
+  /// of a plain push.
+  Future<void> _showWin(
+    BuildContext context,
+    GameBloc bloc,
+    GameWon won,
+  ) async {
+    if (!MediaQuery.of(context).disableAnimations) {
+      await Future<void>.delayed(const CascadeSequence().totalFor(won.state));
+    }
+    if (!context.mounted) {
+      return;
+    }
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
         builder: (BuildContext context) => RecordsScreen(

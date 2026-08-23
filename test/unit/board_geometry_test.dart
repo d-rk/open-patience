@@ -353,4 +353,79 @@ void main() {
       );
     });
   });
+
+  group('revealFoundationStacks', () {
+    test('off by default: only the top card of a foundation is placed', () {
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: _klondike(),
+        width: 400,
+        height: 800,
+        shortestSide: 400,
+        isLandscape: false,
+        wasteVisibleCount: 1,
+      );
+      expect(g.cards.where((CardPlacement p) => p.pileIndex == 2).length, 1);
+    });
+
+    test('on: every card in a foundation pile is placed, at the same rect', () {
+      final GameState game = _klondikeMultiFoundationCards();
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: game,
+        width: 400,
+        height: 800,
+        shortestSide: 400,
+        isLandscape: false,
+        wasteVisibleCount: 1,
+        revealFoundationStacks: true,
+      );
+      final List<CardPlacement> stack = g.cards
+          .where((CardPlacement p) => p.pileIndex == 2)
+          .toList();
+      expect(stack.length, 2);
+      expect(stack[0].rect, stack[1].rect);
+      expect(stack.where((CardPlacement p) => p.isTop).length, 1);
+    });
+
+    test('on: a non-foundation pile still places only its visible cards', () {
+      final GameState game = _klondikeMultiFoundationCards();
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: game,
+        width: 400,
+        height: 800,
+        shortestSide: 400,
+        isLandscape: false,
+        wasteVisibleCount: 1,
+        revealFoundationStacks: true,
+      );
+      // The stock pile still places only its one visible top card either way.
+      expect(g.cards.where((CardPlacement p) => p.pileIndex == 0).length, 1);
+    });
+
+    test('on: an empty foundation still produces a slot, not a card', () {
+      final GameState game = _klondike();
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: game,
+        width: 400,
+        height: 800,
+        shortestSide: 400,
+        isLandscape: false,
+        wasteVisibleCount: 1,
+        revealFoundationStacks: true,
+      );
+      expect(g.cards.where((CardPlacement p) => p.pileIndex == 3), isEmpty);
+      expect(g.slots.where((SlotPlacement s) => s.pileIndex == 3).length, 1);
+    });
+  });
+}
+
+/// [_klondike] with a second card stacked on the clubs foundation, so a
+/// foundation pile has more than one card to reveal.
+GameState _klondikeMultiFoundationCards() {
+  final GameState base = _klondike();
+  final List<Pile> piles = List<Pile>.of(base.piles);
+  piles[2] = Pile(
+    kind: PileKind.foundation,
+    cards: <Card>[_up(Suit.clubs, aceRank), _up(Suit.clubs, 2)],
+  );
+  return GameState(piles: piles);
 }
