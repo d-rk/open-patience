@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show appFlavor;
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/game_catalog.dart';
 import '../persistence/records_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
+import 'debug_deals.dart';
 import 'game_options_screen.dart';
 import 'game_screen.dart';
 import 'theme/game_palette.dart';
@@ -62,12 +64,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           gameId: gameId,
           repository: widget.repository,
           autoTick: widget.autoTick,
-          // Android's Flutter Gradle plugin sets appFlavor to the exact AGP
-          // product-flavor name, which is "Testing" (capital T — AGP rejects
-          // a flavor starting with lowercase "test"; see build.gradle.kts).
-          // Other platforms propagate the lowercase --flavor CLI string
-          // as-is, so the comparison must be case-insensitive everywhere.
-          debugDeals: appFlavor?.toLowerCase() == 'testing',
+          debugDeals: shouldShowDebugDeals(
+            debugMode: kDebugMode,
+            flavor: appFlavor,
+          ),
         ),
       ),
     );
