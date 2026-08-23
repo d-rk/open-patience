@@ -89,3 +89,9 @@ class SaveRequested extends GameEvent {
 class Tick extends GameEvent {
   const Tick();
 }
+
+/// Play the board out to a win via the auto-solver. A no-op unless the board
+/// is trivially solvable.
+class AutoSolveRequested extends GameEvent {
+  const AutoSolveRequested();
+}

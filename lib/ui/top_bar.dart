@@ -29,10 +29,18 @@ class TopBar extends StatelessWidget {
         BlocBuilder<GameBloc, GameBlocState>(
           buildWhen: (GameBlocState p, GameBlocState c) =>
               p.state.canUndo != c.state.canUndo ||
-              p.state.canRedo != c.state.canRedo,
+              p.state.canRedo != c.state.canRedo ||
+              _canSolve(p) != _canSolve(c),
           builder: (BuildContext context, GameBlocState state) {
             return Row(
               children: <Widget>[
+                if (_canSolve(state))
+                  IconButton(
+                    tooltip: 'Solve',
+                    color: GamePalette.gold,
+                    icon: const Icon(Icons.auto_fix_high),
+                    onPressed: () => bloc.add(const AutoSolveRequested()),
+                  ),
                 IconButton(
                   tooltip: 'Undo',
                   color: GamePalette.gold,
@@ -66,6 +74,9 @@ class TopBar extends StatelessWidget {
     );
   }
 }
+
+bool _canSolve(GameBlocState state) =>
+    state is GameInProgress && state.canAutoSolve;
 
 class _MenuButton extends StatelessWidget {
   const _MenuButton({required this.onMenu});

@@ -328,6 +328,29 @@ void main() {
       expect(targets, contains(2));
     });
   });
+
+  group('advanceStock', () {
+    test('draws from a non-empty stock, then recycles once exhausted', () {
+      final KlondikeRules rules = KlondikeRules(drawCount: 1);
+      final GameState state = GameState.newGame(rules, seed: 3);
+      // Fresh deal: stock is full, so advanceStock is a draw (stock -> waste).
+      final Move? draw = rules.advanceStock(state);
+      expect(draw, isNotNull);
+      expect(draw!.fromPile, KlondikeRules.stockIndex);
+      expect(draw.toPile, KlondikeRules.wasteIndex);
+
+      // Drain the stock entirely; advanceStock must then recycle
+      // waste -> stock.
+      Move? next = rules.advanceStock(state);
+      while (next != null && next.fromPile == KlondikeRules.stockIndex) {
+        state.applyMove(next);
+        next = rules.advanceStock(state);
+      }
+      expect(next, isNotNull);
+      expect(next!.fromPile, KlondikeRules.wasteIndex);
+      expect(next.toPile, KlondikeRules.stockIndex);
+    });
+  });
 }
 
 /// A fully-won Klondike board: four complete Ace..King foundations.

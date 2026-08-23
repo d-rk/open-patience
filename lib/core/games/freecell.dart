@@ -2,6 +2,7 @@ import '../card.dart';
 import '../deck.dart';
 import '../game_rules.dart';
 import '../game_state.dart';
+import '../move.dart';
 import '../pile.dart';
 import 'sequence.dart';
 
@@ -159,4 +160,7 @@ class FreecellRules implements GameRules {
     }
     return (freeCells + 1) * (1 << emptyColumns);
   }
+
+  @override
+  Move? advanceStock(GameState state) => null;
 }
