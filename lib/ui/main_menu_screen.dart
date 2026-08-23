@@ -37,6 +37,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   // synchronously, as Dismissible requires.
   List<SavedGame>? _saves;
 
+  // Tapping the banner logo 10 times in a row reveals the debug "Test win"
+  // trigger on any build, not just local debug runs. Session-only: it resets
+  // on the next app launch.
+  static const int _logoTapsToUnlock = 10;
+  static const Duration _logoTapWindow = Duration(seconds: 2);
+  int _logoTapCount = 0;
+  DateTime? _lastLogoTapAt;
+  bool _debugModeUnlocked = false;
+
   @override
   void initState() {
     super.initState();
@@ -64,16 +73,32 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           gameId: gameId,
           repository: widget.repository,
           autoTick: widget.autoTick,
-          debugDeals: shouldShowDebugDeals(
-            debugMode: kDebugMode,
-            flavor: appFlavor,
-          ),
+          debugDeals:
+              shouldShowDebugDeals(debugMode: kDebugMode, flavor: appFlavor) ||
+              _debugModeUnlocked,
         ),
       ),
     );
     if (mounted) {
       _reload();
     }
+  }
+
+  void _onLogoTapped() {
+    final DateTime now = DateTime.now();
+    final DateTime? lastTap = _lastLogoTapAt;
+    if (lastTap == null || now.difference(lastTap) > _logoTapWindow) {
+      _logoTapCount = 0;
+    }
+    _lastLogoTapAt = now;
+    _logoTapCount++;
+    if (_logoTapCount < _logoTapsToUnlock || _debugModeUnlocked) {
+      return;
+    }
+    setState(() => _debugModeUnlocked = true);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Debug mode enabled')));
   }
 
   Future<void> _resume(BuildContext context, SavedGame saved) async {
@@ -103,7 +128,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const MenuBanner(),
+              GestureDetector(onTap: _onLogoTapped, child: const MenuBanner()),
               const GameWordmark(),
               Expanded(
                 child: MenuWidthLimit(
