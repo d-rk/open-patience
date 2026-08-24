@@ -77,17 +77,34 @@ void main() {
     expect(ring.height, greaterThanOrEqualTo(88));
   });
 
-  testWidgets('shrinks the win rate text so 100% still fits the ring', (
-    WidgetTester tester,
-  ) async {
-    await _pump(tester, const Stats(gamesPlayed: 4, gamesWon: 4));
-    final Text hundredPct = tester.widget<Text>(find.text('100%'));
+  testWidgets(
+    'the win rate percentage is scaled to fit its ring, so it can never '
+    'overflow it regardless of digit count or font metrics',
+    (WidgetTester tester) async {
+      // A FittedBox(fit: scaleDown) around a bounded box is what makes this
+      // true by construction: it shrinks the text to fit no matter how wide
+      // the real font renders it, unlike a hand-picked font size that only
+      // happens to fit in whatever font the test environment substitutes.
+      Future<void> expectScaledToFit(String percentText, Stats stats) async {
+        await _pump(tester, stats);
+        final Finder text = find.text(percentText);
+        expect(text, findsOneWidget);
+        final Finder fittedBox = find.ancestor(
+          of: text,
+          matching: find.byType(FittedBox),
+        );
+        expect(fittedBox, findsOneWidget);
+        expect(tester.widget<FittedBox>(fittedBox).fit, BoxFit.scaleDown);
+        final Size box = tester.getSize(fittedBox);
+        expect(box.width, lessThanOrEqualTo(88 - 2 * 7));
+        expect(box.height, lessThanOrEqualTo(88 - 2 * 7));
+      }
 
-    await _pump(tester, const Stats(gamesPlayed: 5, gamesWon: 2));
-    final Text fortyPct = tester.widget<Text>(find.text('40%'));
-
-    expect(hundredPct.style?.fontSize, lessThan(fortyPct.style!.fontSize!));
-  });
+      await expectScaledToFit('100%', const Stats(gamesPlayed: 4, gamesWon: 4));
+      await expectScaledToFit('40%', const Stats(gamesPlayed: 5, gamesWon: 2));
+      await expectScaledToFit('0%', Stats.empty());
+    },
+  );
 
   testWidgets('shows every stat value in the tile grid', (
     WidgetTester tester,
