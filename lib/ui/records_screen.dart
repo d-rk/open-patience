@@ -132,33 +132,23 @@ class RecordsScreen extends StatelessWidget {
   }
 }
 
-/// Win rate as a gold progress ring with the percentage as its label —
-/// the ring's fill fraction and the number it shows are the same stat, so
-/// the two read as one thing.
+/// Win rate as a gold progress ring — a pure indicator, nothing drawn on
+/// top of it — beside a headline percentage and a won/lost legend. The
+/// ring's fill fraction is the win rate, so it stays meaningful without
+/// needing to also host text: that combination is what kept breaking (see
+/// git history around this file for the abandoned attempts at centering
+/// text inside the ring itself).
 class _WinRateHero extends StatelessWidget {
   const _WinRateHero({required this.stats});
 
-  static const double _ringSize = 80;
-  static const double _ringStroke = 7;
-  // "100%" at this size measures ~46px wide against the real bundled font —
-  // comfortably inside the ~66px the stroke leaves clear — verified directly
-  // against that font since the widget-test environment substitutes a much
-  // wider fallback font that can't be trusted for this measurement.
-  static const double _percentFontSize = 20;
-
-  /// Nudges the percentage down from where simple box-centering would put
-  /// it. The body font's ascent/descent metrics aren't split evenly around
-  /// the glyphs it draws, so centering the text's *layout box* leaves the
-  /// visible digits sitting closer to the top of the ring than the middle;
-  /// this correction was measured directly against the real bundled font
-  /// (not the test-only fallback font) at [_percentFontSize] and confirmed
-  /// to hold for every percentage from 0% to 100%.
-  static const double _percentVerticalNudge = 11;
+  static const double _ringSize = 88;
+  static const double _ringStroke = 10;
 
   final Stats stats;
 
   @override
   Widget build(BuildContext context) {
+    final int lost = stats.gamesPlayed - stats.gamesWon;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -171,29 +161,11 @@ class _WinRateHero extends StatelessWidget {
           SizedBox(
             width: _ringSize,
             height: _ringSize,
-            child: Stack(
-              alignment: Alignment.center,
-              children: <Widget>[
-                CircularProgressIndicator(
-                  value: stats.winPercentage / 100,
-                  strokeWidth: _ringStroke,
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    GamePalette.gold,
-                  ),
-                ),
-                Transform.translate(
-                  offset: const Offset(0, _percentVerticalNudge),
-                  child: Text(
-                    '${stats.winPercentage.round()}%',
-                    style: const TextStyle(
-                      color: GamePalette.cardFace,
-                      fontWeight: FontWeight.w800,
-                      fontSize: _percentFontSize,
-                    ),
-                  ),
-                ),
-              ],
+            child: CircularProgressIndicator(
+              value: stats.winPercentage / 100,
+              strokeWidth: _ringStroke,
+              backgroundColor: Colors.white.withValues(alpha: 0.12),
+              valueColor: const AlwaysStoppedAnimation<Color>(GamePalette.gold),
             ),
           ),
           const SizedBox(width: 16),
@@ -203,6 +175,14 @@ class _WinRateHero extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Text(
+                  '${stats.winPercentage.round()}%',
+                  style: const TextStyle(
+                    color: GamePalette.cardFace,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 26,
+                  ),
+                ),
+                Text(
                   'Win rate',
                   style: TextStyle(
                     color: GamePalette.cardFace.withValues(alpha: 0.75),
@@ -210,20 +190,64 @@ class _WinRateHero extends StatelessWidget {
                     fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${stats.gamesWon} won / ${stats.gamesPlayed} played',
-                  style: TextStyle(
-                    color: GamePalette.cardFace.withValues(alpha: 0.55),
-                    fontFamily: GameFonts.body,
-                    fontSize: 12,
-                  ),
+                const SizedBox(height: 8),
+                _LegendRow(
+                  dotColor: GamePalette.gold,
+                  text: '${stats.gamesWon} won',
+                ),
+                const SizedBox(height: 4),
+                _LegendRow(
+                  dotColor: Colors.white.withValues(alpha: 0.16),
+                  dotBorderColor: GamePalette.cardFace.withValues(alpha: 0.4),
+                  text: '$lost lost',
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A small colored dot beside a label — one row of the win/lost legend.
+class _LegendRow extends StatelessWidget {
+  const _LegendRow({
+    required this.dotColor,
+    required this.text,
+    this.dotBorderColor,
+  });
+
+  final Color dotColor;
+  final Color? dotBorderColor;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: dotColor,
+            border: dotBorderColor == null
+                ? null
+                : Border.all(color: dotBorderColor!),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            color: GamePalette.cardFace.withValues(alpha: 0.7),
+            fontFamily: GameFonts.body,
+            fontSize: 13,
+          ),
+        ),
+      ],
     );
   }
 }

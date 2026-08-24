@@ -50,7 +50,8 @@ void main() {
 
     expect(find.text('40%'), findsOneWidget);
     expect(find.text('Win rate'), findsOneWidget);
-    expect(find.text('17 won / 42 played'), findsOneWidget);
+    expect(find.text('17 won'), findsOneWidget);
+    expect(find.text('25 lost'), findsOneWidget);
   });
 
   testWidgets('header title is just "Records", with the variant as a subtitle '
@@ -63,11 +64,11 @@ void main() {
   });
 
   testWidgets(
-    'the percentage renders on the ring itself, giving the ring a meaning',
+    'the ring is a pure indicator: nothing is drawn on top of it, so its '
+    'fill fraction is never fought over with text placement',
     (WidgetTester tester) async {
       await _pump(tester, const Stats(gamesPlayed: 4, gamesWon: 4));
 
-      expect(find.text('100%'), findsOneWidget);
       final Finder ring = find
           .ancestor(
             of: find.byType(CircularProgressIndicator),
@@ -75,10 +76,12 @@ void main() {
           )
           .first;
       expect(
-        find.descendant(of: ring, matching: find.text('100%')),
-        findsOneWidget,
-        reason: 'the percentage should label the ring it belongs to',
+        find.descendant(of: ring, matching: find.byType(Text)),
+        findsNothing,
+        reason: 'no text should be layered on the ring itself',
       );
+      // The percentage still exists, just as a free-standing headline.
+      expect(find.text('100%'), findsOneWidget);
     },
   );
 
@@ -117,7 +120,8 @@ void main() {
     await _pump(tester, Stats.empty());
 
     expect(find.text('0%'), findsOneWidget);
-    expect(find.text('0 won / 0 played'), findsOneWidget);
+    expect(find.text('0 won'), findsOneWidget);
+    expect(find.text('0 lost'), findsOneWidget);
     expect(find.text('—'), findsNWidgets(2));
   });
 
