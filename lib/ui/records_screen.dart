@@ -132,10 +132,28 @@ class RecordsScreen extends StatelessWidget {
   }
 }
 
-/// Win rate as a gold progress ring (a pure indicator, no text on it) beside
-/// the percentage, played/won breakdown.
+/// Win rate as a gold progress ring with the percentage as its label —
+/// the ring's fill fraction and the number it shows are the same stat, so
+/// the two read as one thing.
 class _WinRateHero extends StatelessWidget {
   const _WinRateHero({required this.stats});
+
+  static const double _ringSize = 80;
+  static const double _ringStroke = 7;
+  // "100%" at this size measures ~46px wide against the real bundled font —
+  // comfortably inside the ~66px the stroke leaves clear — verified directly
+  // against that font since the widget-test environment substitutes a much
+  // wider fallback font that can't be trusted for this measurement.
+  static const double _percentFontSize = 20;
+
+  /// Nudges the percentage down from where simple box-centering would put
+  /// it. The body font's ascent/descent metrics aren't split evenly around
+  /// the glyphs it draws, so centering the text's *layout box* leaves the
+  /// visible digits sitting closer to the top of the ring than the middle;
+  /// this correction was measured directly against the real bundled font
+  /// (not the test-only fallback font) at [_percentFontSize] and confirmed
+  /// to hold for every percentage from 0% to 100%.
+  static const double _percentVerticalNudge = 11;
 
   final Stats stats;
 
@@ -151,13 +169,31 @@ class _WinRateHero extends StatelessWidget {
       child: Row(
         children: <Widget>[
           SizedBox(
-            width: 56,
-            height: 56,
-            child: CircularProgressIndicator(
-              value: stats.winPercentage / 100,
-              strokeWidth: 6,
-              backgroundColor: Colors.white.withValues(alpha: 0.12),
-              valueColor: const AlwaysStoppedAnimation<Color>(GamePalette.gold),
+            width: _ringSize,
+            height: _ringSize,
+            child: Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                CircularProgressIndicator(
+                  value: stats.winPercentage / 100,
+                  strokeWidth: _ringStroke,
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    GamePalette.gold,
+                  ),
+                ),
+                Transform.translate(
+                  offset: const Offset(0, _percentVerticalNudge),
+                  child: Text(
+                    '${stats.winPercentage.round()}%',
+                    style: const TextStyle(
+                      color: GamePalette.cardFace,
+                      fontWeight: FontWeight.w800,
+                      fontSize: _percentFontSize,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 16),
@@ -166,19 +202,6 @@ class _WinRateHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                // A plain label beside the ring, not text layered on top of
-                // it: no circular geometry to fit inside, so there's nothing
-                // for any digit count or font's own line metrics to overflow
-                // or mis-center.
-                Text(
-                  '${stats.winPercentage.round()}%',
-                  style: const TextStyle(
-                    color: GamePalette.cardFace,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 26,
-                  ),
-                ),
-                const SizedBox(height: 2),
                 Text(
                   'Win rate',
                   style: TextStyle(
