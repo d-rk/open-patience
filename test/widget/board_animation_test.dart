@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -519,9 +521,7 @@ void main() {
     expect(_cardFace(Suit.spades, 7), findsOneWidget);
   });
 
-  testWidgets('winning plays a cascade and then rests without error', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('winning plays a cascade', (WidgetTester tester) async {
     // Drive the win with a real final move: tap the lone King up to its
     // foundation, which completes the board and makes the bloc emit GameWon.
     final GameBloc bloc = await _pump(
@@ -548,8 +548,36 @@ void main() {
       isTrue,
       reason: 'expected a foundation card translated downward mid-cascade',
     );
-    await tester.pumpAndSettle();
     expect(bloc.state.state.isWon(bloc.rules), isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('winning cascade keeps bouncing forever, never settling', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, const Size(400, 800), state: _almostWon());
+    await tester.tap(_cardFace(Suit.spades, kingRank));
+    await tester.pump(const Duration(milliseconds: 350)); // fire onTap
+    await tester.pump(); // rebuild: GameWon, the cascade begins
+
+    final Finder king = _cardFace(Suit.spades, kingRank);
+    final List<double> verticalPositions = <double>[];
+    // A fixed number of bounded pumps — never pumpAndSettle, which would spin
+    // forever chasing a cascade that (by design) never stops scheduling
+    // frames on its own.
+    for (int i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+      verticalPositions.add(tester.getTopLeft(king).dy);
+    }
+    final double spread =
+        verticalPositions.reduce(math.max) - verticalPositions.reduce(math.min);
+    expect(
+      spread,
+      greaterThan(20),
+      reason:
+          'the card stopped moving — the cascade settled instead of '
+          'bouncing indefinitely',
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -574,7 +602,10 @@ void main() {
         find.ancestor(of: buriedAce, matching: find.byType(CardView)),
         findsNothing,
       );
-      await tester.pumpAndSettle();
+      // Bounded pumps, not pumpAndSettle: the cascade never stops scheduling
+      // frames on its own.
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
       expect(bloc.state.state.isWon(bloc.rules), isTrue);
       expect(tester.takeException(), isNull);
     },

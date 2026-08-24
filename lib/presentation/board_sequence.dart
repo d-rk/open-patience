@@ -108,11 +108,11 @@ class DealSequence implements SpecialSequence {
 }
 
 /// The win cascade: once the game is won, the cards resting in the foundation
-/// piles peel off from the top down and bounce off the bottom of the board —
-/// the classic solitaire "cascade" (à la the Windows 3.1/95 win animation),
-/// not a one-way slide off the screen. It replaces the modest foundation
-/// pulse this seam used to play; unlike that pulse it needs every card in
-/// each foundation pile individually placed (not just the top), which
+/// piles peel off from the top down and bounce around the board forever — a
+/// reward animation the player can linger on for as long as they like rather
+/// than a one-shot effect that ends on its own. It replaces the modest
+/// foundation pulse this seam used to play; unlike that pulse it needs every
+/// card in each foundation pile individually placed (not just the top), which
 /// `board.dart` gets via `BoardGeometry.resolve(revealFoundationStacks:
 /// true)`.
 ///
@@ -120,60 +120,50 @@ class DealSequence implements SpecialSequence {
 /// driven by the bloc reporting a `GameWon` state, not a piles-diff, and its
 /// per-card schedule is a property of the [GameState] alone (which foundation
 /// pile a card sits in, how many cards are stacked above it) rather than of a
-/// resolved [BoardGeometry].
+/// resolved [BoardGeometry]. It also has no fixed duration — see
+/// `GameMotion.winCascadeMinimumBeforeDismiss` for the player-facing lifecycle
+/// (a minimum look, then tap-anywhere-to-continue).
 ///
 /// All four foundations peel off together, rank by rank from the top (usually
 /// the King) down to the Ace, so same-rank cards across foundations fly in the
 /// same beat — the familiar rhythm of the genre's classic win animation. Each
-/// card then falls under a small gravity simulation, bounces off the board's
-/// bottom edge a few times with diminishing height, and drifts sideways off
-/// whichever edge of the board it started furthest from (see [_laneFor]) —
-/// deliberately a property of where a foundation actually renders, not of
-/// which pile it is, since the foundations sit in a horizontal row in
-/// portrait but a vertical column (all near one edge) in the tablet-landscape
-/// layout.
+/// card then travels in a straight line at a constant speed and bounces
+/// elastically off all four edges of the board — never losing speed, so it
+/// keeps bouncing corner to corner indefinitely rather than settling. The
+/// launch direction is derived from the card's own identity (so it's stable
+/// and reproducible) biased away from whichever edge of the board its
+/// foundation started closest to (see [_xSign]) — deliberately a property of
+/// where a foundation actually renders, not of which pile it is, since the
+/// foundations sit in a horizontal row in portrait but a vertical column (all
+/// near one edge) in the tablet-landscape layout.
 class CascadeSequence {
   const CascadeSequence();
 
   /// Delay between successive ranks peeling off.
   static const Duration stagger = Duration(milliseconds: 45);
 
-  /// How long a single card's fall takes, from the moment it activates to the
-  /// moment it's settled at the floor and mostly drifted clear of the board.
-  static const Duration flight = Duration(milliseconds: 1600);
+  /// Constant travel speed, in logical pixels per second, on each axis'
+  /// resultant vector. Never decays — a lossless bounce keeps this speed
+  /// forever, which is what lets the cascade run indefinitely instead of
+  /// settling.
+  static const double _speed = 300;
 
-  /// Downward acceleration, in logical pixels per second squared. Lower than
-  /// real gravity so the fall and each bounce hang in the air a beat longer —
-  /// tuned (with [_launchSpeed] and [_restitution]) for a slower, floatier
-  /// cascade with two or three clearly-visible bounces within [flight].
-  static const double _gravity = 5000;
-
-  /// The upward "pop" a card launches with, in pixels per second — sells the
-  /// peel-off as a flick rather than a drop.
-  static const double _launchSpeed = 650;
-
-  /// Fraction of a bounce's impact speed kept as its next rise: energy lost
-  /// per bounce, so each one is visibly lower than the last. High enough that
-  /// the first rebound is a real bounce, not a token hop off the floor.
-  static const double _restitution = 0.65;
-
-  /// Bounces allowed before a card is treated as settled at the floor.
-  static const int _maxBounces = 4;
-
-  /// Fraction of the board's width a card crosses sideways over one [flight]
-  /// — tuned so it visibly clears the board edge, not just drifts partway.
-  static const double _driftFraction = 0.85;
+  /// The launch angle (degrees, from the horizontal) is drawn from this range
+  /// per card, keeping every trajectory visibly diagonal — never dead
+  /// horizontal or vertical — so cards actually sweep both axes and clip every
+  /// corner instead of just pacing along one wall. Deliberately narrow: a
+  /// tight spread keeps cards moving in roughly the same direction at first,
+  /// so the deck reads as one cascading group for longer before it spreads
+  /// out across the whole board.
+  static const double _minAngleDeg = 38;
+  static const double _angleSpreadDeg = 14;
 
   /// Spin rate, in radians per second, applied for as long as a card is
-  /// falling — a continuous tumble rather than a single small tilt. Slower
-  /// than the fall/bounce rate so a longer [flight] doesn't read as frantic.
+  /// bouncing — a continuous tumble rather than a single small tilt. Never
+  /// capped, matching the endless bounce.
   static const double _spinSpeed = 2.2;
 
-  /// The controller duration for the whole cascade: long enough that even the
-  /// last (deepest-buried) card both activates and finishes its flight.
-  Duration totalFor(GameState game) => stagger * _maxStep(game) + flight;
-
-  /// How long [key] waits before it starts falling: zero for the top card of
+  /// How long [key] waits before it starts bouncing: zero for the top card of
   /// its foundation pile, one more [stagger] for each card beneath it.
   /// [Duration.zero] (inert — [offsetAt] never moves it) if [key] isn't
   /// currently sitting in a foundation pile.
@@ -184,12 +174,8 @@ class CascadeSequence {
 
   /// The board-local translation to apply to [key] at [elapsed] into the
   /// whole cascade: [Offset.zero] until its own [delayFor] elapses, then a
-  /// bouncing fall from [origin] toward [boardSize]'s bottom edge, plus a
-  /// sideways drift whose direction depends on [origin]'s position within
-  /// [boardSize] (see [_laneFor]). The vertical motion settles at the floor
-  /// once its bounces are spent; the horizontal drift keeps going, carrying a
-  /// settled card off the side of the board rather than leaving it resting
-  /// mid-floor forever.
+  /// lossless elastic bounce off all four edges of [boardSize], starting from
+  /// [origin] and never losing speed or settling.
   Offset offsetAt(
     CardKey key,
     Duration elapsed,
@@ -202,18 +188,18 @@ class CascadeSequence {
       return Offset.zero;
     }
     final double t = (elapsed - delay).inMicroseconds / 1e6;
-    final double floor = math.max(0.0, boardSize.height - origin.bottom);
-    final double dy = _bounceFall(t, floor);
-    final double flightSeconds = flight.inMicroseconds / 1e6;
-    final double driftSpeed = boardSize.width * _driftFraction / flightSeconds;
-    final double dx = _laneFor(origin, boardSize.width) * driftSpeed * t;
+    final Offset velocity = _velocityFor(key, origin, boardSize.width);
+    final double spanX = math.max(0.0, boardSize.width - origin.width);
+    final double spanY = math.max(0.0, boardSize.height - origin.height);
+    final double dx = _bounce(velocity.dx, t, -origin.left, spanX);
+    final double dy = _bounce(velocity.dy, t, -origin.top, spanY);
     return Offset(dx, dy);
   }
 
-  /// A continuous tumble to accompany the fall: `0.0` at the moment [key]
+  /// A continuous tumble to accompany the bounce: `0.0` at the moment [key]
   /// activates, growing steadily (never capped — a bouncing card keeps
   /// spinning for as long as it's in view) in the direction of [origin]'s
-  /// [_laneFor].
+  /// [_xSign].
   double rotationAt(
     CardKey key,
     Duration elapsed,
@@ -226,42 +212,40 @@ class CascadeSequence {
       return 0.0;
     }
     final double t = (elapsed - delay).inMicroseconds / 1e6;
-    return _laneFor(origin, boardSize.width) * _spinSpeed * t;
+    return _xSign(origin, boardSize.width) * _spinSpeed * t;
   }
 
-  /// The vertical fall distance at [t] seconds into a card's own flight: a
-  /// small-gravity simulation that starts at `0` with an upward [_launchSpeed]
-  /// pop, accelerates down under [_gravity], and bounces off [floor] up to
-  /// [_maxBounces] times — each bounce keeping [_restitution] of its impact
-  /// speed — before settling exactly at [floor].
-  double _bounceFall(double t, double floor) {
-    if (floor <= 0) {
-      return 0.0;
+  /// The position (in the same board-local coordinate [origin]'s edge sits
+  /// in) at [t] seconds of a point that starts at the origin's edge, moves at
+  /// constant speed [v], and reflects losslessly off the two walls
+  /// `lo` and `lo + span` forever — the classic "unfold and fold back" trick
+  /// for elastic 1-D bouncing, computed in closed form so it stays cheap and
+  /// exact at any [t], however large.
+  double _bounce(double v, double t, double lo, double span) {
+    if (span <= 0) {
+      return lo;
     }
-    double y = 0.0;
-    double vy = -_launchSpeed;
-    double remaining = t;
-    for (int bounce = 0; bounce < _maxBounces; bounce++) {
-      final double timeToImpact = _timeToImpact(vy, y, floor);
-      if (remaining < timeToImpact) {
-        return y + vy * remaining + 0.5 * _gravity * remaining * remaining;
-      }
-      remaining -= timeToImpact;
-      vy = -(vy + _gravity * timeToImpact) * _restitution;
-      y = floor;
+    final double raw = -lo + v * t;
+    double wrapped = raw % (2 * span);
+    if (wrapped < 0) {
+      wrapped += 2 * span;
     }
-    return floor;
+    final double folded = wrapped <= span ? wrapped : 2 * span - wrapped;
+    return lo + folded;
   }
 
-  /// The positive time (seconds) for a card starting at height [y0] with
-  /// vertical speed [vy0] to reach [floor] under [_gravity]: the positive root
-  /// of `0.5·g·s² + vy0·s + (y0 − floor) = 0`.
-  double _timeToImpact(double vy0, double y0, double floor) {
-    const double a = 0.5 * _gravity;
-    final double b = vy0;
-    final double c = y0 - floor;
-    final double discriminant = b * b - 4 * a * c;
-    return (-b + math.sqrt(discriminant)) / (2 * a);
+  /// The constant launch velocity for [key]: a fixed [_speed] split into an
+  /// x/y pair by an angle drawn deterministically from [key]'s identity (so
+  /// every card gets a distinct, reproducible diagonal trajectory), with the
+  /// horizontal sign biased by [_xSign] so a card first heads away from
+  /// whichever edge [origin] is already closest to.
+  Offset _velocityFor(CardKey key, Rect origin, double boardWidth) {
+    final int seed = key.hashCode & 0x7fffffff;
+    final double angleDeg =
+        _minAngleDeg + (seed % 1000) / 1000 * _angleSpreadDeg;
+    final double angle = angleDeg * math.pi / 180;
+    final double xSign = _xSign(origin, boardWidth);
+    return Offset(xSign * _speed * math.cos(angle), _speed * math.sin(angle));
   }
 
   /// How many cards sit above [key] in its own foundation pile (`0` for the
@@ -280,27 +264,15 @@ class CascadeSequence {
     return -1;
   }
 
-  /// The deepest foundation pile's top-card step, so [totalFor] sizes the
-  /// controller for the slowest-to-activate card.
-  int _maxStep(GameState game) {
-    int maxLength = 0;
-    for (final Pile pile in game.piles) {
-      if (pile.kind == PileKind.foundation) {
-        maxLength = math.max(maxLength, pile.length);
-      }
-    }
-    return maxLength == 0 ? 0 : maxLength - 1;
-  }
-
-  /// `1` (drifts right) if [origin] sits left-of-centre on a board of width
-  /// [boardWidth], `-1` (drifts left) otherwise — i.e. away from whichever
+  /// `1` (heads right) if [origin] sits left-of-centre on a board of width
+  /// [boardWidth], `-1` (heads left) otherwise — i.e. away from whichever
   /// edge [origin] already sits closest to, so every card gets roughly the
-  /// same amount of width to fall across regardless of where its foundation
+  /// same amount of width to bounce across regardless of where its foundation
   /// happens to render in the current layout. A pile-based lane would put a
   /// foundation that's already hard against, say, the right edge (as every
-  /// foundation is in the tablet-landscape column layout) one flick from
-  /// leaving the board.
-  double _laneFor(Rect origin, double boardWidth) =>
+  /// foundation is in the tablet-landscape column layout) one flick from an
+  /// immediate bounce back.
+  double _xSign(Rect origin, double boardWidth) =>
       origin.center.dx < boardWidth / 2 ? 1.0 : -1.0;
 }
 

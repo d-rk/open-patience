@@ -25,4 +25,11 @@ void main() {
     expect(GameMotion.moveCurve, isA<Curve>());
     expect(GameMotion.flipCurve, isA<Curve>());
   });
+
+  test('win cascade has a minimum look before it becomes dismissible', () {
+    expect(
+      GameMotion.winCascadeMinimumBeforeDismiss,
+      const Duration(seconds: 3),
+    );
+  });
 }

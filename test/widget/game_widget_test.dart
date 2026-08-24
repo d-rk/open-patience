@@ -14,6 +14,7 @@ import 'package:open_patience/presentation/board.dart';
 import 'package:open_patience/presentation/card_view.dart';
 import 'package:open_patience/ui/game_screen.dart';
 import 'package:open_patience/ui/records_screen.dart';
+import 'package:open_patience/ui/theme/game_motion.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Card _up(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
@@ -88,6 +89,16 @@ Future<void> _tapCard(WidgetTester tester, Finder card) async {
   await tester.tap(card);
   await tester.pump(const Duration(milliseconds: 350));
   await tester.pumpAndSettle();
+}
+
+/// Waits out the win cascade's minimum look, then taps anywhere to dismiss
+/// it — the cascade itself never stops on its own, so nothing before this may
+/// use `pumpAndSettle`.
+Future<void> _dismissWinCascade(WidgetTester tester) async {
+  await tester.pump(GameMotion.winCascadeMinimumBeforeDismiss);
+  await tester.tap(find.byType(Board), warnIfMissed: false);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 Future<void> _dragTo(WidgetTester tester, Finder from, Finder to) async {
@@ -229,7 +240,10 @@ void main() {
     addTearDown(bloc.close);
 
     await _pump(tester, bloc);
-    await _tapCard(tester, _cardFace(Suit.spades, kingRank));
+    await tester.tap(_cardFace(Suit.spades, kingRank));
+    await tester.pump(const Duration(milliseconds: 350)); // fire onTap
+    await tester.pump(); // rebuild: GameWon, the cascade begins
+    await _dismissWinCascade(tester);
 
     expect(find.byType(RecordsScreen), findsOneWidget);
     expect(find.text('Win rate'), findsOneWidget);
@@ -238,7 +252,7 @@ void main() {
   });
 
   testWidgets(
-    'winning delays the records navigation until the cascade finishes',
+    'winning shows the win cascade and only navigates once dismissed',
     (WidgetTester tester) async {
       final RecordsRepository repo = await _repo();
       final GameBloc bloc = _bloc(
@@ -259,10 +273,10 @@ void main() {
       await tester.pump(); // rebuild: GameWon, the cascade begins
 
       // Right after the win the cascade is still tumbling: the records screen
-      // must not have appeared yet, or the player never sees the cascade play.
+      // must not have appeared yet, or the player never sees it play.
       expect(find.byType(RecordsScreen), findsNothing);
 
-      await tester.pumpAndSettle();
+      await _dismissWinCascade(tester);
       expect(find.byType(RecordsScreen), findsOneWidget);
     },
   );
@@ -453,7 +467,13 @@ void main() {
       expect(find.byTooltip('Solve'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Solve'));
-      await tester.pumpAndSettle();
+      bool won = false;
+      for (int i = 0; i < 100 && !won; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        won = find.text('You Win!').evaluate().isNotEmpty;
+      }
+      expect(won, isTrue, reason: 'auto-solve never reached the win screen');
+      await _dismissWinCascade(tester);
       expect(find.byType(RecordsScreen), findsOneWidget);
     });
   });

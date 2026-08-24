@@ -18,6 +18,11 @@ class GameMotion {
   /// Delay between successive cards in a staggered deal.
   static const Duration dealStagger = Duration(milliseconds: 40);
 
+  /// The win cascade runs indefinitely as a reward the player can linger on;
+  /// this is the minimum time it plays before a tap anywhere is honored to
+  /// dismiss it and move on to the records screen.
+  static const Duration winCascadeMinimumBeforeDismiss = Duration(seconds: 3);
+
   static const Curve moveCurve = Curves.easeOutCubic;
   static const Curve flipCurve = Curves.easeInOut;
 
