@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -101,52 +102,6 @@ void main() {
     expect(c.delayFor(const CardKey(Suit.spades, 5), mid), Duration.zero);
   });
 
-  test('CascadeSequence total scales with the deepest foundation pile', () {
-    const CascadeSequence c = CascadeSequence();
-    final Duration total = c.totalFor(_won());
-    expect(
-      total,
-      CascadeSequence.stagger * (kingRank - aceRank) + CascadeSequence.flight,
-    );
-  });
-
-  test(
-    'CascadeSequence runs longer than a second and a half for a full win',
-    () {
-      const CascadeSequence c = CascadeSequence();
-      final Duration total = c.totalFor(_won());
-      expect(total, greaterThan(const Duration(milliseconds: 1800)));
-    },
-  );
-
-  test('CascadeSequence rebounds to a meaningful height, not a token hop', () {
-    const CascadeSequence c = CascadeSequence();
-    final GameState won = _won();
-    const CardKey king = CardKey(Suit.clubs, kingRank);
-    final double floor = _board.height - _origin.bottom;
-    bool touchedFloorOnce = false;
-    double minDyAfterFirstBounce = floor;
-    for (int ms = 0; ms <= 2500; ms += 5) {
-      final double dy = c
-          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
-          .dy;
-      if (!touchedFloorOnce) {
-        if (dy >= floor - 5) {
-          touchedFloorOnce = true;
-        }
-        continue;
-      }
-      if (dy < minDyAfterFirstBounce) {
-        minDyAfterFirstBounce = dy;
-      }
-    }
-    expect(
-      minDyAfterFirstBounce,
-      lessThan(floor * 0.6),
-      reason: 'the rebound after the first bounce was too shallow',
-    );
-  });
-
   test('CascadeSequence offset is zero exactly at activation', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
@@ -163,54 +118,116 @@ void main() {
     );
   });
 
-  test('CascadeSequence never falls past the board floor', () {
+  test('CascadeSequence never crosses the board bounds on either axis', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
     const CardKey king = CardKey(Suit.clubs, kingRank);
-    final double floor = _board.height - _origin.bottom;
-    for (int ms = 0; ms <= 5000; ms += 25) {
-      final double dy = c
-          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
-          .dy;
+    final double minDx = -_origin.left;
+    final double maxDx = _board.width - _origin.width - _origin.left;
+    final double minDy = -_origin.top;
+    final double maxDy = _board.height - _origin.height - _origin.top;
+    for (int ms = 0; ms <= 20000; ms += 25) {
+      final Offset offset = c.offsetAt(
+        king,
+        Duration(milliseconds: ms),
+        won,
+        _origin,
+        _board,
+      );
       expect(
-        dy,
-        lessThanOrEqualTo(floor + 0.5),
-        reason: 'overshot the floor at $ms ms',
+        offset.dx,
+        inInclusiveRange(minDx - 0.5, maxDx + 0.5),
+        reason: 'dx left the board at $ms ms',
+      );
+      expect(
+        offset.dy,
+        inInclusiveRange(minDy - 0.5, maxDy + 0.5),
+        reason: 'dy left the board at $ms ms',
       );
     }
   });
 
-  test('CascadeSequence bounces off the floor before settling', () {
+  test('CascadeSequence reaches all four board edges, not just the floor', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
     const CardKey king = CardKey(Suit.clubs, kingRank);
-    final double floor = _board.height - _origin.bottom;
-    bool nearFloor = false;
-    bool roseAwayAfter = false;
-    for (int ms = 0; ms <= 1500; ms += 5) {
-      final double dy = c
-          .offsetAt(king, Duration(milliseconds: ms), won, _origin, _board)
-          .dy;
-      if (dy >= floor - 15) {
-        nearFloor = true;
-      } else if (nearFloor && dy <= floor - 50) {
-        roseAwayAfter = true;
-      }
+    final double minDx = -_origin.left;
+    final double maxDx = _board.width - _origin.width - _origin.left;
+    final double minDy = -_origin.top;
+    final double maxDy = _board.height - _origin.height - _origin.top;
+    double seenMinDx = 0, seenMaxDx = 0, seenMinDy = 0, seenMaxDy = 0;
+    for (int ms = 0; ms <= 20000; ms += 10) {
+      final Offset offset = c.offsetAt(
+        king,
+        Duration(milliseconds: ms),
+        won,
+        _origin,
+        _board,
+      );
+      seenMinDx = math.min(seenMinDx, offset.dx);
+      seenMaxDx = math.max(seenMaxDx, offset.dx);
+      seenMinDy = math.min(seenMinDy, offset.dy);
+      seenMaxDy = math.max(seenMaxDy, offset.dy);
     }
-    expect(nearFloor, isTrue, reason: 'never reached the floor to bounce');
-    expect(roseAwayAfter, isTrue, reason: 'never rebounded off the floor');
+    const double tolerance = 2.0;
+    expect(
+      seenMinDx,
+      closeTo(minDx, tolerance),
+      reason: 'never reached the left edge',
+    );
+    expect(
+      seenMaxDx,
+      closeTo(maxDx, tolerance),
+      reason: 'never reached the right edge',
+    );
+    expect(
+      seenMinDy,
+      closeTo(minDy, tolerance),
+      reason: 'never reached the top edge',
+    );
+    expect(
+      seenMaxDy,
+      closeTo(maxDy, tolerance),
+      reason: 'never reached the bottom edge (floor)',
+    );
   });
 
-  test('CascadeSequence settles at the floor well after activating', () {
-    const CascadeSequence c = CascadeSequence();
-    final GameState won = _won();
-    const CardKey king = CardKey(Suit.clubs, kingRank);
-    final double floor = _board.height - _origin.bottom;
-    final double dy = c
-        .offsetAt(king, const Duration(seconds: 10), won, _origin, _board)
-        .dy;
-    expect(dy, closeTo(floor, 0.5));
-  });
+  test(
+    'CascadeSequence bounce amplitude does not shrink after many bounces',
+    () {
+      const CascadeSequence c = CascadeSequence();
+      final GameState won = _won();
+      const CardKey king = CardKey(Suit.clubs, kingRank);
+      final double maxDy = _board.height - _origin.height - _origin.top;
+
+      double earlyPeak = 0;
+      for (int ms = 0; ms <= 10000; ms += 10) {
+        earlyPeak = math.max(
+          earlyPeak,
+          c.offsetAt(king, Duration(milliseconds: ms), won, _origin, _board).dy,
+        );
+      }
+      double latePeak = 0;
+      for (int ms = 60000; ms <= 70000; ms += 10) {
+        latePeak = math.max(
+          latePeak,
+          c.offsetAt(king, Duration(milliseconds: ms), won, _origin, _board).dy,
+        );
+      }
+      expect(
+        earlyPeak,
+        closeTo(maxDy, 2.0),
+        reason: 'first bounce never reached the floor',
+      );
+      expect(
+        latePeak,
+        closeTo(maxDy, 2.0),
+        reason:
+            'bounce after many cycles is lower than the first — velocity is '
+            'decaying',
+      );
+    },
+  );
 
   test('CascadeSequence drifts away from whichever edge the foundation is '
       'closest to, regardless of which pile it is', () {

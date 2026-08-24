@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Card;
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/card.dart';
@@ -103,10 +104,17 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
 
   /// Drives the win cascade: while it runs, foundation cards are offset and
   /// tilted by [_cascadeSequence]'s `offsetAt`/`rotationAt`. Null when no
-  /// cascade is playing. Independent of [_dealController] (a game never deals
-  /// and wins in the same frame, but the two controllers are kept separate
-  /// defensively). Disposed on completion and in [dispose].
-  AnimationController? _cascadeController;
+  /// cascade is playing. Unlike [_dealController], a [Ticker] rather than an
+  /// [AnimationController]: the cascade is a reward the player can linger on
+  /// for as long as they like, so it has no fixed duration and never
+  /// completes on its own — it only stops when [_disposeCascade] runs (leaving
+  /// the win state, reduce-motion, or the widget itself being torn down by
+  /// navigation).
+  Ticker? _cascadeTicker;
+
+  /// Time elapsed since the running [_cascadeTicker] started, refreshed on
+  /// every tick.
+  Duration _cascadeElapsed = Duration.zero;
 
   /// The state instance last evaluated for the win cascade, so the cascade's
   /// own per-tick rebuilds don't re-trigger it (the `GameWon` state is unchanged
@@ -535,14 +543,10 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       return;
     }
     _disposeCascade();
-    final AnimationController controller = AnimationController(
-      vsync: this,
-      duration: _cascadeSequence.totalFor(next),
-    );
-    _cascadeController = controller;
-    controller.addListener(_onCascadeTick);
-    controller.addStatusListener(_onCascadeStatus);
-    controller.forward();
+    _cascadeElapsed = Duration.zero;
+    final Ticker ticker = createTicker(_onCascadeTick);
+    _cascadeTicker = ticker;
+    ticker.start();
   }
 
   /// The cascade's board-local translation for a card on [pile] resting at
@@ -556,14 +560,12 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     Rect origin,
     Size boardSize,
   ) {
-    final AnimationController? controller = _cascadeController;
-    if (controller == null || pile.kind != PileKind.foundation) {
+    if (_cascadeTicker == null || pile.kind != PileKind.foundation) {
       return Offset.zero;
     }
-    final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
     return _cascadeSequence.offsetAt(
       CardKey.of(card),
-      elapsed,
+      _cascadeElapsed,
       game,
       origin,
       boardSize,
@@ -580,51 +582,33 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     Rect origin,
     Size boardSize,
   ) {
-    final AnimationController? controller = _cascadeController;
-    if (controller == null || pile.kind != PileKind.foundation) {
+    if (_cascadeTicker == null || pile.kind != PileKind.foundation) {
       return 0.0;
     }
-    final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
     return _cascadeSequence.rotationAt(
       CardKey.of(card),
-      elapsed,
+      _cascadeElapsed,
       game,
       origin,
       boardSize,
     );
   }
 
-  /// Rebuilds each cascade tick so the fall advances.
-  void _onCascadeTick() {
-    setState(() {});
+  /// Rebuilds each cascade tick so the bounce advances. Runs forever — the
+  /// cascade never completes on its own — until [_disposeCascade] stops it.
+  void _onCascadeTick(Duration elapsed) {
+    setState(() => _cascadeElapsed = elapsed);
   }
 
-  /// Tears the cascade controller down once it completes. Deferred to after the
-  /// frame so the controller is not disposed from inside its own callback while
-  /// the ticker is still finishing, and mounted-guarded because the win
-  /// navigation may unmount the board mid-cascade.
-  void _onCascadeStatus(AnimationStatus status) {
-    if (status != AnimationStatus.completed) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
-      if (!mounted) {
-        return;
-      }
-      setState(_disposeCascade);
-    });
-  }
-
-  /// Disposes the active cascade controller, if any. Idempotent.
+  /// Stops and disposes the active cascade ticker, if any. Idempotent.
   void _disposeCascade() {
-    final AnimationController? controller = _cascadeController;
-    if (controller == null) {
+    final Ticker? ticker = _cascadeTicker;
+    if (ticker == null) {
       return;
     }
-    _cascadeController = null;
-    controller.removeListener(_onCascadeTick);
-    controller.removeStatusListener(_onCascadeStatus);
-    controller.dispose();
+    _cascadeTicker = null;
+    ticker.stop();
+    ticker.dispose();
   }
 
   /// Replicates `PileView`'s per-kind card interactivity:
