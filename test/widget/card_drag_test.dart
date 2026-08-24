@@ -189,6 +189,40 @@ void main() {
     expect(_placeholders(), findsNothing);
   });
 
+  testWidgets('dropping in the empty felt below a column lands on it', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    // col0: a lone 6♥ to drag; col1: a 7♣ target sitting high in a short
+    // column, with plenty of empty felt beneath it.
+    final GameBloc bloc = _bloc(
+      repo,
+      _game(<List<Card>>[
+        <Card>[_up(Suit.hearts, 6)],
+        <Card>[_up(Suit.clubs, 7)],
+      ]),
+    );
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+
+    final Offset grab = _grab(tester, _cardFace(Suit.hearts, 6));
+    // Release well below the 7♣ card — one full card-height into the empty
+    // felt under its column, never touching the card itself.
+    final Rect targetCard = tester.getRect(_cardFace(Suit.clubs, 7));
+    final Offset drop = Offset(
+      targetCard.center.dx,
+      targetCard.bottom + targetCard.height,
+    );
+    final TestGesture gesture = await tester.startGesture(grab);
+    await gesture.moveTo(drop);
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    // The move landed on col1 even though the finger was below its only card.
+    expect(bloc.state.state.pileAt(7).length, 2);
+  });
+
   testWidgets('a second finger cannot start a drag while one is in progress', (
     WidgetTester tester,
   ) async {

@@ -162,6 +162,26 @@ void main() {
       expect(dt.contains(_rectOf(g, Suit.hearts, kingRank).center), isTrue);
       expect(dt.contains(_rectOf(g, Suit.hearts, aceRank).center), isTrue);
     });
+
+    test('a short tableau column drops-zone extends to the board bottom', () {
+      // Pile 6 holds a single card near the top of the tableau row, yet a card
+      // released well below it should still land on that column.
+      final Rect dt = g.dropTargets[6]!;
+      final Rect card = _rectOf(g, Suit.spades, 5);
+      expect(dt.top, closeTo(card.top, 0.5));
+      expect(dt.bottom, greaterThan(card.bottom + card.height));
+      expect(dt.bottom, closeTo(800 - 6, 8)); // ~board bottom (pad = 6)
+    });
+
+    test('an empty tableau column drop-zone extends to the board bottom', () {
+      final Rect dt = g.dropTargets[8]!;
+      final SlotPlacement slot = g.slots.firstWhere(
+        (SlotPlacement s) => s.pileIndex == 8,
+      );
+      expect(dt.top, closeTo(slot.rect.top, 0.5));
+      expect(dt.bottom, greaterThan(slot.rect.bottom + slot.rect.height));
+      expect(dt.bottom, closeTo(800 - 6, 8));
+    });
   });
 
   group('stacked geometry (phone landscape)', () {
