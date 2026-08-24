@@ -73,5 +73,8 @@ flutter_native_splash:
   android: true
   ios: true
   android_12:
-    image: assets/images/splash.png
+    # Android 12+ clips this to a 768px-diameter circle on the 1152px
+    # canvas, so it uses a separate render with the camera pulled back
+    # (see tools/art/build_art.py) rather than the full-bleed splash.png.
+    image: assets/images/splash_android12.png
     color: "#14532D"
