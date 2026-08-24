@@ -69,11 +69,19 @@ void main() {
     );
     addTearDown(bloc.close);
 
+    // Reduce-motion, deliberately: this flow is about the win being recorded,
+    // not the win cascade's own timing (that's covered by the headless
+    // widget suite), and the cascade's animation runs forever once started
+    // (see CascadeSequence's doc comment), so `pumpAndSettle` could never be
+    // used safely with it here.
     await tester.pumpWidget(
-      MaterialApp(
-        home: BlocProvider<GameBloc>.value(
-          value: bloc,
-          child: const GameScreen(),
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: BlocProvider<GameBloc>.value(
+            value: bloc,
+            child: const GameScreen(),
+          ),
         ),
       ),
     );
@@ -92,7 +100,8 @@ void main() {
 
     // The win navigates to the records screen and the result is persisted.
     expect(find.byType(RecordsScreen), findsOneWidget);
-    expect(find.text('Games won'), findsOneWidget);
+    expect(find.text('Win rate'), findsOneWidget);
+    expect(find.text('1 won'), findsOneWidget);
 
     final Stats stats = await repository.statsFor('klondike-draw1');
     expect(stats.gamesWon, 1);
