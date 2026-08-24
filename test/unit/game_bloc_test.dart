@@ -71,6 +71,7 @@ GameState _klondikeBoard({
   List<Card> col6 = const <Card>[],
   List<Card> col7 = const <Card>[],
   int elapsedSeconds = 0,
+  int moveCount = 0,
 }) {
   return GameState(
     piles: <Pile>[
@@ -89,6 +90,7 @@ GameState _klondikeBoard({
       Pile(kind: PileKind.tableau),
     ],
     elapsedSeconds: elapsedSeconds,
+    moveCount: moveCount,
   );
 }
 
@@ -486,6 +488,56 @@ void main() {
         ),
       );
     });
+
+    blocTest<GameBloc, GameBlocState>(
+      'a new deal records a loss for the in-progress game it discards',
+      build: () => _bloc(_FakeRepo(), _klondikeBoard(moveCount: 3)),
+      act: (GameBloc bloc) => bloc.add(const NewDealRequested(seed: 7)),
+      verify: (GameBloc bloc) {
+        final _FakeRepo repo = bloc.repository as _FakeRepo;
+        expect(
+          repo.calls.any(
+            (String c) => c.startsWith('record:klondike-draw1:false'),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'a new deal does not record a loss for an untouched fresh deal',
+      build: () => _bloc(_FakeRepo(), _klondikeBoard()),
+      act: (GameBloc bloc) => bloc.add(const NewDealRequested(seed: 7)),
+      verify: (GameBloc bloc) {
+        final _FakeRepo repo = bloc.repository as _FakeRepo;
+        expect(repo.calls.any((String c) => c.startsWith('record:')), isFalse);
+      },
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'restarting the deal records a loss for the abandoned attempt',
+      build: () => _bloc(_FakeRepo(), _klondikeBoard(moveCount: 2), seed: 44),
+      act: (GameBloc bloc) => bloc.add(const RestartDealRequested()),
+      verify: (GameBloc bloc) {
+        final _FakeRepo repo = bloc.repository as _FakeRepo;
+        expect(
+          repo.calls.any(
+            (String c) => c.startsWith('record:klondike-draw1:false'),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'restarting an untouched fresh deal does not record a loss',
+      build: () => _bloc(_FakeRepo(), _klondikeBoard(), seed: 44),
+      act: (GameBloc bloc) => bloc.add(const RestartDealRequested()),
+      verify: (GameBloc bloc) {
+        final _FakeRepo repo = bloc.repository as _FakeRepo;
+        expect(repo.calls.any((String c) => c.startsWith('record:')), isFalse);
+      },
+    );
   });
 
   group('GameBloc.newGame', () {

@@ -4,6 +4,7 @@ import 'package:open_patience/core/game_registry.dart';
 import 'package:open_patience/core/game_state.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
+import 'package:open_patience/persistence/stats.dart';
 import 'package:open_patience/presentation/board.dart';
 import 'package:open_patience/ui/main_menu_screen.dart';
 import 'package:open_patience/ui/widgets/menu_banner.dart';
@@ -133,6 +134,56 @@ void main() {
 
     expect(find.text('Continue playing'), findsNothing);
     expect(await repo.loadAllSaves(), isEmpty);
+  });
+
+  testWidgets(
+    'swiping away a Continue row with moves played records it as a loss',
+    (WidgetTester tester) async {
+      final RecordsRepository repo = await _repo();
+      final GameState fresh = GameState.newGame(
+        GameRegistry.rulesFor('freecell'),
+        seed: 9,
+      );
+      await repo.saveGame(
+        variant: 'freecell',
+        seed: 9,
+        state: GameState(piles: fresh.piles, moveCount: 3),
+      );
+      await tester.pumpWidget(_host(MainMenuScreen(repository: repo)));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const ValueKey<String>('continue-freecell')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      final Stats stats = await repo.statsFor('freecell');
+      expect(stats.gamesPlayed, 1);
+      expect(stats.gamesWon, 0);
+    },
+  );
+
+  testWidgets('swiping away an untouched Continue row does not record a loss', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    await repo.saveGame(
+      variant: 'freecell',
+      seed: 9,
+      state: GameState.newGame(GameRegistry.rulesFor('freecell'), seed: 9),
+    );
+    await tester.pumpWidget(_host(MainMenuScreen(repository: repo)));
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byKey(const ValueKey<String>('continue-freecell')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final Stats stats = await repo.statsFor('freecell');
+    expect(stats.gamesPlayed, 0);
   });
 
   testWidgets('no Continue section when nothing is in progress', (
