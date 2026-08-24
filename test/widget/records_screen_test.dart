@@ -64,22 +64,32 @@ void main() {
   });
 
   testWidgets(
-    'the ring is a pure indicator: nothing is drawn on top of it, so its '
-    'fill fraction is never fought over with text placement',
+    'the ring shows a tiered emoji reflecting the win rate — no digits, so '
+    "there's nothing for a font's metrics to mis-center",
     (WidgetTester tester) async {
-      await _pump(tester, const Stats(gamesPlayed: 4, gamesWon: 4));
+      Future<String> emojiOnRing(Stats stats) async {
+        await _pump(tester, stats);
+        final Finder ring = find
+            .ancestor(
+              of: find.byType(CircularProgressIndicator),
+              matching: find.byType(SizedBox),
+            )
+            .first;
+        final Finder emoji = find.descendant(
+          of: ring,
+          matching: find.byType(Text),
+        );
+        expect(emoji, findsOneWidget);
+        return tester.widget<Text>(emoji).data!;
+      }
 
-      final Finder ring = find
-          .ancestor(
-            of: find.byType(CircularProgressIndicator),
-            matching: find.byType(SizedBox),
-          )
-          .first;
-      expect(
-        find.descendant(of: ring, matching: find.byType(Text)),
-        findsNothing,
-        reason: 'no text should be layered on the ring itself',
-      );
+      expect(await emojiOnRing(Stats.empty()), '🎴');
+      expect(await emojiOnRing(const Stats(gamesPlayed: 5, gamesWon: 1)), '😅');
+      expect(await emojiOnRing(const Stats(gamesPlayed: 4, gamesWon: 1)), '🙂');
+      expect(await emojiOnRing(const Stats(gamesPlayed: 2, gamesWon: 1)), '⭐');
+      expect(await emojiOnRing(const Stats(gamesPlayed: 4, gamesWon: 3)), '🌟');
+      expect(await emojiOnRing(const Stats(gamesPlayed: 4, gamesWon: 4)), '🏆');
+
       // The percentage still exists, just as a free-standing headline.
       expect(find.text('100%'), findsOneWidget);
     },

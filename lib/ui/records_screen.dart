@@ -132,12 +132,12 @@ class RecordsScreen extends StatelessWidget {
   }
 }
 
-/// Win rate as a gold progress ring — a pure indicator, nothing drawn on
-/// top of it — beside a headline percentage and a won/lost legend. The
-/// ring's fill fraction is the win rate, so it stays meaningful without
-/// needing to also host text: that combination is what kept breaking (see
-/// git history around this file for the abandoned attempts at centering
-/// text inside the ring itself).
+/// Win rate as a gold progress ring beside a headline percentage and a
+/// won/lost legend. The ring shows a tiered emoji ([_emojiFor]) rather than
+/// digits — emoji glyphs are near-square and render centered on every
+/// platform, unlike the body font's asymmetric ascent/descent, which is
+/// what made every earlier attempt at centering "100%" on the ring itself
+/// unreliable (see git history around this file).
 class _WinRateHero extends StatelessWidget {
   const _WinRateHero({required this.stats});
 
@@ -145,6 +145,29 @@ class _WinRateHero extends StatelessWidget {
   static const double _ringStroke = 10;
 
   final Stats stats;
+
+  /// A trophy for a perfect record, down to a rueful face for a rough
+  /// stretch — golden the higher the win rate climbs, matching the ring's
+  /// own gold fill. A neutral card face before any game has been played.
+  static String _emojiFor(Stats stats) {
+    if (stats.gamesPlayed == 0) {
+      return '🎴';
+    }
+    final double pct = stats.winPercentage;
+    if (pct >= 100) {
+      return '🏆';
+    }
+    if (pct >= 75) {
+      return '🌟';
+    }
+    if (pct >= 50) {
+      return '⭐';
+    }
+    if (pct >= 25) {
+      return '🙂';
+    }
+    return '😅';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,11 +184,19 @@ class _WinRateHero extends StatelessWidget {
           SizedBox(
             width: _ringSize,
             height: _ringSize,
-            child: CircularProgressIndicator(
-              value: stats.winPercentage / 100,
-              strokeWidth: _ringStroke,
-              backgroundColor: Colors.white.withValues(alpha: 0.12),
-              valueColor: const AlwaysStoppedAnimation<Color>(GamePalette.gold),
+            child: Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                CircularProgressIndicator(
+                  value: stats.winPercentage / 100,
+                  strokeWidth: _ringStroke,
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    GamePalette.gold,
+                  ),
+                ),
+                Text(_emojiFor(stats), style: const TextStyle(fontSize: 32)),
+              ],
             ),
           ),
           const SizedBox(width: 16),
