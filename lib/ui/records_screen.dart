@@ -163,12 +163,23 @@ class _WinRateHero extends StatelessWidget {
                     GamePalette.gold,
                   ),
                 ),
-                Text(
-                  '${stats.winPercentage.round()}%',
-                  style: TextStyle(
-                    color: GamePalette.cardFace,
-                    fontWeight: FontWeight.w800,
-                    fontSize: stats.winPercentage.round() >= 100 ? 16 : 19,
+                // A fixed, safely-inscribed box + scaleDown guarantees the
+                // text never pokes past the ring — unlike a hand-picked font
+                // size, this holds however wide "100%" actually renders in
+                // whatever font ends up on screen.
+                SizedBox(
+                  width: 64,
+                  height: 32,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${stats.winPercentage.round()}%',
+                      style: const TextStyle(
+                        color: GamePalette.cardFace,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 19,
+                      ),
+                    ),
                   ),
                 ),
               ],
