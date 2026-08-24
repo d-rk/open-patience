@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
+import 'solve_reveal.dart';
 import 'theme/game_palette.dart';
 
 /// The slim play-screen top bar: a menu button on the left, undo/redo on the
@@ -38,13 +39,18 @@ class TopBar extends StatelessWidget {
             final bool won = state is GameWon;
             return Row(
               children: <Widget>[
-                if (_canSolve(state))
-                  IconButton(
+                // Always mounted so its animation state survives the
+                // not-solvable → solvable edge and can play the reveal; while
+                // not solvable it renders nothing and takes no space.
+                SolveReveal(
+                  visible: _canSolve(state),
+                  child: IconButton(
                     tooltip: 'Solve',
                     color: GamePalette.gold,
                     icon: const Icon(Icons.auto_fix_high),
                     onPressed: () => bloc.add(const AutoSolveRequested()),
                   ),
+                ),
                 IconButton(
                   tooltip: 'Undo',
                   color: GamePalette.gold,
