@@ -29,7 +29,8 @@ class RecordsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               FeltHeader(
-                title: '$title — Records',
+                title: 'Records',
+                subtitle: title,
                 onBack: () => Navigator.of(context).pop(),
               ),
               Expanded(child: _body()),
@@ -149,14 +150,14 @@ class _WinRateHero extends StatelessWidget {
       child: Row(
         children: <Widget>[
           SizedBox(
-            width: 72,
-            height: 72,
+            width: 88,
+            height: 88,
             child: Stack(
               alignment: Alignment.center,
               children: <Widget>[
                 CircularProgressIndicator(
                   value: stats.winPercentage / 100,
-                  strokeWidth: 6,
+                  strokeWidth: 7,
                   backgroundColor: Colors.white.withValues(alpha: 0.12),
                   valueColor: const AlwaysStoppedAnimation<Color>(
                     GamePalette.gold,
@@ -167,7 +168,7 @@ class _WinRateHero extends StatelessWidget {
                   style: TextStyle(
                     color: GamePalette.cardFace,
                     fontWeight: FontWeight.w800,
-                    fontSize: stats.winPercentage.round() >= 100 ? 13 : 16,
+                    fontSize: stats.winPercentage.round() >= 100 ? 16 : 19,
                   ),
                 ),
               ],
