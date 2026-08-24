@@ -358,11 +358,17 @@ class _Builder {
   }
 
   /// Records a fanned tableau column at [origin] with the given gaps.
+  ///
+  /// [regionBottom] is the y-coordinate of the bottom of the tableau area. The
+  /// column's drop target stretches down to it (never shorter than the cards
+  /// themselves), so a card released in the empty felt below a short column
+  /// still lands on that column — that was clearly the player's intent.
   void _placeTableau(
     int pileIndex,
     Offset origin,
     double upGap,
     double downGap,
+    double regionBottom,
   ) {
     final Pile pile = game.pileAt(pileIndex);
     if (pile.isEmpty) {
@@ -374,7 +380,11 @@ class _Builder {
           rect: slotRect,
         ),
       );
-      dropTargets[pileIndex] = slotRect;
+      dropTargets[pileIndex] = _tableauDropTarget(
+        origin,
+        slotRect.bottom,
+        regionBottom,
+      );
       return;
     }
     double top = origin.dy;
@@ -393,12 +403,22 @@ class _Builder {
       );
       top += card.faceUp ? upGap : downGap;
     }
-    dropTargets[pileIndex] = Rect.fromLTWH(
-      origin.dx,
-      origin.dy,
-      _cardW,
-      (lastTop - origin.dy) + _cardH,
+    dropTargets[pileIndex] = _tableauDropTarget(
+      origin,
+      lastTop + _cardH,
+      regionBottom,
     );
+  }
+
+  /// A tableau drop target one card wide, from [origin] down to [regionBottom]
+  /// — but never above [cardsBottom] when a long fan overruns the region.
+  Rect _tableauDropTarget(
+    Offset origin,
+    double cardsBottom,
+    double regionBottom,
+  ) {
+    final double bottom = math.max(cardsBottom, regionBottom);
+    return Rect.fromLTWH(origin.dx, origin.dy, _cardW, bottom - origin.dy);
   }
 
   double _fanGap(double bottomHeight) {
@@ -531,10 +551,17 @@ class _Builder {
     final double upGap = _fanGap(bottomHeight);
     final double downGap = upGap * 0.5;
     final double colW = innerW / cols;
+    final double tableauBottom = tableauTop + bottomHeight;
     for (int j = 0; j < cols; j++) {
       final double centerX = originX + colW * j + colW / 2;
       final double cardX = centerX - _cardW / 2;
-      _placeTableau(tableau[j], Offset(cardX, tableauTop), upGap, downGap);
+      _placeTableau(
+        tableau[j],
+        Offset(cardX, tableauTop),
+        upGap,
+        downGap,
+        tableauBottom,
+      );
     }
   }
 
@@ -549,6 +576,7 @@ class _Builder {
     final double bottomHeight = math.max(_cardH, height - 2 * _pad);
     final double upGap = _fanGap(bottomHeight);
     final double downGap = upGap * 0.5;
+    final double tableauBottom = topY + bottomHeight;
     for (int j = 0; j < cols; j++) {
       final double centerX = _pad + colW * j + colW / 2;
       _placeTableau(
@@ -556,6 +584,7 @@ class _Builder {
         Offset(centerX - _cardW / 2, topY),
         upGap,
         downGap,
+        tableauBottom,
       );
     }
 
