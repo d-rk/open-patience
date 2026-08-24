@@ -23,6 +23,24 @@ void main() {
     expect(backs, 1);
   });
 
+  testWidgets('FeltHeader shows an optional subtitle beneath the title', (
+    WidgetTester tester,
+  ) async {
+    await _pump(
+      tester,
+      const FeltHeader(title: 'Records', subtitle: 'Klondike (Draw 1)'),
+    );
+    expect(find.text('Records'), findsOneWidget);
+    expect(find.text('Klondike (Draw 1)'), findsOneWidget);
+  });
+
+  testWidgets('FeltHeader omits the subtitle row when none is given', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, const FeltHeader(title: 'Records'));
+    expect(find.text('Records'), findsOneWidget);
+  });
+
   testWidgets('GameActionTile fires onPressed', (WidgetTester tester) async {
     int taps = 0;
     await _pump(

@@ -18,12 +18,20 @@ class FeltBackground extends StatelessWidget {
   }
 }
 
-/// A themed screen header: gold [title] with an optional leading back button.
-/// Replaces the Material `AppBar` on themed screens.
+/// A themed screen header: gold [title] with an optional leading back button
+/// and an optional [subtitle] beneath it (e.g. the game variant, kept off the
+/// title row so it stays short enough for a narrow phone). Replaces the
+/// Material `AppBar` on themed screens.
 class FeltHeader extends StatelessWidget {
-  const FeltHeader({required this.title, this.onBack, super.key});
+  const FeltHeader({
+    required this.title,
+    this.subtitle,
+    this.onBack,
+    super.key,
+  });
 
   final String title;
+  final String? subtitle;
   final VoidCallback? onBack;
 
   @override
@@ -38,14 +46,29 @@ class FeltHeader extends StatelessWidget {
               icon: const Icon(Icons.arrow_back, color: GamePalette.gold),
               onPressed: onBack,
             ),
-          Text(
-            title,
-            style: const TextStyle(
-              fontFamily: GameFonts.display,
-              color: GamePalette.gold,
-              fontSize: 24,
-              letterSpacing: 0.5,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: GameFonts.display,
+                  color: GamePalette.gold,
+                  fontSize: 24,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    fontFamily: GameFonts.body,
+                    color: GamePalette.cardFace.withValues(alpha: 0.7),
+                    fontSize: 13,
+                  ),
+                ),
+            ],
           ),
         ],
       ),

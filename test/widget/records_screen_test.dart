@@ -53,6 +53,30 @@ void main() {
     expect(find.text('17 won / 42 played'), findsOneWidget);
   });
 
+  testWidgets('header title is just "Records", with the variant as a subtitle '
+      '(so it fits on a narrow phone)', (WidgetTester tester) async {
+    await _pump(tester, const Stats(gamesPlayed: 1, gamesWon: 1));
+
+    expect(find.text('Records'), findsOneWidget);
+    expect(find.text('Klondike'), findsOneWidget);
+    expect(find.text('Klondike — Records'), findsNothing);
+  });
+
+  testWidgets('the win rate ring is large enough for "100%" to fit', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, const Stats(gamesPlayed: 4, gamesWon: 4));
+
+    final SizedBox ring = tester.widget<SizedBox>(
+      find.ancestor(
+        of: find.byType(CircularProgressIndicator),
+        matching: find.byType(SizedBox),
+      ),
+    );
+    expect(ring.width, greaterThanOrEqualTo(88));
+    expect(ring.height, greaterThanOrEqualTo(88));
+  });
+
   testWidgets('shrinks the win rate text so 100% still fits the ring', (
     WidgetTester tester,
   ) async {
