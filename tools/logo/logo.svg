@@ -1,0 +1,61 @@
+<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#2E8B57"/>
+      <stop offset="100%" stop-color="#14532D"/>
+    </radialGradient>
+    <filter id="sh" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5"/>
+      <feOffset dx="0" dy="5" result="off"/>
+      <feFlood flood-color="#0a2a18" flood-opacity="0.45"/>
+      <feComposite in2="off" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="240" height="240" fill="url(#felt)"/>
+  
+    <g transform="translate(96,120) rotate(-13)" filter="url(#sh)">
+      <rect x="-42.0" y="-59.0" width="84" height="118" rx="11"
+            fill="#FFF8EC" stroke="#F6C65B" stroke-width="3"/>
+      <text x="0" y="0" dy="0.35em" text-anchor="middle" font-family="Georgia, serif"
+            font-size="54" font-weight="700" fill="#1C2833">♣</text>
+      <g transform="translate(-29.0,-37.0)">
+      <text x="0" y="0" text-anchor="middle" font-family="Georgia, serif"
+            font-size="19" font-weight="700" fill="#1C2833">Q</text>
+      <text x="0" y="17" text-anchor="middle" font-family="Georgia, serif"
+            font-size="16" fill="#1C2833">♣</text>
+    </g>
+    </g>
+    <g transform="translate(126,114) rotate(3)" filter="url(#sh)">
+      <rect x="-42.0" y="-59.0" width="84" height="118" rx="11"
+            fill="#FFF8EC" stroke="#F6C65B" stroke-width="3"/>
+      <text x="0" y="0" dy="0.35em" text-anchor="middle" font-family="Georgia, serif"
+            font-size="54" font-weight="700" fill="#C0392B">♥</text>
+      <g transform="translate(-29.0,-37.0)">
+      <text x="0" y="0" text-anchor="middle" font-family="Georgia, serif"
+            font-size="19" font-weight="700" fill="#C0392B">K</text>
+      <text x="0" y="17" text-anchor="middle" font-family="Georgia, serif"
+            font-size="16" fill="#C0392B">♥</text>
+    </g>
+    </g>
+    <g transform="translate(150,132) rotate(19)" filter="url(#sh)">
+      <rect x="-42.0" y="-59.0" width="84" height="118" rx="11"
+            fill="#FFF8EC" stroke="#F6C65B" stroke-width="3"/>
+      <text x="0" y="0" dy="0.35em" text-anchor="middle" font-family="Georgia, serif"
+            font-size="54" font-weight="700" fill="#1C2833">♠</text>
+      <g transform="translate(-29.0,-37.0)">
+      <text x="0" y="0" text-anchor="middle" font-family="Georgia, serif"
+            font-size="19" font-weight="700" fill="#1C2833">A</text>
+      <text x="0" y="17" text-anchor="middle" font-family="Georgia, serif"
+            font-size="16" fill="#1C2833">♠</text>
+    </g><g transform="translate(29.0,37.0) rotate(180)">
+      <text x="0" y="0" text-anchor="middle" font-family="Georgia, serif"
+            font-size="19" font-weight="700" fill="#1C2833">A</text>
+      <text x="0" y="17" text-anchor="middle" font-family="Georgia, serif"
+            font-size="16" fill="#1C2833">♠</text>
+    </g>
+    </g>
+</svg>

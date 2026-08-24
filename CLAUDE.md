@@ -190,14 +190,16 @@ accents).
   Avoid stock enterprise-flat Material chrome (bare `AppBar` titles, plain
   list rows) on player-facing screens.
 - **App icon is generated, not hand-drawn.** The single source of truth is
-  the Blender scene under `tools/logo/`, rendered by
-  `tools/logo/build_logo.py` into `assets/icon/icon.png` (+ adaptive
-  foreground). Platform launcher icons come from `flutter_launcher_icons`,
-  and the F-Droid listing icon is derived from the same
-  `assets/icon/icon.png` (see `fdroid/metadata/`). **Never** replace an icon
-  PNG by hand — change the Blender scene / `build_logo.py`, re-render, then
-  regenerate the launcher + F-Droid icons. See the README "App icon" section
-  for the exact commands.
+  `tools/logo/build_logo.py`, which generates the logo as SVG (three
+  overlapping cards in the Emerald Felt palette) and rasterises it (via
+  Inkscape) into `assets/icon/icon.png` (opaque full-bleed tile) +
+  `assets/icon/icon_foreground.png` (adaptive foreground), plus the 512px
+  F-Droid listing icon under `fdroid/metadata/`. It also writes inspectable
+  `tools/logo/logo.svg` + `logo_foreground.svg`. Platform launcher icons come
+  from `flutter_launcher_icons`. **Never** replace an icon PNG by hand —
+  edit `build_logo.py` (palette or `CARDS` layout), re-run it, then
+  regenerate the launcher icons. See the README "App icon" section for the
+  exact commands.
 
 ## Licensing
 

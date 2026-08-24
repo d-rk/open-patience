@@ -107,28 +107,30 @@ Full contributor guidance — architecture, TDD workflow, style — is in
 
 ## App icon
 
-The launcher icon is a 3D render of three fanned playing cards. The editable
-source is a Blender scene at `tools/logo/solitaire_logo.blend` — open it to
-tweak the cards, suit emblems, camera, lighting or the felt background by
-hand. It is the single source of truth for the artwork.
+The launcher icon is three overlapping playing cards — a Queen of clubs and
+King of hearts fanned behind a hero Ace of spades — in the "Emerald Felt"
+palette (cream cards, gold edges, dark-green felt). The single source of
+truth is `tools/logo/build_logo.py`: it generates the logo as SVG and
+rasterises it into the icon PNGs. Edit the palette or the `CARDS` layout in
+that script (it also writes `tools/logo/logo.svg` +
+`tools/logo/logo_foreground.svg`, which you can open in Inkscape to eyeball
+the art).
 
-To regenerate the icons after editing the `.blend`:
+To regenerate the icons:
 
 ```bash
-# 1. Render the scene into assets/icon/icon.png (opaque tile) and
-#    assets/icon/icon_foreground.png (Android adaptive foreground).
-#    Blender here is installed as a Flatpak:
-flatpak run org.blender.Blender --background --python tools/logo/build_logo.py
-# (plain install: blender --background --python tools/logo/build_logo.py)
+# 1. Generate assets/icon/icon.png (opaque full-bleed felt tile),
+#    assets/icon/icon_foreground.png (Android adaptive foreground) and the
+#    512px F-Droid listing icon. Needs Inkscape plus a serif font
+#    (Liberation Serif) and a suit-glyph font (Noto Sans Symbols).
+python3 tools/logo/build_logo.py
 
 # 2. Rebuild the platform launcher icons from those PNGs.
 dart run flutter_launcher_icons
 ```
 
 Icon settings (image paths, adaptive background colour) live under the
-`flutter_launcher_icons:` key in `pubspec.yaml`. Headless Blender prints an
-OpenColorIO config-version warning — it's harmless and colours render
-correctly.
+`flutter_launcher_icons:` key in `pubspec.yaml`.
 
 ## License
 
