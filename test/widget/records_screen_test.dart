@@ -62,47 +62,25 @@ void main() {
     expect(find.text('Klondike — Records'), findsNothing);
   });
 
-  testWidgets('the win rate ring is large enough for "100%" to fit', (
-    WidgetTester tester,
-  ) async {
-    await _pump(tester, const Stats(gamesPlayed: 4, gamesWon: 4));
-
-    final SizedBox ring = tester.widget<SizedBox>(
-      find.ancestor(
-        of: find.byType(CircularProgressIndicator),
-        matching: find.byType(SizedBox),
-      ),
-    );
-    expect(ring.width, greaterThanOrEqualTo(88));
-    expect(ring.height, greaterThanOrEqualTo(88));
-  });
-
   testWidgets(
-    'the win rate percentage is scaled to fit its ring, so it can never '
-    'overflow it regardless of digit count or font metrics',
+    'the percentage renders as its own label next to the ring, not text '
+    'layered inside it — so it can never be clipped or mis-centered by the '
+    "ring's circular geometry",
     (WidgetTester tester) async {
-      // A FittedBox(fit: scaleDown) around a bounded box is what makes this
-      // true by construction: it shrinks the text to fit no matter how wide
-      // the real font renders it, unlike a hand-picked font size that only
-      // happens to fit in whatever font the test environment substitutes.
-      Future<void> expectScaledToFit(String percentText, Stats stats) async {
-        await _pump(tester, stats);
-        final Finder text = find.text(percentText);
-        expect(text, findsOneWidget);
-        final Finder fittedBox = find.ancestor(
-          of: text,
-          matching: find.byType(FittedBox),
-        );
-        expect(fittedBox, findsOneWidget);
-        expect(tester.widget<FittedBox>(fittedBox).fit, BoxFit.scaleDown);
-        final Size box = tester.getSize(fittedBox);
-        expect(box.width, lessThanOrEqualTo(88 - 2 * 7));
-        expect(box.height, lessThanOrEqualTo(88 - 2 * 7));
-      }
+      await _pump(tester, const Stats(gamesPlayed: 4, gamesWon: 4));
 
-      await expectScaledToFit('100%', const Stats(gamesPlayed: 4, gamesWon: 4));
-      await expectScaledToFit('40%', const Stats(gamesPlayed: 5, gamesWon: 2));
-      await expectScaledToFit('0%', Stats.empty());
+      expect(find.text('100%'), findsOneWidget);
+      final Finder ring = find
+          .ancestor(
+            of: find.byType(CircularProgressIndicator),
+            matching: find.byType(SizedBox),
+          )
+          .first;
+      expect(
+        find.descendant(of: ring, matching: find.text('100%')),
+        findsNothing,
+        reason: 'the percentage should sit beside the ring, not inside it',
+      );
     },
   );
 

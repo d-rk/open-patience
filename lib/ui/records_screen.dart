@@ -132,7 +132,8 @@ class RecordsScreen extends StatelessWidget {
   }
 }
 
-/// Win rate as a gold progress ring with the won/played breakdown beside it.
+/// Win rate as a gold progress ring (a pure indicator, no text on it) beside
+/// the percentage, played/won breakdown.
 class _WinRateHero extends StatelessWidget {
   const _WinRateHero({required this.stats});
 
@@ -150,39 +151,13 @@ class _WinRateHero extends StatelessWidget {
       child: Row(
         children: <Widget>[
           SizedBox(
-            width: 88,
-            height: 88,
-            child: Stack(
-              alignment: Alignment.center,
-              children: <Widget>[
-                CircularProgressIndicator(
-                  value: stats.winPercentage / 100,
-                  strokeWidth: 7,
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    GamePalette.gold,
-                  ),
-                ),
-                // A fixed, safely-inscribed box + scaleDown guarantees the
-                // text never pokes past the ring — unlike a hand-picked font
-                // size, this holds however wide "100%" actually renders in
-                // whatever font ends up on screen.
-                SizedBox(
-                  width: 64,
-                  height: 32,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      '${stats.winPercentage.round()}%',
-                      style: const TextStyle(
-                        color: GamePalette.cardFace,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 19,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            width: 56,
+            height: 56,
+            child: CircularProgressIndicator(
+              value: stats.winPercentage / 100,
+              strokeWidth: 6,
+              backgroundColor: Colors.white.withValues(alpha: 0.12),
+              valueColor: const AlwaysStoppedAnimation<Color>(GamePalette.gold),
             ),
           ),
           const SizedBox(width: 16),
@@ -191,6 +166,19 @@ class _WinRateHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
+                // A plain label beside the ring, not text layered on top of
+                // it: no circular geometry to fit inside, so there's nothing
+                // for any digit count or font's own line metrics to overflow
+                // or mis-center.
+                Text(
+                  '${stats.winPercentage.round()}%',
+                  style: const TextStyle(
+                    color: GamePalette.cardFace,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 26,
+                  ),
+                ),
+                const SizedBox(height: 2),
                 Text(
                   'Win rate',
                   style: TextStyle(
