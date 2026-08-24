@@ -63,9 +63,7 @@ void main() {
   });
 
   testWidgets(
-    'the percentage renders as its own label next to the ring, not text '
-    'layered inside it — so it can never be clipped or mis-centered by the '
-    "ring's circular geometry",
+    'the percentage renders on the ring itself, giving the ring a meaning',
     (WidgetTester tester) async {
       await _pump(tester, const Stats(gamesPlayed: 4, gamesWon: 4));
 
@@ -78,8 +76,8 @@ void main() {
           .first;
       expect(
         find.descendant(of: ring, matching: find.text('100%')),
-        findsNothing,
-        reason: 'the percentage should sit beside the ring, not inside it',
+        findsOneWidget,
+        reason: 'the percentage should label the ring it belongs to',
       );
     },
   );
