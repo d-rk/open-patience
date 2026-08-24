@@ -60,6 +60,17 @@ void main() {
       final GameState b = GameState.newGame(rules, seed: 9);
       expect(a, equals(b));
     });
+
+    test('openingMaxTableau matches the tallest column of a real deal', () {
+      final GameState state = GameState.newGame(rules, seed: 123);
+      int observed = 0;
+      for (int col = 0; col < KlondikeRules.tableauCount; col++) {
+        final int len = state.pileAt(KlondikeRules.firstTableau + col).length;
+        if (len > observed) observed = len;
+      }
+      expect(rules.openingMaxTableau, observed);
+      expect(rules.openingMaxTableau, 7);
+    });
   });
 
   group('Klondike almost-won debug deal', () {

@@ -45,6 +45,17 @@ void main() {
         expect(state.pileAt(rules.firstFoundation + i).isEmpty, isTrue);
       }
     });
+
+    test('openingMaxTableau matches the tallest column of a real deal', () {
+      final GameState state = GameState.newGame(rules, seed: 77);
+      int observed = 0;
+      for (int col = 0; col < FreecellRules.tableauCount; col++) {
+        final int len = state.pileAt(rules.firstTableau + col).length;
+        if (len > observed) observed = len;
+      }
+      expect(rules.openingMaxTableau, observed);
+      expect(rules.openingMaxTableau, 7);
+    });
   });
 
   group('FreeCell almost-won debug deal', () {

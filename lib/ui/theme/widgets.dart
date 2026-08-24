@@ -113,7 +113,11 @@ class GamePill extends StatelessWidget {
 /// suit-pip flourish beneath. `OPEN` in cream, `PATIENCE` in gold, sitting on
 /// the felt with a soft drop shadow. This is the main-menu title lockup.
 class GameWordmark extends StatelessWidget {
-  const GameWordmark({super.key});
+  const GameWordmark({this.compact = false, super.key});
+
+  /// A shrunk variant for short (landscape) viewports: smaller title and
+  /// tighter vertical padding so the header leaves room for the content below.
+  final bool compact;
 
   static const List<Shadow> _shadows = <Shadow>[
     Shadow(color: Color(0x66000000), offset: Offset(0, 2), blurRadius: 6),
@@ -122,7 +126,7 @@ class GameWordmark extends StatelessWidget {
   TextStyle _word(Color color) => TextStyle(
     fontFamily: GameFonts.display,
     color: color,
-    fontSize: 42,
+    fontSize: compact ? 28 : 42,
     height: 1.0,
     letterSpacing: 3,
     shadows: _shadows,
@@ -147,7 +151,9 @@ class GameWordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: compact
+          ? const EdgeInsets.fromLTRB(16, 0, 16, 6)
+          : const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: IntrinsicWidth(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -162,7 +168,7 @@ class GameWordmark extends StatelessWidget {
                 Text('PATIENCE', style: _word(GamePalette.gold)),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: compact ? 4 : 8),
             Row(
               children: <Widget>[
                 _rule(),

@@ -89,9 +89,16 @@ class BoardMetrics {
     int topRows = 1,
     int topRowSlots = 0,
     int topTrays = 0,
+    int openingFanLength = 0,
   }) {
     final int cols = math.max(columns, 1);
-    final int fanLen = math.max(maxPileLength, 1);
+    // Cards are sized for the longer of the current tallest fan and the deal's
+    // opening fan, so a game that shortens toward a win never grows its cards
+    // larger than the opening deal — the extra room becomes margin instead. A
+    // fan longer than the opening (a built descending run) still binds, so
+    // cards keep shrinking to fit it. [openingFanLength] left at 0 imposes no
+    // cap (used by tests that only exercise the current-fan budget).
+    final int fanLen = math.max(math.max(maxPileLength, openingFanLength), 1);
     final BoardLayout layout = !isLandscape
         ? BoardLayout.portrait
         : (shortestSide >= tabletBreakpoint

@@ -161,6 +161,10 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         final bool isLandscape = media.orientation == Orientation.landscape;
         final double shortestSide = media.size.shortestSide;
         final int wasteVisibleCount = _wasteVisibleCount(context);
+        final int openingFanLength = context
+            .read<GameBloc>()
+            .rules
+            .openingMaxTableau;
         final bool reduceMotion = media.disableAnimations;
         final Duration moveDuration = GameMotion.resolve(
           GameMotion.move,
@@ -176,6 +180,9 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
               shortestSide: shortestSide,
               isLandscape: isLandscape,
               wasteVisibleCount: wasteVisibleCount,
+              // Cap card growth to the opening deal: as the game shortens
+              // toward a win the cards never get larger than they were dealt.
+              openingFanLength: openingFanLength,
               // The cascade animates every foundation card peeling off in
               // turn, not just the one normally visible, so it needs a
               // placement for each — see `_placeSingleOrSlot`.
