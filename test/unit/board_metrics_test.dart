@@ -231,6 +231,59 @@ void main() {
       },
     );
 
+    test('a short fan is capped to the opening-deal card size', () {
+      // Phone landscape, near a win: only two cards left in the tallest
+      // tableau column. Without a cap the height budget would balloon the
+      // cards; with an opening reference of 7 they must size exactly as the
+      // opening deal (7-long fan) did, never larger.
+      const double width = 900;
+      const double height = 340;
+      final BoardMetrics opening = BoardMetrics.resolve(
+        width: width,
+        height: height,
+        columns: 7,
+        maxPileLength: 7,
+        shortestSide: 360,
+        isLandscape: true,
+      );
+      final BoardMetrics nearWin = BoardMetrics.resolve(
+        width: width,
+        height: height,
+        columns: 7,
+        maxPileLength: 2,
+        shortestSide: 360,
+        isLandscape: true,
+        openingFanLength: 7,
+      );
+      expect(nearWin.cardSize.width, closeTo(opening.cardSize.width, 0.01));
+      expect(nearWin.cardSize.height, closeTo(opening.cardSize.height, 0.01));
+    });
+
+    test('a fan longer than the opening reference is not capped', () {
+      // A built descending run can exceed the opening 7; the card must keep
+      // shrinking to fit it, exactly as it would with no reference at all.
+      const double width = 900;
+      const double height = 340;
+      final BoardMetrics capped = BoardMetrics.resolve(
+        width: width,
+        height: height,
+        columns: 7,
+        maxPileLength: 15,
+        shortestSide: 360,
+        isLandscape: true,
+        openingFanLength: 7,
+      );
+      final BoardMetrics uncapped = BoardMetrics.resolve(
+        width: width,
+        height: height,
+        columns: 7,
+        maxPileLength: 15,
+        shortestSide: 360,
+        isLandscape: true,
+      );
+      expect(capped.cardSize.width, closeTo(uncapped.cardSize.width, 0.01));
+    });
+
     test('card width never collapses below the readable minimum', () {
       final BoardMetrics m = BoardMetrics.resolve(
         width: 120,

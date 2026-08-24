@@ -195,6 +195,38 @@ void main() {
     expect(find.text('Continue playing'), findsNothing);
   });
 
+  testWidgets('shrinks the hero banner in a short landscape viewport', (
+    WidgetTester tester,
+  ) async {
+    // A small phone in landscape: only ~360dp tall. The full-height portrait
+    // banner would crowd the games list off the bottom, so it must shrink.
+    tester.view.physicalSize = const Size(720, 360);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final RecordsRepository repo = await _repo();
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(
+          size: Size(720, 360),
+          disableAnimations: true,
+        ),
+        child: MaterialApp(home: MainMenuScreen(repository: repo)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The banner is compact (well below its 168dp portrait height), leaving
+    // room for the games list — the Klondike tile stays on screen.
+    expect(tester.getSize(find.byType(MenuBanner)).height, lessThan(110));
+    expect(find.text('Klondike'), findsOneWidget);
+    expect(
+      tester.getBottomLeft(find.text('Klondike')).dy,
+      lessThanOrEqualTo(360),
+    );
+  });
+
   testWidgets('shows the handwritten signature footer', (
     WidgetTester tester,
   ) async {

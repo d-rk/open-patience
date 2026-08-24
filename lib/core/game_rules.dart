@@ -13,6 +13,12 @@ abstract class GameRules {
   /// `'klondike-draw1'`, `'freecell'`.
   String get id;
 
+  /// The number of cards in the tallest tableau column of this variant's
+  /// opening deal (Klondike 7, FreeCell 7). It is the reference the board uses
+  /// to cap card size: as a game shortens toward a win the cards never grow
+  /// larger than they were at the deal — the freed space becomes margin.
+  int get openingMaxTableau;
+
   /// Deals [deck] (already shuffled by the caller with a seeded [Random]) into
   /// the pile layout for this variant. The returned list order is the canonical
   /// pile index order used everywhere else (moves, [autoTargets], serialized

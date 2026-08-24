@@ -32,6 +32,10 @@ class KlondikeRules implements GameRules {
   String get id => 'klondike-draw$drawCount';
 
   @override
+  // Columns deal 1..tableauCount cards, so the last column is the tallest.
+  int get openingMaxTableau => tableauCount;
+
+  @override
   List<Pile> deal(Deck deck) {
     final List<Pile> piles = <Pile>[
       Pile(kind: PileKind.stock),

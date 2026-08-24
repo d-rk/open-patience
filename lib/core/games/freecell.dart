@@ -38,6 +38,11 @@ class FreecellRules implements GameRules {
       freecellCount == 4 ? 'freecell' : 'freecell-cells$freecellCount';
 
   @override
+  // All 52 cards deal round-robin across the columns, so the tallest holds
+  // ceil(52 / tableauCount) cards (7 for the standard 8 columns).
+  int get openingMaxTableau => (52 + tableauCount - 1) ~/ tableauCount;
+
+  @override
   List<Pile> deal(Deck deck) {
     final List<Pile> piles = <Pile>[
       for (int i = 0; i < freecellCount; i++) Pile(kind: PileKind.freecell),

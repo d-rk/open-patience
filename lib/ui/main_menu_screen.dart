@@ -132,14 +132,22 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Landscape phones are short on height; the full-height hero banner and
+    // wordmark would crowd the games list off the bottom, so the header
+    // shrinks to a compact variant there.
+    final bool isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     return Scaffold(
       body: FeltBackground(
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              GestureDetector(onTap: _onLogoTapped, child: const MenuBanner()),
-              const GameWordmark(),
+              GestureDetector(
+                onTap: _onLogoTapped,
+                child: MenuBanner(height: isLandscape ? 84 : 168),
+              ),
+              GameWordmark(compact: isLandscape),
               Expanded(
                 child: MenuWidthLimit(
                   child: ListView(

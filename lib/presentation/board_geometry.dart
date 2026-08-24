@@ -134,6 +134,7 @@ class BoardGeometry {
     required double shortestSide,
     required bool isLandscape,
     required int wasteVisibleCount,
+    int openingFanLength = 0,
     bool revealFoundationStacks = false,
   }) {
     final List<int> upper = <int>[];
@@ -185,6 +186,7 @@ class BoardGeometry {
       topRows: topRows,
       topRowSlots: topRowSlots,
       topTrays: topTrays,
+      openingFanLength: openingFanLength,
     );
 
     final _Builder builder = _Builder(

@@ -199,6 +199,71 @@ void main() {
         expect(p.rect.bottom, lessThanOrEqualTo(360 + 0.5));
       }
     });
+
+    test('openingFanLength caps a near-win board to the opening card size', () {
+      // Every tableau column holds a single card (a near-win deal). Without a
+      // reference the height budget would balloon the cards; passing the
+      // opening fan of 7 must hold them to the opening-deal size.
+      GameState nearWin() => GameState(
+        piles: <Pile>[
+          Pile(kind: PileKind.stock),
+          Pile(kind: PileKind.waste),
+          for (int i = 0; i < 4; i++) Pile(kind: PileKind.foundation),
+          for (int i = 0; i < 7; i++)
+            Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.spades, 13)]),
+        ],
+      );
+      final BoardGeometry capped = BoardGeometry.resolve(
+        game: nearWin(),
+        width: 800,
+        height: 360,
+        shortestSide: 360,
+        isLandscape: true,
+        wasteVisibleCount: 1,
+        openingFanLength: 7,
+      );
+      final BoardGeometry uncapped = BoardGeometry.resolve(
+        game: nearWin(),
+        width: 800,
+        height: 360,
+        shortestSide: 360,
+        isLandscape: true,
+        wasteVisibleCount: 1,
+      );
+      expect(
+        capped.cardSize.width,
+        lessThan(uncapped.cardSize.width),
+        reason: 'the cap must shrink the ballooned card',
+      );
+    });
+
+    test('a capped short deal stays top-aligned in phone landscape', () {
+      // The opening cap frees vertical slack; the board keeps its top-of-screen
+      // origin (freed space sits below the tableau) rather than centring.
+      final BoardGeometry g = BoardGeometry.resolve(
+        game: GameState(
+          piles: <Pile>[
+            Pile(kind: PileKind.stock),
+            Pile(kind: PileKind.waste),
+            for (int i = 0; i < 4; i++) Pile(kind: PileKind.foundation),
+            for (int i = 0; i < 7; i++)
+              Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.spades, 13)]),
+          ],
+        ),
+        width: 800,
+        height: 360,
+        shortestSide: 360,
+        isLandscape: true,
+        wasteVisibleCount: 1,
+        openingFanLength: 7,
+      );
+      double top = double.infinity;
+      for (final TrayPlacement t in g.trays) {
+        top = top < t.rect.top ? top : t.rect.top;
+      }
+      // The top row hugs the top edge: only the outer pad above the tray.
+      expect(top, closeTo(BoardMetrics.pad, 0.5));
+    });
   });
 
   group('waste fan', () {
