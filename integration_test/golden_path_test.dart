@@ -104,7 +104,6 @@ void main() {
     expect(find.text('1 won'), findsOneWidget);
 
     final Stats stats = await repository.statsFor('klondike-draw1');
-    expect(stats.gamesWon, 1);
-    expect(stats.gamesPlayed, 1);
+    expect(stats.totalWins, 1);
   });
 }

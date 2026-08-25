@@ -246,9 +246,9 @@ void main() {
     await _dismissWinCascade(tester);
 
     expect(find.byType(RecordsScreen), findsOneWidget);
-    expect(find.text('Win rate'), findsOneWidget);
+    expect(find.text('You won in 00:00 · 1 moves'), findsOneWidget);
     final Stats stats = await repo.statsFor('klondike-draw1');
-    expect(stats.gamesWon, 1);
+    expect(stats.totalWins, 1);
   });
 
   testWidgets(
