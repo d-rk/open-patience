@@ -5,9 +5,7 @@ Guidance for working in this repository. Read this before writing code.
 ## Project
 
 Cross-platform (mobile/tablet) solitaire game built in **Flutter** with
-**Dart**. Built as a vehicle for clean, testable architecture. See
-`docs/superpowers/specs/2026-08-20-solitaire-flutter-design.md` for the
-full design.
+**Dart**.
 
 ## Non-negotiable rules
 
@@ -200,14 +198,6 @@ accents).
   edit `build_logo.py` (palette or `CARDS` layout), re-run it, then
   regenerate the launcher icons. See the README "App icon" section for the
   exact commands.
-
-## Licensing
-
-Open Patience is licensed under **AGPL-3.0-only** (see `LICENSE`). Keep it
-that way: new source files should be compatible, and any bundled third-party
-assets (fonts, images) must carry a compatible license noted alongside them
-(e.g. the OFL fonts in `assets/fonts/`). The F-Droid metadata records the
-license as `AGPL-3.0-only` in `fdroid/metadata/io.github.d_rk.openpatience.yml`.
 
 ## Project layout
 
