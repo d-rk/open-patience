@@ -1,9 +1,8 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/game_catalog.dart';
+import '../core/seed.dart';
 import '../persistence/records_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
 import 'game_screen.dart';
@@ -45,7 +44,7 @@ class GameOptionsScreen extends StatelessWidget {
   }
 
   void _play(BuildContext context, String variant) {
-    final int seed = Random().nextInt(1 << 32);
+    final int seed = randomSeed();
     _open(
       context,
       GameBloc.newGame(variant: variant, repository: repository, seed: seed),
@@ -53,7 +52,7 @@ class GameOptionsScreen extends StatelessWidget {
   }
 
   void _playAlmostWon(BuildContext context, String variant) {
-    final int seed = Random().nextInt(1 << 32);
+    final int seed = randomSeed();
     _open(
       context,
       GameBloc.newGame(

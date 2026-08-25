@@ -9,6 +9,7 @@ import '../../core/game_state.dart';
 import '../../core/games/klondike.dart';
 import '../../core/move.dart';
 import '../../core/pile.dart';
+import '../../core/seed.dart';
 import '../../core/solver.dart';
 import '../../persistence/records_repository.dart';
 import 'game_bloc_state.dart';
@@ -245,7 +246,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       return;
     }
     await _recordAbandonedLossIfAny();
-    _seed = event.seed ?? _random.nextInt(1 << 32);
+    _seed = event.seed ?? randomSeed(_random);
     _state = GameState.newGame(rules, seed: _seed);
     await repository.clearSave(variant);
     emit(_snapshotOf(_state, rules));
