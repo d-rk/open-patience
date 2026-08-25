@@ -1,99 +1,99 @@
 import 'package:equatable/equatable.dart';
 
-/// Per-variant records. Immutable value object: [recordWin] and [recordLoss]
-/// return updated copies, which keeps the records math easy to test in
-/// isolation from any storage.
-class Stats extends Equatable {
-  const Stats({
-    this.gamesPlayed = 0,
-    this.gamesWon = 0,
-    this.bestTimeSeconds,
-    this.fewestMoves,
-    this.currentStreak = 0,
-    this.longestStreak = 0,
+/// A single completed win: when it happened and how it went. Immutable.
+class WinRecord extends Equatable {
+  const WinRecord({
+    required this.timestamp,
+    required this.timeSeconds,
+    required this.moves,
   });
+
+  factory WinRecord.fromJson(Map<String, dynamic> json) => WinRecord(
+    timestamp: DateTime.parse(json['timestamp'] as String),
+    timeSeconds: json['timeSeconds'] as int,
+    moves: json['moves'] as int,
+  );
+
+  final DateTime timestamp;
+  final int timeSeconds;
+  final int moves;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'timestamp': timestamp.toIso8601String(),
+    'timeSeconds': timeSeconds,
+    'moves': moves,
+  };
+
+  @override
+  List<Object?> get props => <Object?>[timestamp, timeSeconds, moves];
+
+  @override
+  bool get stringify => true;
+}
+
+/// Per-variant records: a running win count plus a capped leaderboard of the
+/// fastest wins. Immutable value object: [recordWin] returns an updated
+/// copy, which keeps the leaderboard math (ranking, capping) easy to test in
+/// isolation from storage.
+class Stats extends Equatable {
+  const Stats({this.totalWins = 0, this.bestWins = const <WinRecord>[]});
 
   factory Stats.empty() => const Stats();
 
-  factory Stats.fromJson(Map<String, dynamic> json) {
-    return Stats(
-      gamesPlayed: json['gamesPlayed'] as int,
-      gamesWon: json['gamesWon'] as int,
-      bestTimeSeconds: json['bestTimeSeconds'] as int?,
-      fewestMoves: json['fewestMoves'] as int?,
-      currentStreak: json['currentStreak'] as int,
-      longestStreak: json['longestStreak'] as int,
-    );
-  }
+  factory Stats.fromJson(Map<String, dynamic> json) => Stats(
+    totalWins: json['totalWins'] as int,
+    bestWins: (json['bestWins'] as List<dynamic>)
+        .map((dynamic e) => WinRecord.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
-  final int gamesPlayed;
-  final int gamesWon;
+  /// How many of the fastest wins are kept on the leaderboard.
+  static const int maxBestWins = 10;
 
-  /// Best (lowest) winning time in seconds, or `null` before the first win.
-  final int? bestTimeSeconds;
+  final int totalWins;
 
-  /// Fewest moves in a win, or `null` before the first win.
-  final int? fewestMoves;
-  final int currentStreak;
-  final int longestStreak;
+  /// The fastest wins so far, sorted ascending by time (ties broken by fewer
+  /// moves), capped at [maxBestWins]. `bestWins.first` is the best win ever;
+  /// the list may be empty or shorter than the cap before enough wins exist.
+  final List<WinRecord> bestWins;
 
-  /// Win rate as a percentage in `0..100`; `0` when no games have been played.
-  double get winPercentage =>
-      gamesPlayed == 0 ? 0 : gamesWon * 100 / gamesPlayed;
-
-  /// A copy updated for a win of [timeSeconds] and [moves]: increments played
-  /// and won, lowers best time / fewest moves when beaten, extends the current
-  /// streak and raises the longest streak when the current one overtakes it.
-  Stats recordWin({required int timeSeconds, required int moves}) {
+  /// A copy reflecting one more win: increments [totalWins] unconditionally,
+  /// and inserts a record for [timestamp]/[timeSeconds]/[moves] into
+  /// [bestWins] if it ranks among the fastest [maxBestWins] — a win that
+  /// doesn't crack the leaderboard still counts toward the total.
+  Stats recordWin({
+    required int timeSeconds,
+    required int moves,
+    required DateTime timestamp,
+  }) {
     if (timeSeconds < 0 || moves < 0) {
       throw ArgumentError('timeSeconds and moves must be non-negative');
     }
-    final int nextStreak = currentStreak + 1;
+    final List<WinRecord> updated =
+        <WinRecord>[
+          ...bestWins,
+          WinRecord(
+            timestamp: timestamp,
+            timeSeconds: timeSeconds,
+            moves: moves,
+          ),
+        ]..sort((WinRecord a, WinRecord b) {
+          final int byTime = a.timeSeconds.compareTo(b.timeSeconds);
+          return byTime != 0 ? byTime : a.moves.compareTo(b.moves);
+        });
     return Stats(
-      gamesPlayed: gamesPlayed + 1,
-      gamesWon: gamesWon + 1,
-      bestTimeSeconds: bestTimeSeconds == null
-          ? timeSeconds
-          : (timeSeconds < bestTimeSeconds! ? timeSeconds : bestTimeSeconds),
-      fewestMoves: fewestMoves == null
-          ? moves
-          : (moves < fewestMoves! ? moves : fewestMoves),
-      currentStreak: nextStreak,
-      longestStreak: nextStreak > longestStreak ? nextStreak : longestStreak,
-    );
-  }
-
-  /// A copy updated for a loss: increments played and resets the current
-  /// streak; best records and longest streak are untouched.
-  Stats recordLoss() {
-    return Stats(
-      gamesPlayed: gamesPlayed + 1,
-      gamesWon: gamesWon,
-      bestTimeSeconds: bestTimeSeconds,
-      fewestMoves: fewestMoves,
-      currentStreak: 0,
-      longestStreak: longestStreak,
+      totalWins: totalWins + 1,
+      bestWins: updated.take(maxBestWins).toList(),
     );
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-    'gamesPlayed': gamesPlayed,
-    'gamesWon': gamesWon,
-    'bestTimeSeconds': bestTimeSeconds,
-    'fewestMoves': fewestMoves,
-    'currentStreak': currentStreak,
-    'longestStreak': longestStreak,
+    'totalWins': totalWins,
+    'bestWins': bestWins.map((WinRecord w) => w.toJson()).toList(),
   };
 
   @override
-  List<Object?> get props => <Object?>[
-    gamesPlayed,
-    gamesWon,
-    bestTimeSeconds,
-    fewestMoves,
-    currentStreak,
-    longestStreak,
-  ];
+  List<Object?> get props => <Object?>[totalWins, bestWins];
 
   @override
   bool get stringify => true;
