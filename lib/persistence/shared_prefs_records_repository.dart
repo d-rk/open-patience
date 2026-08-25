@@ -19,16 +19,17 @@ class SharedPrefsRecordsRepository implements RecordsRepository {
   final SharedPreferences _prefs;
 
   @override
-  Future<void> recordResult({
+  Future<void> recordWin({
     required String variant,
-    required bool won,
     required int timeSeconds,
     required int moves,
   }) async {
     final Stats current = await statsFor(variant);
-    final Stats updated = won
-        ? current.recordWin(timeSeconds: timeSeconds, moves: moves)
-        : current.recordLoss();
+    final Stats updated = current.recordWin(
+      timeSeconds: timeSeconds,
+      moves: moves,
+      timestamp: DateTime.now(),
+    );
     await _prefs.setString(
       '$statsPrefix$variant',
       jsonEncode(updated.toJson()),

@@ -20,11 +20,9 @@ class SavedGame {
 /// alternate backend implements this interface without any change to `core/`
 /// or the widgets.
 abstract class RecordsRepository {
-  /// Records a finished game against [variant]'s stats. [timeSeconds] and
-  /// [moves] are only consulted for a win.
-  Future<void> recordResult({
+  /// Records a win for [variant] with [timeSeconds] and [moves].
+  Future<void> recordWin({
     required String variant,
-    required bool won,
     required int timeSeconds,
     required int moves,
   });
