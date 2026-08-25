@@ -6,6 +6,34 @@ import 'theme/game_fonts.dart';
 import 'theme/game_palette.dart';
 import 'theme/widgets.dart';
 
+const List<String> _monthAbbr = <String>[
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/// A short date for a leaderboard row: `Today` for the current calendar day
+/// (local time), otherwise `MMM d` (e.g. `Aug 20`).
+String _formatWinDate(DateTime timestamp) {
+  final DateTime now = DateTime.now();
+  final bool isToday =
+      timestamp.year == now.year &&
+      timestamp.month == now.month &&
+      timestamp.day == now.day;
+  return isToday
+      ? 'Today'
+      : '${_monthAbbr[timestamp.month - 1]} ${timestamp.day}';
+}
+
 /// Per-variant records / leaderboard. Reads [Stats] from the repository and
 /// renders them read-only. No game logic — just a view of stored results.
 class RecordsScreen extends StatelessWidget {
@@ -13,12 +41,19 @@ class RecordsScreen extends StatelessWidget {
     required this.repository,
     required this.variant,
     required this.title,
+    this.justWonTimeSeconds,
+    this.justWonMoves,
     super.key,
   });
 
   final RecordsRepository repository;
   final String variant;
   final String title;
+
+  /// Set only when this screen was pushed straight from a win, so that win
+  /// can be called out and located on the leaderboard. Both null otherwise.
+  final int? justWonTimeSeconds;
+  final int? justWonMoves;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +84,7 @@ class RecordsScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         final Stats stats = snapshot.data!;
+        final int justWonRank = _justWonRank(stats);
         return ListView(
           padding: const EdgeInsets.all(16),
           children: <Widget>[
@@ -56,72 +92,24 @@ class RecordsScreen extends StatelessWidget {
               maxWidth: 480,
               child: Column(
                 children: <Widget>[
-                  _WinRateHero(stats: stats),
+                  if (justWonTimeSeconds != null &&
+                      justWonMoves != null) ...<Widget>[
+                    _WinBanner(
+                      timeSeconds: justWonTimeSeconds!,
+                      moves: justWonMoves!,
+                      rank: justWonRank,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  _TotalWinsHero(stats: stats),
                   const SizedBox(height: 12),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: _StatTile(
-                          icon: Icons.style,
-                          value: '${stats.gamesPlayed}',
-                          label: 'Played',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _StatTile(
-                          icon: Icons.emoji_events,
-                          value: '${stats.gamesWon}',
-                          label: 'Won',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: _StatTile(
-                          icon: Icons.timer,
-                          value: stats.bestTimeSeconds == null
-                              ? '—'
-                              : formatDuration(stats.bestTimeSeconds!),
-                          label: 'Best time',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _StatTile(
-                          icon: Icons.directions_walk,
-                          value: stats.fewestMoves?.toString() ?? '—',
-                          label: 'Fewest moves',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: _StatTile(
-                          icon: Icons.local_fire_department,
-                          iconColor: stats.currentStreak > 0
-                              ? GamePalette.gold
-                              : GamePalette.gold.withValues(alpha: 0.3),
-                          value: '${stats.currentStreak}',
-                          label: 'Current streak',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _StatTile(
-                          icon: Icons.trending_up,
-                          value: '${stats.longestStreak}',
-                          label: 'Longest streak',
-                        ),
-                      ),
-                    ],
-                  ),
+                  if (stats.bestWins.isEmpty)
+                    const _EmptyLeaderboard()
+                  else
+                    _LeaderboardTable(
+                      stats: stats,
+                      highlightedIndex: justWonRank == 0 ? -1 : justWonRank - 1,
+                    ),
                 ],
               ),
             ),
@@ -130,25 +118,106 @@ class RecordsScreen extends StatelessWidget {
       },
     );
   }
+
+  /// The 1-based rank of the just-won run within [stats.bestWins], or `0` if
+  /// there was no just-won run or it did not place.
+  int _justWonRank(Stats stats) {
+    if (justWonTimeSeconds == null || justWonMoves == null) {
+      return 0;
+    }
+    final int index = stats.bestWins.indexWhere(
+      (WinRecord w) =>
+          w.timeSeconds == justWonTimeSeconds && w.moves == justWonMoves,
+    );
+    return index == -1 ? 0 : index + 1;
+  }
 }
 
-/// Win rate as a gold progress ring — a pure indicator, nothing drawn on
-/// top of it — beside a headline percentage and a won/lost legend. The
-/// ring's fill fraction is the win rate, so it stays meaningful without
-/// needing to also host text: that combination is what kept breaking (see
-/// git history around this file for the abandoned attempts at centering
-/// text inside the ring itself).
-class _WinRateHero extends StatelessWidget {
-  const _WinRateHero({required this.stats});
+/// A celebratory banner named for the just-completed win. Shows a rank chip
+/// only when [rank] places within the leaderboard (`rank > 0`).
+class _WinBanner extends StatelessWidget {
+  const _WinBanner({
+    required this.timeSeconds,
+    required this.moves,
+    required this.rank,
+  });
 
-  static const double _ringSize = 88;
-  static const double _ringStroke = 10;
+  final int timeSeconds;
+  final int moves;
+  final int rank;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+      decoration: BoxDecoration(
+        color: GamePalette.gold.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: GamePalette.gold),
+      ),
+      child: Row(
+        children: <Widget>[
+          const Text('🎉', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  color: GamePalette.cardFace,
+                  fontFamily: GameFonts.body,
+                  fontSize: 13,
+                ),
+                children: <InlineSpan>[
+                  const TextSpan(text: 'You won in '),
+                  TextSpan(
+                    text: formatDuration(timeSeconds),
+                    style: const TextStyle(
+                      color: GamePalette.gold,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  TextSpan(text: ' · $moves moves'),
+                ],
+              ),
+            ),
+          ),
+          if (rank > 0)
+            Container(
+              margin: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: GamePalette.gold,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '#$rank BEST',
+                style: const TextStyle(
+                  color: GamePalette.feltGreenDark,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 10,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Trophy hero: total wins as the headline number, with the fastest win's
+/// time and move count called out beside it. Shows `—` before any win.
+class _TotalWinsHero extends StatelessWidget {
+  const _TotalWinsHero({required this.stats});
 
   final Stats stats;
 
   @override
   Widget build(BuildContext context) {
-    final int lost = stats.gamesPlayed - stats.gamesWon;
+    final WinRecord? best = stats.bestWins.isEmpty
+        ? null
+        : stats.bestWins.first;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -158,16 +227,7 @@ class _WinRateHero extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          SizedBox(
-            width: _ringSize,
-            height: _ringSize,
-            child: CircularProgressIndicator(
-              value: stats.winPercentage / 100,
-              strokeWidth: _ringStroke,
-              backgroundColor: Colors.white.withValues(alpha: 0.12),
-              valueColor: const AlwaysStoppedAnimation<Color>(GamePalette.gold),
-            ),
-          ),
+          const Text('🏆', style: TextStyle(fontSize: 32)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -175,7 +235,8 @@ class _WinRateHero extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Text(
-                  '${stats.winPercentage.round()}%',
+                  '${stats.totalWins}',
+                  key: const Key('totalWins'),
                   style: const TextStyle(
                     color: GamePalette.cardFace,
                     fontWeight: FontWeight.w800,
@@ -183,26 +244,39 @@ class _WinRateHero extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Win rate',
+                  'Total wins',
                   style: TextStyle(
                     color: GamePalette.cardFace.withValues(alpha: 0.75),
                     fontFamily: GameFonts.body,
                     fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 8),
-                _LegendRow(
-                  dotColor: GamePalette.gold,
-                  text: '${stats.gamesWon} won',
-                ),
-                const SizedBox(height: 4),
-                _LegendRow(
-                  dotColor: Colors.white.withValues(alpha: 0.16),
-                  dotBorderColor: GamePalette.cardFace.withValues(alpha: 0.4),
-                  text: '$lost lost',
-                ),
               ],
             ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                best == null ? '—' : formatDuration(best.timeSeconds),
+                key: const Key('bestWinTime'),
+                style: const TextStyle(
+                  color: GamePalette.gold,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              ),
+              Text(
+                best == null ? 'Best win' : '${best.moves} moves · best',
+                key: const Key('bestWinMoves'),
+                style: TextStyle(
+                  color: GamePalette.cardFace.withValues(alpha: 0.7),
+                  fontFamily: GameFonts.body,
+                  fontSize: 11,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -210,89 +284,162 @@ class _WinRateHero extends StatelessWidget {
   }
 }
 
-/// A small colored dot beside a label — one row of the win/lost legend.
-class _LegendRow extends StatelessWidget {
-  const _LegendRow({
-    required this.dotColor,
-    required this.text,
-    this.dotBorderColor,
-  });
-
-  final Color dotColor;
-  final Color? dotBorderColor;
-  final String text;
+/// Placeholder shown before the player has won a single game.
+class _EmptyLeaderboard extends StatelessWidget {
+  const _EmptyLeaderboard();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: dotColor,
-            border: dotBorderColor == null
-                ? null
-                : Border.all(color: dotBorderColor!),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          text,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      decoration: BoxDecoration(
+        color: GamePalette.cardFace.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          'Win a game to start your leaderboard.',
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: GamePalette.cardFace.withValues(alpha: 0.7),
             fontFamily: GameFonts.body,
             fontSize: 13,
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
-/// A single stat as an icon, a large value and a small label.
-class _StatTile extends StatelessWidget {
-  const _StatTile({
-    required this.icon,
-    required this.value,
-    required this.label,
-    this.iconColor = GamePalette.gold,
+/// The fastest-10 table: rank, time, moves and date, one row per
+/// [Stats.bestWins] entry. [highlightedIndex] (0-based, or `-1` for none)
+/// gets a gold highlight and a `NEW` tag on its rank.
+class _LeaderboardTable extends StatelessWidget {
+  const _LeaderboardTable({
+    required this.stats,
+    required this.highlightedIndex,
   });
 
-  final IconData icon;
-  final Color iconColor;
-  final String value;
-  final String label;
+  final Stats stats;
+  final int highlightedIndex;
+
+  static const List<Color> _rankColors = <Color>[
+    GamePalette.gold, // 1st
+    Color(0xFFD6D6D6), // 2nd
+    Color(0xFFCD7F32), // 3rd
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: GamePalette.cardFace.withValues(alpha: 0.08),
+        color: GamePalette.cardFace.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: <Widget>[
-          Icon(icon, color: iconColor, size: 20),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: GamePalette.cardFace,
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
+          for (int i = 0; i < stats.bestWins.length; i++)
+            _LeaderboardRow(
+              rank: i + 1,
+              record: stats.bestWins[i],
+              rankColor: i < _rankColors.length
+                  ? _rankColors[i]
+                  : GamePalette.cardFace,
+              highlighted: i == highlightedIndex,
+              isFirst: i == 0,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaderboardRow extends StatelessWidget {
+  const _LeaderboardRow({
+    required this.rank,
+    required this.record,
+    required this.rankColor,
+    required this.highlighted,
+    required this.isFirst,
+  });
+
+  final int rank;
+  final WinRecord record;
+  final Color rankColor;
+  final bool highlighted;
+  final bool isFirst;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        color: highlighted ? GamePalette.gold.withValues(alpha: 0.18) : null,
+        border: Border(
+          top: isFirst
+              ? BorderSide.none
+              : BorderSide(color: GamePalette.cardFace.withValues(alpha: 0.08)),
+          left: highlighted
+              ? const BorderSide(color: GamePalette.gold, width: 3)
+              : BorderSide.none,
+        ),
+      ),
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: 24,
+            child: Text(
+              '$rank',
+              key: ValueKey<String>('rank-$rank'),
+              style: TextStyle(color: rankColor, fontWeight: FontWeight.w800),
             ),
           ),
-          const SizedBox(height: 2),
+          if (highlighted)
+            Container(
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: GamePalette.gold,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: const Text(
+                'NEW',
+                style: TextStyle(
+                  color: GamePalette.feltGreenDark,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 9,
+                ),
+              ),
+            ),
+          Expanded(
+            child: Text(
+              formatDuration(record.timeSeconds),
+              key: ValueKey<String>('time-$rank'),
+              style: const TextStyle(
+                color: GamePalette.cardFace,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              '${record.moves} moves',
+              key: ValueKey<String>('moves-$rank'),
+              style: TextStyle(
+                color: GamePalette.cardFace.withValues(alpha: 0.7),
+                fontFamily: GameFonts.body,
+                fontSize: 12,
+              ),
+            ),
+          ),
           Text(
-            label,
+            _formatWinDate(record.timestamp),
+            key: ValueKey<String>('date-$rank'),
             style: TextStyle(
-              color: GamePalette.cardFace.withValues(alpha: 0.7),
+              color: GamePalette.cardFace.withValues(alpha: 0.55),
               fontFamily: GameFonts.body,
-              fontSize: 11,
+              fontSize: 12,
             ),
           ),
         ],
