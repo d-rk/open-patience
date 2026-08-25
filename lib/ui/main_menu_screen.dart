@@ -63,16 +63,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     // Remove from the model synchronously (Dismissible has already animated the
     // row out), then clear the persisted slot.
     setState(() => _saves?.remove(saved));
-    // An untouched fresh deal being discarded isn't a loss — only a save with
-    // at least one move on it was actually attempted.
-    if (saved.state.moveCount > 0) {
-      widget.repository.recordResult(
-        variant: saved.variant,
-        won: false,
-        timeSeconds: saved.state.elapsedSeconds,
-        moves: saved.state.moveCount,
-      );
-    }
     widget.repository.clearSave(saved.variant);
   }
 
