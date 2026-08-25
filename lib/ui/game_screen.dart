@@ -150,7 +150,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void _onGameWon(BuildContext context, GameBlocState state) {
     final GameWon won = state as GameWon;
     if (MediaQuery.of(context).disableAnimations) {
-      _navigateToRecords(context, context.read<GameBloc>());
+      _navigateToRecords(context, context.read<GameBloc>(), won);
       return;
     }
     setState(() {
@@ -173,7 +173,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _cascadeDismissible
-            ? () => _navigateToRecords(context, context.read<GameBloc>())
+            ? () => _navigateToRecords(
+                context,
+                context.read<GameBloc>(),
+                _wonState!,
+              )
             : null,
         child: const Center(child: _WinBanner()),
       ),
@@ -184,13 +188,15 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   /// so leaving its records screen should land back on the main menu rather
   /// than reopen the finished board underneath — hence pushAndRemoveUntil
   /// down to the app root instead of a plain push.
-  void _navigateToRecords(BuildContext context, GameBloc bloc) {
+  void _navigateToRecords(BuildContext context, GameBloc bloc, GameWon won) {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
         builder: (BuildContext context) => RecordsScreen(
           repository: bloc.repository,
           variant: bloc.variant,
           title: variantTitle(bloc.variant),
+          justWonTimeSeconds: won.elapsed,
+          justWonMoves: won.moves,
         ),
       ),
       (Route<void> route) => route.isFirst,
