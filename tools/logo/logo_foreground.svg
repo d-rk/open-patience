@@ -16,7 +16,7 @@
     </filter>
   </defs>
   
-  <g transform="translate(120,120) scale(0.82) translate(-120,-120)">
+  <g transform="translate(120,120) scale(0.95) translate(-120,-120)">
     <g transform="translate(96,120) rotate(-13)" filter="url(#sh)">
       <rect x="-42.0" y="-59.0" width="84" height="118" rx="11"
             fill="#FFF8EC" stroke="#F6C65B" stroke-width="3"/>

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/game_registry.dart';
 import 'package:open_patience/core/game_state.dart';
@@ -23,31 +25,34 @@ void main() {
       expect(s, Stats.empty());
     });
 
-    test('recordResult persists and accumulates per variant', () async {
-      await repo.recordResult(
-        variant: 'freecell',
-        won: true,
-        timeSeconds: 90,
-        moves: 60,
-      );
-      await repo.recordResult(
-        variant: 'freecell',
-        won: false,
-        timeSeconds: 0,
-        moves: 0,
-      );
+    test('recordWin persists and accumulates per variant', () async {
+      await repo.recordWin(variant: 'freecell', timeSeconds: 90, moves: 60);
+      await repo.recordWin(variant: 'freecell', timeSeconds: 70, moves: 55);
       final Stats s = await repo.statsFor('freecell');
-      expect(s.gamesPlayed, 2);
-      expect(s.gamesWon, 1);
-      expect(s.bestTimeSeconds, 90);
-      expect(s.currentStreak, 0);
-      expect(s.longestStreak, 1);
+      expect(s.totalWins, 2);
+      expect(s.bestWins.first.timeSeconds, 70);
       // Other variants are unaffected.
       expect(await repo.statsFor('klondike-draw1'), Stats.empty());
     });
 
     test('corrupt stats blob degrades to empty rather than throwing', () async {
       await prefs.setString('stats:freecell', 'not json');
+      expect(await repo.statsFor('freecell'), Stats.empty());
+    });
+
+    test('old pre-leaderboard stats blob degrades to empty rather than '
+        'throwing', () async {
+      await prefs.setString(
+        'stats:freecell',
+        jsonEncode(<String, dynamic>{
+          'gamesPlayed': 5,
+          'gamesWon': 3,
+          'bestTimeSeconds': 120,
+          'fewestMoves': 80,
+          'currentStreak': 1,
+          'longestStreak': 2,
+        }),
+      );
       expect(await repo.statsFor('freecell'), Stats.empty());
     });
   });

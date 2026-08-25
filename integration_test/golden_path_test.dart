@@ -100,11 +100,9 @@ void main() {
 
     // The win navigates to the records screen and the result is persisted.
     expect(find.byType(RecordsScreen), findsOneWidget);
-    expect(find.text('Win rate'), findsOneWidget);
-    expect(find.text('1 won'), findsOneWidget);
+    expect(find.text('You won in 00:00 · 1 moves'), findsOneWidget);
 
     final Stats stats = await repository.statsFor('klondike-draw1');
-    expect(stats.gamesWon, 1);
-    expect(stats.gamesPlayed, 1);
+    expect(stats.totalWins, 1);
   });
 }

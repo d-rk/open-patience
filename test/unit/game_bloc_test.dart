@@ -18,13 +18,12 @@ class _FakeRepo implements RecordsRepository {
   GameState? savedState;
 
   @override
-  Future<void> recordResult({
+  Future<void> recordWin({
     required String variant,
-    required bool won,
     required int timeSeconds,
     required int moves,
   }) async {
-    calls.add('record:$variant:$won:$timeSeconds:$moves');
+    calls.add('record:$variant:$timeSeconds:$moves');
   }
 
   @override
@@ -299,7 +298,7 @@ void main() {
             ),
       ],
       verify: (_) {
-        expect(repo.calls, contains('record:klondike-draw1:true:123:1'));
+        expect(repo.calls, contains('record:klondike-draw1:123:1'));
         expect(repo.calls, contains('clear:klondike-draw1'));
         // A winning move clears the slot; it must never leave a resumable save.
         expect(repo.calls, isNot(contains('save:klondike-draw1:7')));
@@ -490,52 +489,26 @@ void main() {
     });
 
     blocTest<GameBloc, GameBlocState>(
-      'a new deal records a loss for the in-progress game it discards',
+      'a new deal discards an in-progress game without recording anything, '
+      'just clearing the save',
       build: () => _bloc(_FakeRepo(), _klondikeBoard(moveCount: 3)),
       act: (GameBloc bloc) => bloc.add(const NewDealRequested(seed: 7)),
       verify: (GameBloc bloc) {
         final _FakeRepo repo = bloc.repository as _FakeRepo;
-        expect(
-          repo.calls.any(
-            (String c) => c.startsWith('record:klondike-draw1:false'),
-          ),
-          isTrue,
-        );
-      },
-    );
-
-    blocTest<GameBloc, GameBlocState>(
-      'a new deal does not record a loss for an untouched fresh deal',
-      build: () => _bloc(_FakeRepo(), _klondikeBoard()),
-      act: (GameBloc bloc) => bloc.add(const NewDealRequested(seed: 7)),
-      verify: (GameBloc bloc) {
-        final _FakeRepo repo = bloc.repository as _FakeRepo;
         expect(repo.calls.any((String c) => c.startsWith('record:')), isFalse);
+        expect(repo.calls, contains('clear:klondike-draw1'));
       },
     );
 
     blocTest<GameBloc, GameBlocState>(
-      'restarting the deal records a loss for the abandoned attempt',
+      'restarting an in-progress game discards it without recording '
+      'anything, just clearing the save',
       build: () => _bloc(_FakeRepo(), _klondikeBoard(moveCount: 2), seed: 44),
       act: (GameBloc bloc) => bloc.add(const RestartDealRequested()),
       verify: (GameBloc bloc) {
         final _FakeRepo repo = bloc.repository as _FakeRepo;
-        expect(
-          repo.calls.any(
-            (String c) => c.startsWith('record:klondike-draw1:false'),
-          ),
-          isTrue,
-        );
-      },
-    );
-
-    blocTest<GameBloc, GameBlocState>(
-      'restarting an untouched fresh deal does not record a loss',
-      build: () => _bloc(_FakeRepo(), _klondikeBoard(), seed: 44),
-      act: (GameBloc bloc) => bloc.add(const RestartDealRequested()),
-      verify: (GameBloc bloc) {
-        final _FakeRepo repo = bloc.repository as _FakeRepo;
         expect(repo.calls.any((String c) => c.startsWith('record:')), isFalse);
+        expect(repo.calls, contains('clear:klondike-draw1'));
       },
     );
   });
@@ -602,9 +575,7 @@ void main() {
       verify: (GameBloc bloc) {
         final _FakeRepo repo = bloc.repository as _FakeRepo;
         expect(
-          repo.calls.any(
-            (String c) => c.startsWith('record:klondike-draw1:true'),
-          ),
+          repo.calls.any((String c) => c.startsWith('record:klondike-draw1:')),
           isTrue,
         );
         expect(repo.calls.contains('clear:klondike-draw1'), isTrue);
@@ -657,9 +628,7 @@ void main() {
         expect(bloc.state, isA<GameWon>());
         final _FakeRepo repo = bloc.repository as _FakeRepo;
         expect(
-          repo.calls.any(
-            (String c) => c.startsWith('record:klondike-draw1:true'),
-          ),
+          repo.calls.any((String c) => c.startsWith('record:klondike-draw1:')),
           isTrue,
         );
         expect(repo.calls.contains('clear:klondike-draw1'), isTrue);

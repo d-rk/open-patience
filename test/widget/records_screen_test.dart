@@ -18,7 +18,12 @@ Future<SharedPrefsRecordsRepository> _repoWith(Stats stats) async {
   return SharedPrefsRecordsRepository(prefs);
 }
 
-Future<void> _pump(WidgetTester tester, Stats stats) async {
+Future<void> _pump(
+  WidgetTester tester,
+  Stats stats, {
+  int? justWonTimeSeconds,
+  int? justWonMoves,
+}) async {
   final SharedPrefsRecordsRepository repo = await _repoWith(stats);
   await tester.pumpWidget(
     MaterialApp(
@@ -26,37 +31,42 @@ Future<void> _pump(WidgetTester tester, Stats stats) async {
         repository: repo,
         variant: 'klondike-draw1',
         title: 'Klondike',
+        justWonTimeSeconds: justWonTimeSeconds,
+        justWonMoves: justWonMoves,
       ),
     ),
   );
   await tester.pumpAndSettle();
 }
 
+String _textAt(WidgetTester tester, String key) =>
+    tester.widget<Text>(find.byKey(ValueKey<String>(key))).data!;
+
 void main() {
-  testWidgets('shows the win rate hero with won/played counts', (
+  testWidgets('shows total wins and the best win badge', (
     WidgetTester tester,
   ) async {
-    await _pump(
-      tester,
-      const Stats(
-        gamesPlayed: 42,
-        gamesWon: 17,
-        bestTimeSeconds: 222,
-        fewestMoves: 98,
-        currentStreak: 3,
-        longestStreak: 6,
-      ),
-    );
+    final DateTime day1 = DateTime(2026, 8, 20);
+    Stats stats = const Stats();
+    stats = stats.recordWin(timeSeconds: 200, moves: 90, timestamp: day1);
+    stats = stats.recordWin(timeSeconds: 102, moves: 63, timestamp: day1);
+    await _pump(tester, stats);
 
-    expect(find.text('40%'), findsOneWidget);
-    expect(find.text('Win rate'), findsOneWidget);
-    expect(find.text('17 won'), findsOneWidget);
-    expect(find.text('25 lost'), findsOneWidget);
+    expect(_textAt(tester, 'totalWins'), '2');
+    expect(_textAt(tester, 'bestWinTime'), '01:42');
+    expect(_textAt(tester, 'bestWinMoves'), '63 moves · best');
   });
 
   testWidgets('header title is just "Records", with the variant as a subtitle '
       '(so it fits on a narrow phone)', (WidgetTester tester) async {
-    await _pump(tester, const Stats(gamesPlayed: 1, gamesWon: 1));
+    await _pump(
+      tester,
+      const Stats().recordWin(
+        timeSeconds: 90,
+        moves: 40,
+        timestamp: DateTime(2026, 8, 1),
+      ),
+    );
 
     expect(find.text('Records'), findsOneWidget);
     expect(find.text('Klondike'), findsOneWidget);
@@ -64,73 +74,81 @@ void main() {
   });
 
   testWidgets(
-    'the ring is a pure indicator: nothing is drawn on top of it, so its '
-    'fill fraction is never fought over with text placement',
+    'lists every best win in fastest-first order with time, moves and date',
     (WidgetTester tester) async {
-      await _pump(tester, const Stats(gamesPlayed: 4, gamesWon: 4));
+      final DateTime day1 = DateTime(2026, 8, 20);
+      final DateTime day2 = DateTime(2026, 8, 12);
+      Stats stats = const Stats();
+      stats = stats.recordWin(timeSeconds: 115, moves: 71, timestamp: day2);
+      stats = stats.recordWin(timeSeconds: 102, moves: 63, timestamp: day1);
+      await _pump(tester, stats);
 
-      final Finder ring = find
-          .ancestor(
-            of: find.byType(CircularProgressIndicator),
-            matching: find.byType(SizedBox),
-          )
-          .first;
-      expect(
-        find.descendant(of: ring, matching: find.byType(Text)),
-        findsNothing,
-        reason: 'no text should be layered on the ring itself',
-      );
-      // The percentage still exists, just as a free-standing headline.
-      expect(find.text('100%'), findsOneWidget);
+      expect(_textAt(tester, 'rank-1'), '1');
+      expect(_textAt(tester, 'time-1'), '01:42');
+      expect(_textAt(tester, 'moves-1'), '63 moves');
+      expect(_textAt(tester, 'date-1'), 'Aug 20');
+
+      expect(_textAt(tester, 'rank-2'), '2');
+      expect(_textAt(tester, 'time-2'), '01:55');
+      expect(_textAt(tester, 'moves-2'), '71 moves');
+      expect(_textAt(tester, 'date-2'), 'Aug 12');
     },
   );
 
-  testWidgets('shows every stat value in the tile grid', (
-    WidgetTester tester,
-  ) async {
-    await _pump(
-      tester,
-      const Stats(
-        gamesPlayed: 42,
-        gamesWon: 17,
-        bestTimeSeconds: 222,
-        fewestMoves: 98,
-        currentStreak: 3,
-        longestStreak: 6,
-      ),
-    );
-
-    expect(find.text('42'), findsOneWidget);
-    expect(find.text('Played'), findsOneWidget);
-    expect(find.text('17'), findsOneWidget);
-    expect(find.text('Won'), findsOneWidget);
-    expect(find.text('03:42'), findsOneWidget);
-    expect(find.text('Best time'), findsOneWidget);
-    expect(find.text('98'), findsOneWidget);
-    expect(find.text('Fewest moves'), findsOneWidget);
-    expect(find.text('3'), findsOneWidget);
-    expect(find.text('Current streak'), findsOneWidget);
-    expect(find.text('6'), findsOneWidget);
-    expect(find.text('Longest streak'), findsOneWidget);
-  });
-
-  testWidgets('shows placeholders before any game has been won', (
+  testWidgets('shows a placeholder before any game has been won', (
     WidgetTester tester,
   ) async {
     await _pump(tester, Stats.empty());
 
-    expect(find.text('0%'), findsOneWidget);
-    expect(find.text('0 won'), findsOneWidget);
-    expect(find.text('0 lost'), findsOneWidget);
-    expect(find.text('—'), findsNWidgets(2));
+    expect(_textAt(tester, 'totalWins'), '0');
+    expect(_textAt(tester, 'bestWinTime'), '—');
+    expect(find.text('Win a game to start your leaderboard.'), findsOneWidget);
   });
+
+  testWidgets(
+    'a just-won game that places on the leaderboard shows the banner with '
+    'a rank chip and tags its row NEW',
+    (WidgetTester tester) async {
+      final DateTime today = DateTime.now();
+      Stats stats = const Stats();
+      stats = stats.recordWin(timeSeconds: 102, moves: 63, timestamp: today);
+      stats = stats.recordWin(timeSeconds: 115, moves: 71, timestamp: today);
+      await _pump(tester, stats, justWonTimeSeconds: 115, justWonMoves: 71);
+
+      expect(find.text('You won in 01:55 · 71 moves'), findsOneWidget);
+      expect(find.text('#2 BEST'), findsOneWidget);
+      expect(find.text('NEW'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a just-won game outside the top 10 shows the banner without a rank '
+    'chip and highlights nothing',
+    (WidgetTester tester) async {
+      final DateTime today = DateTime.now();
+      final Stats stats = const Stats().recordWin(
+        timeSeconds: 102,
+        moves: 63,
+        timestamp: today,
+      );
+      await _pump(tester, stats, justWonTimeSeconds: 400, justWonMoves: 140);
+
+      expect(find.text('You won in 06:40 · 140 moves'), findsOneWidget);
+      expect(find.textContaining('BEST'), findsNothing);
+      expect(find.text('NEW'), findsNothing);
+    },
+  );
 
   testWidgets('content width is capped so it does not stretch on tablet', (
     WidgetTester tester,
   ) async {
     await _pump(
       tester,
-      const Stats(gamesPlayed: 1, gamesWon: 1, currentStreak: 1),
+      const Stats().recordWin(
+        timeSeconds: 90,
+        moves: 40,
+        timestamp: DateTime(2026, 8, 1),
+      ),
     );
 
     expect(find.byType(MenuWidthLimit), findsOneWidget);
