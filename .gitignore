@@ -33,3 +33,7 @@ docs/
 
 # Blender backup files
 *.blend1
+
+# Python bytecode cache (tools/)
+__pycache__/
+*.pyc
