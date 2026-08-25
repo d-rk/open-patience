@@ -88,6 +88,24 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
 
   (The script builds `build/web` itself if it is missing.)
 
+- `build_feature_graphic.py` — the single source of truth for the F-Droid
+  listing **feature graphic** (`metadata/en-US/images/featureGraphic.png`,
+  1024×500). Composes it as SVG — the Emerald Felt gradient, the shared
+  `assets/images/menu_banner.png` art, and the `OPEN PATIENCE` wordmark + gold
+  suit-pip rule (mirroring the main menu's lockup) — and rasterises via
+  **Inkscape**, the same pattern as `build_logo.py`. Writes an inspectable
+  `feature_graphic.svg` next to itself (banner referenced by relative path, so
+  it stays small; the rasterised copy inlines the banner as base64 to be
+  CWD-independent). Needs Inkscape + Noto Sans Symbols (suit glyphs); the
+  bundled `assets/fonts/LilitaOne-Regular.ttf` is exposed to Inkscape via a
+  throwaway fontconfig file, so no system font install is required.
+
+  ```bash
+  python3 tools/fdroid/build_feature_graphic.py
+  ```
+
+  Edit the palette / layout in the script — never the PNG.
+
 - `write-pr-changelog.sh` — writes an F-Droid per-version changelog
   (`<changelogs_dir>/<versionCode>.txt`) from a PR title + first body paragraph.
 - `prune-testing-apks.sh` — keeps only the newest N testing APKs in a repo dir

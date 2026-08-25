@@ -1,0 +1,42 @@
+<svg viewBox="0 0 1024 500" width="1024" height="500"
+     xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="8%" r="110%">
+      <stop offset="0%" stop-color="#2E8B57"/>
+      <stop offset="55%" stop-color="#1C6B3C"/>
+      <stop offset="100%" stop-color="#14532D"/>
+    </radialGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="4" result="off"/>
+      <feFlood flood-color="#000000" flood-opacity="0.45"/>
+      <feComposite in2="off" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="500" fill="url(#felt)"/>
+
+  <image x="244.0" y="48" width="536" height="268"
+         filter="url(#soft)" preserveAspectRatio="xMidYMid meet"
+         xlink:href="../../assets/images/menu_banner.png"/>
+
+  <text x="512.0" y="392" text-anchor="middle" filter="url(#soft)"
+        font-family="Lilita One" font-size="66"
+        letter-spacing="5">
+    <tspan fill="#FFF8EC">OPEN</tspan><tspan fill="#F6C65B" dx="26">PATIENCE</tspan>
+  </text>
+
+  <g>
+    <rect x="248.0" y="442" width="168"
+          height="3" rx="1.5" fill="#F6C65B" fill-opacity="0.7"/>
+    <rect x="608.0" y="442" width="168"
+          height="3" rx="1.5" fill="#F6C65B" fill-opacity="0.7"/>
+    <text x="512.0" y="444" text-anchor="middle" dominant-baseline="middle"
+          font-family="Noto Sans Symbols" font-size="30" letter-spacing="10"
+          fill="#F6C65B">♠♥♦♣</text>
+  </g>
+</svg>
