@@ -102,12 +102,13 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
   (`title.txt`, `short_description.txt`, `full_description.txt`,
   `images/icon.png`, `images/phoneScreenshots/`, `images/tenInchScreenshots/`).
   `build_logo.py` and `capture_screenshots.py` write the icon + screenshots
-  there. Don't move it back under `fdroid/` — the *self-hosted* repo's
-  `.github/workflows/release.yml` maps `metadata/` into the collection path
+  there. The *self-hosted* repo's `.github/workflows/release.yml` maps the
+  `metadata/<locale>/` dirs into the collection path
   `fdroid-repo/metadata/<packageId>/<locale>/` before running `fdroid update`,
   so both the main repo and your own repo consume the same source of truth.
-  `fdroid/metadata/<packageId>.yml` stays put — that's the app-info recipe
-  (Categories, License, links), not store text/graphics.
+  Alongside them sits `metadata/<packageId>.yml` — the app-info recipe
+  (Categories, License, links), not store text/graphics; the workflow copies it
+  to `fdroid-repo/metadata/<packageId>.yml`.
 - Screenshot buckets must use F-Droid's recognized names: `phoneScreenshots`,
   `sevenInchScreenshots`, `tenInchScreenshots`, `tvScreenshots`,
   `wearScreenshots` (hence the landscape set is `tenInchScreenshots`, not

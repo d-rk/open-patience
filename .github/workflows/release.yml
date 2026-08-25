@@ -98,12 +98,15 @@ jobs:
           pkg=io.github.d_rk.openpatience
           mkdir -p "fdroid-repo/metadata/$pkg"
           # App-info recipe (Categories, License, links).
-          cp "fdroid/metadata/$pkg.yml" fdroid-repo/metadata/
+          cp "metadata/$pkg.yml" fdroid-repo/metadata/
           # Localized store listing (title, descriptions, icon, screenshots)
           # lives at the repo root in the F-Droid-standard metadata/<locale>/
-          # layout; map it into the self-hosted collection's
+          # layout; map each locale dir into the self-hosted collection's
           # metadata/<packageId>/<locale>/ tree that `fdroid update` reads.
-          cp -r metadata/. "fdroid-repo/metadata/$pkg/"
+          # (Glob the <locale>/ dirs only, so the recipe .yml stays at the top.)
+          for locale in metadata/*/; do
+            cp -r "$locale" "fdroid-repo/metadata/$pkg/"
+          done
 
       - name: Regenerate the F-Droid repo index
         working-directory: fdroid-repo
