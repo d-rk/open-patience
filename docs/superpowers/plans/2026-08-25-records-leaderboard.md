@@ -1531,6 +1531,83 @@ git commit -m "feat(records): show the just-won banner when reaching records fro
 
 ---
 
+## Task 7: Update the golden-path integration test for the new leaderboard API
+
+**Added post-hoc:** discovered during Task 5's execution that
+`integration_test/golden_path_test.dart` was missed by this plan's original
+file survey — it references the old `Stats` API (`gamesWon`, `gamesPlayed`)
+and old UI text (`'Win rate'`) directly, same as `test/widget/game_widget_test.dart`
+in Task 6. It is not run by `flutter test` / CI on every push (per
+CLAUDE.md, `integration_test` runs in a separate, less-frequent lane), so it
+does not block the CI gate, but it is real broken code left in the repo and
+gets the same fix `test/widget/game_widget_test.dart` gets in Task 6.
+
+**Files:**
+- Modify: `integration_test/golden_path_test.dart:101-108`
+
+**Interfaces:**
+- Consumes: `RecordsScreen(justWonTimeSeconds, justWonMoves)` from Task 5;
+  `Stats.totalWins` from Task 1. No new interfaces produced.
+
+- [ ] **Step 1: Update the assertions**
+
+The scenario deals a Klondike board one move from a win, plays that move
+(1 move, 0 elapsed seconds — no ticking in this test), and checks the
+result on the records screen it's navigated to. Replace:
+
+```dart
+    // The win navigates to the records screen and the result is persisted.
+    expect(find.byType(RecordsScreen), findsOneWidget);
+    expect(find.text('Win rate'), findsOneWidget);
+    expect(find.text('1 won'), findsOneWidget);
+
+    final Stats stats = await repository.statsFor('klondike-draw1');
+    expect(stats.gamesWon, 1);
+    expect(stats.gamesPlayed, 1);
+  });
+```
+
+with:
+
+```dart
+    // The win navigates to the records screen and the result is persisted.
+    expect(find.byType(RecordsScreen), findsOneWidget);
+    expect(find.text('You won in 00:00 · 1 moves'), findsOneWidget);
+
+    final Stats stats = await repository.statsFor('klondike-draw1');
+    expect(stats.totalWins, 1);
+  });
+```
+
+(Line 91's `expect(find.text('0 moves'), findsOneWidget);` — the HUD move
+counter shown before the winning move is played — is untouched; it has
+nothing to do with `Stats`.)
+
+- [ ] **Step 2: Run the test to verify it passes**
+
+This suite requires a device/emulator or the desktop harness (per
+CLAUDE.md, `flutter test integration_test`); if no such target is
+available in the execution environment, verify by careful reading instead
+(the assertion mirrors Task 6's already-verified `game_widget_test.dart`
+pattern for the identical scenario — same 0-elapsed/1-move win, same
+banner text, same first-ever-win rank-1 case) and say so explicitly in the
+report rather than claiming an unrun test passed.
+
+If a target is available:
+
+Run: `flutter test integration_test`
+Expected: PASS.
+
+- [ ] **Step 3: Format and commit**
+
+```bash
+dart format integration_test/golden_path_test.dart
+git add integration_test/golden_path_test.dart
+git commit -m "test(records): update the golden-path integration test for the win leaderboard"
+```
+
+---
+
 ## Final verification (after Task 6)
 
 - [ ] Run the full CI-equivalent sequence locally:
