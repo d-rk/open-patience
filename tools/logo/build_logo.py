@@ -149,7 +149,7 @@ def render_png(svg_text, out_path, size):
 
 def main():
     icon_svg = build_svg(felt=True)
-    fg_svg = build_svg(felt=False, scale=0.82)
+    fg_svg = build_svg(felt=False, scale=0.95)
 
     # Inspectable SVG sources next to this script.
     with open(os.path.join(HERE, "logo.svg"), "w") as f:
