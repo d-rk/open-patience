@@ -93,10 +93,17 @@ jobs:
           cp build/app/outputs/flutter-apk/app-production-release.apk \
             "fdroid-repo/repo/open-patience-${GITHUB_RUN_NUMBER}.apk"
 
-      - name: Stage F-Droid app metadata (icon, summary, description)
+      - name: Stage F-Droid app metadata (recipe + localized text/graphics)
         run: |
-          mkdir -p fdroid-repo/metadata
-          cp -r fdroid/metadata/. fdroid-repo/metadata/
+          pkg=io.github.d_rk.openpatience
+          mkdir -p "fdroid-repo/metadata/$pkg"
+          # App-info recipe (Categories, License, links).
+          cp "fdroid/metadata/$pkg.yml" fdroid-repo/metadata/
+          # Localized store listing (title, descriptions, icon, screenshots)
+          # lives at the repo root in the F-Droid-standard metadata/<locale>/
+          # layout; map it into the self-hosted collection's
+          # metadata/<packageId>/<locale>/ tree that `fdroid update` reads.
+          cp -r metadata/. "fdroid-repo/metadata/$pkg/"
 
       - name: Regenerate the F-Droid repo index
         working-directory: fdroid-repo

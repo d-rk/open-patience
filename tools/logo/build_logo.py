@@ -18,8 +18,13 @@ tooling consumes:
   * assets/icon/icon_foreground.png -- cards only on transparency (1024px),
                                        padded into the Android adaptive-icon
                                        safe zone.
-  * fdroid/metadata/.../icon.png    -- 512px opaque tile for the F-Droid
-                                       listing (same art).
+  * metadata/en-US/images/icon.png -- 512px opaque tile for the F-Droid
+                                        listing (same art).
+  * web/icons/Icon-192.png          -- 192px opaque tile for the PWA
+  * web/icons/Icon-512.png          -- 512px opaque tile for the PWA
+  * web/icons/Icon-maskable-192.png -- 192px maskable PWA icon (cards
+                                        scaled to 80 % safe zone on felt).
+  * web/icons/Icon-maskable-512.png -- 512px maskable PWA icon (same).
 
 Run it (no Blender needed anymore -- pure SVG)::
 
@@ -43,8 +48,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, os.pardir, os.pardir))
 ICON_DIR = os.path.join(REPO, "assets", "icon")
 FDROID_ICON = os.path.join(
-    REPO, "fdroid", "metadata", "io.github.d_rk.openpatience",
-    "en-US", "images", "icon.png")
+    REPO, "metadata", "en-US", "images", "icon.png")
+WEB_ICON_DIR = os.path.join(REPO, "web", "icons")
 
 # --- Emerald Felt palette (mirrors lib/ui/theme/game_palette.dart) ---
 CREAM = "#FFF8EC"
@@ -150,16 +155,24 @@ def render_png(svg_text, out_path, size):
 def main():
     icon_svg = build_svg(felt=True)
     fg_svg = build_svg(felt=False, scale=0.95)
+    maskable_svg = build_svg(felt=True, scale=0.8)
 
     # Inspectable SVG sources next to this script.
     with open(os.path.join(HERE, "logo.svg"), "w") as f:
         f.write(icon_svg)
     with open(os.path.join(HERE, "logo_foreground.svg"), "w") as f:
         f.write(fg_svg)
+    with open(os.path.join(HERE, "logo_maskable.svg"), "w") as f:
+        f.write(maskable_svg)
 
     render_png(icon_svg, os.path.join(ICON_DIR, "icon.png"), 1024)
     render_png(fg_svg, os.path.join(ICON_DIR, "icon_foreground.png"), 1024)
     render_png(icon_svg, FDROID_ICON, 512)
+
+    render_png(icon_svg, os.path.join(WEB_ICON_DIR, "Icon-192.png"), 192)
+    render_png(icon_svg, os.path.join(WEB_ICON_DIR, "Icon-512.png"), 512)
+    render_png(maskable_svg, os.path.join(WEB_ICON_DIR, "Icon-maskable-192.png"), 192)
+    render_png(maskable_svg, os.path.join(WEB_ICON_DIR, "Icon-maskable-512.png"), 512)
 
 
 if __name__ == "__main__":
