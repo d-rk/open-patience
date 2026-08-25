@@ -106,12 +106,35 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
 
   Edit the palette / layout in the script — never the PNG.
 
+- `release.sh` — cut a release interactively. Preflight (clean tree, on `main`,
+  not behind `origin`) → pick the new versionName (defaults to a patch bump;
+  the versionCode auto-increments) → require both `en-US` + `de-DE` changelogs
+  for the new code (opens `$EDITOR` for any missing) → verify every generated
+  asset is up to date (`--skip-verify` to bypass) → rewrite the single
+  `pubspec.yaml` `version:` line → commit `chore(release): vX.Y.Z (code N)`,
+  annotated-tag `vX.Y.Z`, and (on confirmation) `git push --follow-tags`.
+  pubspec is the *only* committed version source (`android/local.properties` is
+  gitignored and regenerated from it). The verify step runs all four generators
+  (`build_art.py`, `build_logo.py`, `build_feature_graphic.py`,
+  `capture_screenshots.py` ×2) and aborts if any tracked output changed — so it
+  needs Blender, Inkscape, Chrome and Flutter present; `--skip-verify` is the
+  escape hatch when the toolchain is absent or a render isn't byte-stable.
+
+  ```bash
+  tools/fdroid/release.sh                # full release, verifying assets
+  tools/fdroid/release.sh --skip-verify  # skip asset regeneration/diff-check
+  tools/fdroid/release.sh --verify-only  # ONLY audit assets; no bump/commit/tag
+  ```
+
 - `write-pr-changelog.sh` — writes an F-Droid per-version changelog
   (`<changelogs_dir>/<versionCode>.txt`) from a PR title + first body paragraph.
 - `prune-testing-apks.sh` — keeps only the newest N testing APKs in a repo dir
   and drops orphaned changelogs. Both are wired into the CI/release workflow.
-- `test/*.test.sh` — plain-bash unit tests for the two shell scripts above. Run
-  them directly: `bash tools/fdroid/test/prune-testing-apks.test.sh`.
+- `test/*.test.sh` — plain-bash tests for the shell scripts above (including
+  `release.test.sh` for the pure version/changelog helpers, `release-flow.test.sh`
+  for the end-to-end flow, and `release-verify.test.sh` for `--verify-only`, all
+  in throwaway repos). Run them directly:
+  `bash tools/fdroid/test/prune-testing-apks.test.sh`.
 
 ## Notes
 

@@ -111,6 +111,29 @@ One-time setup, once per clone:
 git config core.hooksPath .githooks   # rejects commits with an AI co-author trailer
 ```
 
+## Releasing
+
+Cutting a release is scripted — run it from a clean `main`:
+
+```bash
+tools/fdroid/release.sh
+```
+
+It walks you through it: pick the new version name (the versionCode
+auto-increments), write the `en-US` + `de-DE` "What's New" changelogs for the
+release, and — after verifying every generated asset is still reproducible
+from its source script — it bumps `pubspec.yaml`, commits, tags `vX.Y.Z`, and
+(on confirmation) pushes. Pushing `main` is what triggers the self-hosted
+F-Droid publish; the tag is what a future official-F-Droid inclusion tracks.
+
+```bash
+tools/fdroid/release.sh --skip-verify  # skip the asset regeneration/diff-check
+tools/fdroid/release.sh --verify-only  # just audit the generated assets, nothing else
+```
+
+`--verify-only` regenerates the icon, feature graphic, art and screenshots and
+fails if any committed output is stale — handy on its own, no release involved.
+
 ## App icon
 
 The launcher icon is three overlapping playing cards — a Queen of clubs and
