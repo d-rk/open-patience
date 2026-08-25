@@ -325,8 +325,8 @@ class _LeaderboardTable extends StatelessWidget {
 
   static const List<Color> _rankColors = <Color>[
     GamePalette.gold, // 1st
-    Color(0xFFD6D6D6), // 2nd
-    Color(0xFFCD7F32), // 3rd
+    GamePalette.silver, // 2nd
+    GamePalette.bronze, // 3rd
   ];
 
   @override

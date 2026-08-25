@@ -21,6 +21,11 @@ class GamePalette {
   static const Color cardRed = Color(0xFFC0392B);
   static const Color cardInk = Color(0xFF1C2833);
 
+  // Leaderboard rank tinting: silver and bronze accents for 2nd/3rd place
+  // (gold is reused for 1st).
+  static const Color silver = Color(0xFFD6D6D6);
+  static const Color bronze = Color(0xFFCD7F32);
+
   // Empty pile slot outline (gold at ~50%).
   static const Color pileSlotOutline = Color(0x80F6C65B);
 
