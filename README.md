@@ -105,6 +105,12 @@ flutter run --flavor production   # run the app locally
 Full contributor guidance — architecture, TDD workflow, style — is in
 `CLAUDE.md`.
 
+One-time setup, once per clone:
+
+```bash
+git config core.hooksPath .githooks   # rejects commits with an AI co-author trailer
+```
+
 ## App icon
 
 The launcher icon is three overlapping playing cards — a Queen of clubs and

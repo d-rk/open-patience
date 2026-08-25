@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Rejects commits whose message credits an AI agent as (co-)author.
+#
+# Why: AI coding assistants (Claude Code, GitHub Copilot, Codex, etc.) default
+# to appending trailers like "Co-Authored-By: Claude <noreply@anthropic.com>"
+# or "Generated with Claude Code". Authorship of this repo's history should
+# stay human. This hook is the technical backstop for that rule, since it is
+# easy for an agent to ignore a plain instruction.
+#
+# Installed via: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+commit_msg_file="$1"
+
+pattern='(Co-Authored-By:.*(claude|anthropic|copilot|codex|chatgpt|gpt-[0-9]|openai|gemini|cursor)|Generated (with|by) (Claude|Copilot|Codex|ChatGPT|Cursor|Gemini))'
+
+if grep -Eiq "$pattern" "$commit_msg_file"; then
+  echo "error: commit message credits an AI agent as author/co-author." >&2
+  echo "This repo requires human-only authorship in commit messages. Remove the AI attribution trailer and commit again." >&2
+  exit 1
+fi

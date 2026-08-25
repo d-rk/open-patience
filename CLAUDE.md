@@ -26,6 +26,11 @@ Cross-platform (mobile/tablet) solitaire game built in **Flutter** with
    output, edit the script (or its source `.blend`/SVG) and re-run it; never
    touch the generated PNG directly. See **`tools/CLAUDE.md`** for what each
    script owns and how to run it.
+6. **Commit authorship stays human.** Never add a `Co-Authored-By` trailer
+   or "Generated with ..." line crediting an AI agent/tool. This repo
+   enforces it with a `commit-msg` hook (`git config core.hooksPath
+   .githooks`, one-time per clone) that rejects such commits — don't try to
+   work around it.
 
 ## Architecture
 
