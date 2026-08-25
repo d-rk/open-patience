@@ -20,6 +20,12 @@ Cross-platform (mobile/tablet) solitaire game built in **Flutter** with
    is one new file in `lib/core/games/` — never a change to a widget.
 4. **Follow the Dart/Flutter style guide** (below). Use explicit static
    types on all public APIs.
+5. **Generated assets are never hand-edited.** Icons, splash/banner art and
+   F-Droid store screenshots are produced by the scripts under `tools/` — each
+   script is the single source of truth for the files it emits. To change an
+   output, edit the script (or its source `.blend`/SVG) and re-run it; never
+   touch the generated PNG directly. See **`tools/CLAUDE.md`** for what each
+   script owns and how to run it.
 
 ## Architecture
 
@@ -192,7 +198,7 @@ accents).
   overlapping cards in the Emerald Felt palette) and rasterises it (via
   Inkscape) into `assets/icon/icon.png` (opaque full-bleed tile) +
   `assets/icon/icon_foreground.png` (adaptive foreground), plus the 512px
-  F-Droid listing icon under `fdroid/metadata/`. It also writes inspectable
+  F-Droid listing icon under `metadata/en-US/images/`. It also writes inspectable
   `tools/logo/logo.svg` + `logo_foreground.svg`. Platform launcher icons come
   from `flutter_launcher_icons`. **Never** replace an icon PNG by hand —
   edit `build_logo.py` (palette or `CARDS` layout), re-run it, then
@@ -216,9 +222,18 @@ test/
   widget/          # happy-path presentation tests
 integration_test/
   golden_path_test.dart
+tools/             # developer scripts (regenerate committed assets, F-Droid
+                   # plumbing) — see tools/CLAUDE.md
+  art/  logo/  fdroid/
 .github/workflows/ci.yml
 pubspec.yaml
 ```
+
+Build/authoring scripts under `tools/` (icon, splash/banner art, F-Droid
+screenshots and release plumbing) are documented in **`tools/CLAUDE.md`** —
+read it before touching or running anything in that folder. Their outputs are
+committed and each script is the single source of truth for the files it emits;
+never hand-edit a generated asset.
 
 ## Pre-commit checklist
 
