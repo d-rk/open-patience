@@ -2,64 +2,132 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/persistence/stats.dart';
 
 void main() {
+  group('WinRecord', () {
+    test('json round-trips to an equal record', () {
+      final WinRecord w = WinRecord(
+        timestamp: DateTime(2026, 8, 20, 14, 32),
+        timeSeconds: 123,
+        moves: 87,
+      );
+      expect(WinRecord.fromJson(w.toJson()), equals(w));
+    });
+  });
+
   group('Stats math', () {
-    test('empty stats have zeroed counters and no records', () {
+    test('empty stats have zero wins and no leaderboard entries', () {
       const Stats s = Stats();
-      expect(s.gamesPlayed, 0);
-      expect(s.gamesWon, 0);
-      expect(s.winPercentage, 0);
-      expect(s.bestTimeSeconds, isNull);
-      expect(s.fewestMoves, isNull);
+      expect(s.totalWins, 0);
+      expect(s.bestWins, isEmpty);
     });
 
-    test('win percentage is computed from played/won', () {
+    test('recordWin always increments totalWins, even off the leaderboard', () {
       Stats s = const Stats();
-      s = s.recordWin(timeSeconds: 100, moves: 50); // 1/1
-      s = s.recordLoss(); // 1/2
-      s = s.recordLoss(); // 1/3
-      s = s.recordWin(timeSeconds: 90, moves: 40); // 2/4
-      expect(s.gamesPlayed, 4);
-      expect(s.gamesWon, 2);
-      expect(s.winPercentage, 50.0);
+      s = s.recordWin(
+        timeSeconds: 100,
+        moves: 50,
+        timestamp: DateTime(2026, 1, 1),
+      );
+      s = s.recordWin(
+        timeSeconds: 90,
+        moves: 40,
+        timestamp: DateTime(2026, 1, 2),
+      );
+      expect(s.totalWins, 2);
     });
 
-    test('best time and fewest moves only improve', () {
+    test('bestWins is sorted fastest-first, ties broken by fewer moves', () {
       Stats s = const Stats();
-      s = s.recordWin(timeSeconds: 120, moves: 80);
-      expect(s.bestTimeSeconds, 120);
-      expect(s.fewestMoves, 80);
-      // A slower, higher-move win must not worsen the records.
-      s = s.recordWin(timeSeconds: 200, moves: 90);
-      expect(s.bestTimeSeconds, 120);
-      expect(s.fewestMoves, 80);
-      // A faster win with fewer moves improves both.
-      s = s.recordWin(timeSeconds: 60, moves: 55);
-      expect(s.bestTimeSeconds, 60);
-      expect(s.fewestMoves, 55);
+      s = s.recordWin(
+        timeSeconds: 100,
+        moves: 50,
+        timestamp: DateTime(2026, 1, 1),
+      );
+      s = s.recordWin(
+        timeSeconds: 80,
+        moves: 60,
+        timestamp: DateTime(2026, 1, 2),
+      );
+      s = s.recordWin(
+        timeSeconds: 80,
+        moves: 45,
+        timestamp: DateTime(2026, 1, 3),
+      );
+      expect(s.bestWins.map((WinRecord w) => w.moves).toList(), <int>[
+        45,
+        60,
+        50,
+      ]);
     });
 
-    test('streaks: wins extend current, longest is a high-water mark', () {
+    test('bestWins is capped at maxBestWins, keeping only the fastest', () {
       Stats s = const Stats();
-      s = s.recordWin(timeSeconds: 10, moves: 10); // cur1 long1
-      s = s.recordWin(timeSeconds: 10, moves: 10); // cur2 long2
-      s = s.recordWin(timeSeconds: 10, moves: 10); // cur3 long3
-      expect(s.currentStreak, 3);
-      expect(s.longestStreak, 3);
+      for (int i = 0; i < Stats.maxBestWins; i++) {
+        s = s.recordWin(
+          timeSeconds: 100 + i,
+          moves: 50,
+          timestamp: DateTime(2026, 1, 1),
+        );
+      }
+      expect(s.bestWins.length, Stats.maxBestWins);
+      expect(s.totalWins, Stats.maxBestWins);
 
-      s = s.recordLoss(); // cur0 long3
-      expect(s.currentStreak, 0);
-      expect(s.longestStreak, 3);
+      // A slower win doesn't grow or change the list.
+      s = s.recordWin(
+        timeSeconds: 999,
+        moves: 50,
+        timestamp: DateTime(2026, 1, 2),
+      );
+      expect(s.bestWins.length, Stats.maxBestWins);
+      expect(s.bestWins.any((WinRecord w) => w.timeSeconds == 999), isFalse);
+      expect(s.totalWins, Stats.maxBestWins + 1);
 
-      s = s.recordWin(timeSeconds: 10, moves: 10); // cur1 long3
-      s = s.recordWin(timeSeconds: 10, moves: 10); // cur2 long3
-      expect(s.currentStreak, 2);
-      expect(s.longestStreak, 3, reason: 'longest is not overtaken yet');
+      // A faster win evicts the current slowest.
+      final int slowestBefore = s.bestWins.last.timeSeconds;
+      s = s.recordWin(
+        timeSeconds: 50,
+        moves: 50,
+        timestamp: DateTime(2026, 1, 3),
+      );
+      expect(s.bestWins.length, Stats.maxBestWins);
+      expect(s.bestWins.first.timeSeconds, 50);
+      expect(
+        s.bestWins.any((WinRecord w) => w.timeSeconds == slowestBefore),
+        isFalse,
+      );
+    });
+
+    test('recordWin rejects negative time or moves', () {
+      const Stats s = Stats();
+      expect(
+        () => s.recordWin(
+          timeSeconds: -1,
+          moves: 0,
+          timestamp: DateTime(2026, 1, 1),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => s.recordWin(
+          timeSeconds: 0,
+          moves: -1,
+          timestamp: DateTime(2026, 1, 1),
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('json round-trips to equal stats', () {
       final Stats s = const Stats()
-          .recordWin(timeSeconds: 45, moves: 33)
-          .recordLoss();
+          .recordWin(
+            timeSeconds: 45,
+            moves: 33,
+            timestamp: DateTime(2026, 8, 20),
+          )
+          .recordWin(
+            timeSeconds: 60,
+            moves: 20,
+            timestamp: DateTime(2026, 8, 21),
+          );
       expect(Stats.fromJson(s.toJson()), equals(s));
     });
   });
