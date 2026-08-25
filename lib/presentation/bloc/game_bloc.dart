@@ -244,7 +244,6 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     if (_solving) {
       return;
     }
-    await _recordAbandonedLossIfAny();
     _seed = event.seed ?? _random.nextInt(1 << 32);
     _state = GameState.newGame(rules, seed: _seed);
     await repository.clearSave(variant);
@@ -258,30 +257,11 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     if (_solving) {
       return;
     }
-    await _recordAbandonedLossIfAny();
     _state = GameState.newGame(rules, seed: _seed);
     // The prior deal's autosave is now stale — drop it so the reset deal is
     // not resumable to its abandoned progress.
     await repository.clearSave(variant);
     emit(_snapshotOf(_state, rules));
-  }
-
-  /// Records a loss for the game about to be discarded by a new deal or
-  /// restart — but only if the player actually made a move. An untouched
-  /// fresh deal getting re-dealt isn't a loss, just changing your mind
-  /// before you started. A won game is never here in the first place (the
-  /// screen navigates away on a win), but the check is cheap insurance
-  /// against double-counting it as a loss too.
-  Future<void> _recordAbandonedLossIfAny() async {
-    if (_state.moveCount == 0 || _state.isWon(rules)) {
-      return;
-    }
-    await repository.recordResult(
-      variant: variant,
-      won: false,
-      timeSeconds: _state.elapsedSeconds,
-      moves: _state.moveCount,
-    );
   }
 
   Future<void> _onSaveRequested(
@@ -319,9 +299,8 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
         if (_state.isWon(rules)) {
           final int elapsed = _state.elapsedSeconds;
           final int moves = _state.moveCount;
-          await repository.recordResult(
+          await repository.recordWin(
             variant: variant,
-            won: true,
             timeSeconds: elapsed,
             moves: moves,
           );
@@ -359,9 +338,8 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       // before the GameWon below is emitted.
       _solving = true;
       try {
-        await repository.recordResult(
+        await repository.recordWin(
           variant: variant,
-          won: true,
           timeSeconds: elapsed,
           moves: moves,
         );
