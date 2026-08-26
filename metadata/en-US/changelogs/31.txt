@@ -1,0 +1,1 @@
+Smaller downloads: separate APKs per device architecture.
