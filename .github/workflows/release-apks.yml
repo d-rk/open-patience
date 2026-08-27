@@ -6,9 +6,22 @@ name: Release APKs (F-Droid reproducible source)
 # compares them, byte-for-byte, against its own from-source build — so this
 # job MUST stay in lockstep with the fdroiddata build recipe: same pinned
 # Flutter version, same `--flavor production --split-per-abi`, same
-# SOURCE_DATE_EPOCH (the tagged commit's timestamp). This is separate from the
-# self-hosted F-Droid repo (release.yml), which keeps publishing a universal
-# APK on pushes to main.
+# SOURCE_DATE_EPOCH. This is separate from the self-hosted F-Droid repo
+# (release.yml), which keeps publishing a universal APK on pushes to main.
+#
+# A Dart AOT snapshot embeds the absolute source-root path it was compiled
+# from — even with --obfuscate — so this build and F-Droid's independent
+# from-source build only verify as byte-identical if both build from the same
+# absolute path. actions/checkout's default path IS that shared path: GitHub
+# Actions always checks out to /home/runner/work/<repo>/<repo>
+# (/home/runner/work/open-patience/open-patience here), and the fdroiddata
+# recipe's build steps relocate their own checkout to that same path (via a
+# `sudo:` mkdir, since only root can create /home/runner there — matching the
+# convention real Flutter F-Droid apps like org.lichess.mobileV2 and
+# com.viscouspot.gitsync use). So nothing needs relocating on this side.
+# Verified locally with tools/fdroid/verify-reproducible-build.sh before
+# relying on this in CI. Keep SOURCE_DATE_EPOCH in lockstep with the
+# fdroiddata recipe.
 
 on:
   push:
@@ -58,33 +71,17 @@ jobs:
           storeFile=app-release.keystore
           EOF
 
-      # A Dart AOT snapshot embeds the absolute source-root path it was
-      # compiled from — even with --obfuscate. So this build and F-Droid's
-      # independent from-source build only verify as byte-identical if they
-      # both build from the exact same absolute path. /tmp/build/open-patience
-      # is that shared, privilege-free path — the fdroiddata recipe's
-      # prebuild/build steps relocate their checkout there too. Keep this path
-      # in lockstep with metadata/io.github.d_rk.openpatience.yml in fdroiddata.
-      - name: Relocate source to the shared reproducible-build path
-        run: |
-          mkdir -p /tmp/build
-          rm -rf /tmp/build/open-patience
-          cp -a "$GITHUB_WORKSPACE" /tmp/build/open-patience
-
       - name: Install dependencies
-        working-directory: /tmp/build/open-patience
         run: flutter pub get --enforce-lockfile
 
       - name: Build per-ABI release APKs (reproducible)
-        working-directory: /tmp/build/open-patience
         run: |
           # Match fdroiddata's recipe exactly for a byte-identical result.
-          export SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
+          export SOURCE_DATE_EPOCH=0
           flutter build apk --release --flavor production --split-per-abi \
             --obfuscate --split-debug-info=build/app/outputs/symbols
 
       - name: Attach APKs to the GitHub Release
-        working-directory: /tmp/build/open-patience
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

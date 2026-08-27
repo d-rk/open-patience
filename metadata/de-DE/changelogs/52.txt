@@ -1,1 +1,0 @@
-Behebt Pfad-Mismatch beim reproduzierbaren Build für die F-Droid-Verifizierung.
