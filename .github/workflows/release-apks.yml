@@ -58,21 +58,33 @@ jobs:
           storeFile=app-release.keystore
           EOF
 
+      # A Dart AOT snapshot embeds the absolute source-root path it was
+      # compiled from — even with --obfuscate. So this build and F-Droid's
+      # independent from-source build only verify as byte-identical if they
+      # both build from the exact same absolute path. /tmp/build/open-patience
+      # is that shared, privilege-free path — the fdroiddata recipe's
+      # prebuild/build steps relocate their checkout there too. Keep this path
+      # in lockstep with metadata/io.github.d_rk.openpatience.yml in fdroiddata.
+      - name: Relocate source to the shared reproducible-build path
+        run: |
+          mkdir -p /tmp/build
+          rm -rf /tmp/build/open-patience
+          cp -a "$GITHUB_WORKSPACE" /tmp/build/open-patience
+
       - name: Install dependencies
+        working-directory: /tmp/build/open-patience
         run: flutter pub get --enforce-lockfile
 
       - name: Build per-ABI release APKs (reproducible)
+        working-directory: /tmp/build/open-patience
         run: |
           # Match fdroiddata's recipe exactly for a byte-identical result.
-          # --obfuscate (requires --split-debug-info) strips the absolute
-          # build-machine path that an unobfuscated Dart AOT snapshot embeds
-          # in libapp.so — without it, this build and F-Droid's independent
-          # build from a different path never verify as identical.
           export SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
           flutter build apk --release --flavor production --split-per-abi \
             --obfuscate --split-debug-info=build/app/outputs/symbols
 
       - name: Attach APKs to the GitHub Release
+        working-directory: /tmp/build/open-patience
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
