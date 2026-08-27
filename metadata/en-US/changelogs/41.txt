@@ -1,0 +1,1 @@
+Reproducible per-ABI release builds for F-Droid.
