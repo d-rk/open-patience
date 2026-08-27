@@ -135,20 +135,19 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
   for the end-to-end flow, and `release-verify.test.sh` for `--verify-only`, all
   in throwaway repos). Run them directly:
   `bash tools/fdroid/test/prune-testing-apks.test.sh`.
-- `verify-reproducible-build.sh` — proves (or disproves) that this app's
-  release build is byte-reproducible, *before* burning a GitHub Actions run or
-  an F-Droid buildserver cycle finding out. A Dart AOT snapshot embeds the
-  absolute filesystem path of the app source root it was compiled from —
-  `--obfuscate` does **not** strip this — so two builds only produce an
-  identical `libapp.so` if both build from the same absolute path. The script
-  builds the given commit/ABI **twice**, in two independent, freshly
-  provisioned Docker containers (root inside, so `/home/runner/work/...` can
-  be created without needing host sudo — the same path GitHub Actions' default
-  checkout uses, and the path the fdroiddata recipe's `sudo:` block relocates
-  its own checkout to), and diffs the resulting `libapp.so` hash. Each
-  container clones this repo from a read-only bind mount (no GitHub network
-  dependency) and fetches Flutter fresh (so a stale/mutated SDK checkout can
-  never quietly explain a false match).
+- `verify-reproducible-build.sh` — diagnostic tool: proves (or disproves)
+  whether this app's release build is *path-reproducible*, without burning a
+  full CI cycle finding out. A Dart AOT snapshot embeds the absolute
+  filesystem path of the app source root it was compiled from — `--obfuscate`
+  does **not** strip this — so two builds only produce an identical
+  `libapp.so` if both build from the same absolute path. The script builds the
+  given commit/ABI **twice**, in two independent, freshly provisioned Docker
+  containers (root inside, so `/home/runner/work/...` can be created without
+  needing host sudo — the path GitHub Actions' default checkout uses), and
+  diffs the resulting `libapp.so` hash. Each container clones this repo from a
+  read-only bind mount (no GitHub network dependency) and fetches Flutter
+  fresh (so a stale/mutated SDK checkout can never quietly explain a false
+  match).
 
   ```bash
   tools/fdroid/verify-reproducible-build.sh              # HEAD, arm64-v8a, flutter 3.38.5
@@ -157,9 +156,18 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
 
   Needs Docker and the host's Android SDK at `/opt/android/sdk` (bind-mounted
   read-only into each container — this only saves a slow multi-GB SDK
-  download; it is not part of what's being tested). Run it whenever the build
-  path/flags in `release-apks.yml` or the fdroiddata recipe change, before
-  trusting a real CI/buildserver cycle to tell you the same thing much slower.
+  download; it is not part of what's being tested).
+
+  **Known limitation:** this only isolates *path*-based non-determinism. It
+  does not control for Android SDK/build-tools/NDK version — when checked
+  against the real GitHub Actions-built v1.0.4 APK, the container's libapp.so
+  did NOT match, because the container reused the host's installed SDK rather
+  than GitHub's runner SDK. That gap is why F-Droid's reproducible-build
+  support was dropped for this app (see git history around v1.0.4) rather than
+  chased further — F-Droid signs the app with its own key instead. Re-run
+  this script for its original purpose only if reproducible builds are
+  revisited, and pin a matching Android SDK/build-tools/NDK version in the
+  container first.
 
 ## Notes
 
