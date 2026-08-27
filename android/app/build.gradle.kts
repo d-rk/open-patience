@@ -45,6 +45,14 @@ android {
         versionName = flutter.versionName
     }
 
+    // AGP embeds a "Dependency metadata" block in release APKs by default
+    // (Play Console's SDK-transparency feature) — F-Droid's scanner flags
+    // this as an unexpected extra signing block, so it's disabled here.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     signingConfigs {
         if (hasReleaseKeystore) {
             create("release") {

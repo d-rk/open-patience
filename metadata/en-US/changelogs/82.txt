@@ -1,1 +1,0 @@
-Remove --obfuscate to match how real F-Droid Flutter apps achieve reproducible builds.

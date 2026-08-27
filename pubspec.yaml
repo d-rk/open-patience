@@ -4,7 +4,7 @@ description: >-
   built as a vehicle for clean, testable architecture. Pure-Dart game engine
   (lib/core, lib/persistence) with a Flutter presentation layer.
 publish_to: 'none'
-version: 1.0.6+8
+version: 1.0.7+9
 
 environment:
   sdk: '>=3.10.0 <4.0.0'

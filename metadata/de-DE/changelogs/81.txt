@@ -1,1 +1,0 @@
-Entfernt --obfuscate für reproduzierbare Builds, analog zu anderen F-Droid-Flutter-Apps.
