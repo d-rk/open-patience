@@ -84,8 +84,7 @@ flutter pub get --enforce-lockfile
 
 export SOURCE_DATE_EPOCH=0
 flutter build apk --release --flavor production --split-per-abi \
-  --target-platform="$target_platform" --obfuscate \
-  --split-debug-info=build/app/outputs/symbols
+  --target-platform="$target_platform"
 
 apk="build/app/outputs/flutter-apk/app-${abi}-production-release.apk"
 unzip -p "$apk" "lib/${abi}/libapp.so" | sha256sum | awk '{print $1}' > /mnt/out/hash.txt
