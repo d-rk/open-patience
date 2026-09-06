@@ -1,20 +1,42 @@
 # tools/ — developer scripts
 
 Build/authoring scripts that regenerate committed assets or drive F-Droid
-release plumbing. None of them run in the app or in CI's test lane; they are
-run by hand when their inputs change, and their **outputs are committed**.
-Each script is the single source of truth for the files it emits — edit the
-script (or its source scene/SVG), re-run, commit the regenerated output. Never
+release plumbing. None of them run as part of the app itself; they are run by
+hand when their inputs change. Their own stdlib-only unit tests, under
+`test/` (see below), *do* run in CI on every push. Their **outputs are
+committed** —
+with one partial exception, `video/capture_gameplay.py`: its recording
+(`media/gameplay.mp4` + `.gif`) goes to YouTube instead of the repo, but the
+poster-frame thumbnail it can also extract (`media/gameplay_thumbnail.png`)
+*is* committed, since the README links it (see `video/` below). Each script
+is the single source of truth for the files it emits — edit the script (or
+its source scene/SVG), re-run, commit the regenerated output. Never
 hand-edit a generated PNG.
 
 ## Layout
 
 ```
 tools/
+  cdp.py   shared Chrome DevTools Protocol client (used by fdroid/ + video/)
   art/     Blender-rendered splash + menu banner art
   logo/    app icon + launcher/web/F-Droid icons (pure-SVG → PNG)
   fdroid/  F-Droid release plumbing + store screenshots
+  video/   gameplay video for the README (demo save + screencast)
+  test/    stdlib-only unit tests for cdp.py + video/ — run in CI
 ```
+
+## cdp.py — shared Chrome DevTools Protocol client
+
+A stdlib-only CDP client shared by the screenshot script (`fdroid/`) and the
+video capture scripts (`video/`): a tiny bundled WebSocket client, a request
+wrapper (`CDP.call`) that buffers protocol events instead of discarding them
+so a caller can later drain them with `CDP.events()`/`CDP.pump()` (needed for
+screencast frames, which the screenshot script never used), a throwaway
+static file server (`serve`) for `build/web`, and the headless-Chrome
+lifecycle (`chrome`) plus `tap`/`screenshot` helpers. Unit-tested in
+`tools/test/cdp_test.py` (`python3 tools/test/cdp_test.py`) with a scripted
+fake WebSocket — no real Chrome needed to test the protocol logic. Runs in
+CI alongside the other two `tools/test/` suites below.
 
 ## art/ — splash & menu banner
 
@@ -67,9 +89,9 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
 ## fdroid/ — release plumbing & screenshots
 
 - `capture_screenshots.py` — captures the F-Droid store screenshots from the
-  Flutter **web** build. Pure stdlib (a tiny bundled WebSocket + Chrome
-  DevTools Protocol client — like `build_logo.py` shelling out to Inkscape, it
-  needs only the `google-chrome` binary). It serves `build/web`, drives headless
+  Flutter **web** build. Pure stdlib, via the shared `tools/cdp.py` client
+  (like `build_logo.py` shelling out to Inkscape, it needs only the
+  `google-chrome` binary). It serves `build/web`, drives headless
   Chrome at a realistic *logical* viewport and device pixel ratio (phone
   360×640 @3× → 1080×1920; tablet 960×600 @2× → 1920×1200), taps through the UI,
   and writes numbered PNGs.
@@ -168,6 +190,109 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
   this script for its original purpose only if reproducible builds are
   revisited, and pin a matching Android SDK/build-tools/NDK version in the
   container first.
+
+## video/ — README gameplay video
+
+- `make_demo_save.dart` — the single source of truth for
+  `demo_save.json`, the near-finished Klondike deal the video is recorded
+  from. Scans seeds for a greedily solvable deal, replays its solution until
+  half the deck is on the foundations, and emits the `save:` + `stats:` blobs
+  exactly as `SharedPrefsRecordsRepository` writes them. Deterministic — fixed
+  starting seed, fixed stats timestamps. Guarded by
+  `test/unit/demo_save_test.dart`, which fails if a rules change makes the
+  fixture unsolvable or already-won.
+
+  ```bash
+  dart run tools/video/make_demo_save.dart
+  ```
+
+- `storage.py` — maps that fixture onto the web build's `localStorage` keys.
+  The prefix and encoding are *observed*, not assumed; re-run `probe_storage.py`
+  after any `shared_preferences` upgrade. Guarded by `tools/test/storage_test.py`
+  (`python3 tools/test/storage_test.py`), which pins the double-JSON-encoded
+  wire format `probe_storage.py` observed — the suite that makes a future
+  `shared_preferences` upgrade fail loudly in CI instead of silently
+  producing a blank video. Runs in CI.
+- `probe_storage.py` — dumps what the real app writes to `localStorage`
+  (`--verify-injection` checks that an injected fixture actually shows up as a
+  Continue-playing row).
+- `seed_linux_save.py` — puts the same `demo_save.json` fixture in front of the
+  **native Linux desktop build** instead of the web build, for a hand-recorded
+  video. The CDP screencast in `capture_gameplay.py` tops out around 10fps
+  (Chrome gates each frame on an ack round trip), which reads as stutter —
+  a real screen recorder against `flutter run -d linux --release` looks far
+  better. Linux's `shared_preferences` writes one *plain* `jsonEncode`
+  (unlike the web build's double-encoded string, see `storage.py`'s
+  docstring), so this is a separate, single-encoding write path, not a
+  thin wrapper around `storage.py`. Backs up any existing prefs file before
+  overwriting, timestamped; `--restore` puts the newest backup back.
+
+  ```bash
+  python3 tools/video/seed_linux_save.py     # preload the demo save
+  flutter run -d linux --release             # record this — no debug banner
+  python3 tools/video/seed_linux_save.py --restore   # undo afterwards
+  ```
+
+- `capture_gameplay.py` — drives the web build over CDP (shared `tools/cdp.py`),
+  records a screencast through Resume → Solve → win cascade → records, and
+  assembles `media/gameplay.mp4` + `media/gameplay.gif`. The GIF is not
+  consumed by the README (which links the YouTube video via the poster-frame
+  PNG) — it exists so the gameplay clip can be dropped somewhere a hosted
+  video link doesn't work well: chat, an issue/PR comment, social posts.
+  `--probe` screenshots each beat instead, for retuning the tap coordinates.
+  Unlike every other script here, **the recording itself is not committed**
+  — `media/*` is gitignored, and the video is uploaded to YouTube instead, to
+  keep large re-recorded binaries out of the repo. Re-run the script locally
+  to reproduce the files whenever they need to change. Its concat-timeline
+  builder (`build_concat`) is guarded by `tools/test/timeline_test.py`
+  (`python3 tools/test/timeline_test.py`), which runs in CI.
+  - The `BEATS` coordinates are logical pixels (halve whatever you measure off
+    a `--probe` PNG — those are 720×1280 at `DPR` 2). The `cascade` hold is
+    deliberately generous: a *recording* run also encodes a live JPEG
+    screencast, and the CPU contention that creates measurably slows the
+    page's own timers, so the auto-solver's 58 moves × 120ms plus the 3s
+    minimum-look timer on the win overlay (`GameMotion
+    .winCascadeMinimumBeforeDismiss`) takes noticeably longer under capture
+    than under `--probe`. If the `records` tap fires before the overlay is
+    dismissible, the video ends stuck on the win cascade — raise the
+    `cascade` hold, not the `records` tap's own hold. The `records` hold
+    itself (7.0s) is deliberately the longest static hold after `cascade`:
+    it's the video's last beat and payoff shot — a leaderboard the viewer
+    needs time to actually read, not a flash-cut.
+  - `--thumbnail SECONDS` is a second mode: instead of recording, it grabs a
+    single frame from an *already-recorded* `media/gameplay.mp4` at the given
+    timestamp via `ffmpeg -ss`, downscales it to `THUMBNAIL_WIDTH` (540px)
+    and writes `media/gameplay_thumbnail.png` — the one file this script can
+    produce that **is** committed (see the negation in `.gitignore`,
+    `!media/gameplay_thumbnail.png`). It exists because GitHub can't embed
+    the YouTube-hosted video inline in the README, so the README instead
+    links a still image as a clickable poster frame. Pick the timestamp by
+    eye first (e.g. `ffmpeg -i media/gameplay.mp4 -vf fps=1/2
+    /tmp/f_%02d.png` and look through the frames) — a frame mid-cascade with
+    the "You Win!" banner fully faded in and clearly legible (not obscured
+    by a tumbling card) is ideal; avoid one where the banner is still
+    fading in. **The currently committed thumbnail isn't one of these,
+    though** — once the final gameplay clip was hand-recorded (see
+    `seed_linux_save.py` above) and uploaded, the poster frame was swapped
+    for YouTube's own vertical render (`i.ytimg.com/vi/<id>/oardefault.jpg`,
+    622×1226 — the real Shorts crop, not the letterboxed 1280×720
+    `maxresdefault`). `--thumbnail` is the fallback for a locally-recorded
+    clip that never gets uploaded, or before a video has a YouTube id yet.
+
+  ```bash
+  flutter build web --release                       # prerequisite
+  python3 tools/video/capture_gameplay.py --probe   # tune coordinates
+  python3 tools/video/capture_gameplay.py           # record
+  python3 tools/video/capture_gameplay.py --thumbnail 17.5  # poster frame
+  ```
+
+  **The video is the one generated asset that is _not_ byte-reproducible**
+  (frame timing varies between runs) **and not committed at all** — so it is
+  deliberately excluded from `tools/fdroid/release.sh --verify-only`
+  (the thumbnail, being derived from a non-reproducible source, is excluded
+  too). Re-record it by hand, and re-upload to YouTube, when the UI changes
+  enough that the video misrepresents the app — then regenerate the
+  thumbnail from the new recording.
 
 ## Notes
 

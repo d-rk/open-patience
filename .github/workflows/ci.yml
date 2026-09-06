@@ -46,6 +46,13 @@ jobs:
           bash tools/fdroid/test/prune-testing-apks.test.sh
           bash tools/fdroid/test/write-pr-changelog.test.sh
 
+      # Stdlib-only, sub-second. storage_test.py in particular is what makes
+      # a future shared_preferences upgrade fail loudly here instead of
+      # silently producing a blank gameplay video.
+      - name: Video pipeline tool tests (CDP client, storage mapping, timeline)
+        run: |
+          python3 tools/test/cdp_test.py && python3 tools/test/storage_test.py && python3 tools/test/timeline_test.py
+
   # Real-device end-to-end lane: heavier, so it runs on its own — treat as a
   # pre-release gate rather than a per-push blocker. Runs the golden-path
   # integration_test suite on an Android emulator.

@@ -229,16 +229,22 @@ integration_test/
   golden_path_test.dart
 tools/             # developer scripts (regenerate committed assets, F-Droid
                    # plumbing) — see tools/CLAUDE.md
-  art/  logo/  fdroid/
+  art/  logo/  fdroid/  video/
+media/             # generated README gameplay video (see tools/video/) —
+                   # gitignored except the committed gameplay_thumbnail.png
 .github/workflows/ci.yml
 pubspec.yaml
 ```
 
 Build/authoring scripts under `tools/` (icon, splash/banner art, F-Droid
-screenshots and release plumbing) are documented in **`tools/CLAUDE.md`** —
-read it before touching or running anything in that folder. Their outputs are
-committed and each script is the single source of truth for the files it emits;
-never hand-edit a generated asset.
+screenshots, the README gameplay video and release plumbing) are documented in
+**`tools/CLAUDE.md`** — read it before touching or running anything in that
+folder. Their outputs are committed (the one exception is the gameplay
+video, which is generated locally and hosted externally — see
+`tools/CLAUDE.md`) and each script is the single source of truth for the
+files it emits; never hand-edit a generated asset. Contributor
+guidance for people working on the code lives in `CONTRIBUTING.md`, and the
+release process in `RELEASING.md`, both at the repo root.
 
 ## Pre-commit checklist
 

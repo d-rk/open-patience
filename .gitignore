@@ -1,4 +1,9 @@
-.claude/
+# Claude Code: the agent + command definitions are part of the project — they
+# are *how* it is built, and the README points readers at them. Machine-local
+# settings and worktree checkouts under .claude/ stay ignored.
+.claude/*
+!.claude/agents/
+!.claude/commands/
 
 # Dart/Flutter tooling cache
 .dart_tool/
@@ -33,6 +38,17 @@ docs/
 
 # Blender backup files
 *.blend1
+
+# Gameplay video/GIF: regenerated locally by tools/video/capture_gameplay.py
+# and uploaded to YouTube rather than committed, to keep large binaries out
+# of the repo. Re-run the script to reproduce it locally when needed.
+# media/* (not media/) so the negation below can still track one file inside
+# the directory -- a negation cannot rescue a path inside an excluded dir.
+media/*
+# The poster frame is the exception: the README links it (GitHub can't embed
+# the YouTube-hosted video inline), so it's committed while gameplay.mp4/.gif
+# stay ignored.
+!media/gameplay_thumbnail.png
 
 # Python bytecode cache (tools/)
 __pycache__/

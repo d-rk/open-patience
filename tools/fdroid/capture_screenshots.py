@@ -2,8 +2,8 @@
 """Capture F-Droid listing screenshots from the Flutter **web** build.
 
 No emulator, no adb, no third-party Python packages: this drives a headless
-Google Chrome over the DevTools Protocol (a tiny stdlib WebSocket client is
-bundled below), the same way ``build_logo.py`` shells out to Inkscape. It:
+Google Chrome over the DevTools Protocol (the stdlib client lives in
+``tools/cdp.py``), the same way ``build_logo.py`` shells out to Inkscape. It:
 
   1. Serves ``build/web`` on a throwaway localhost port.
   2. Launches headless Chrome at a realistic device viewport (phone
@@ -28,21 +28,14 @@ Run it::
 """
 
 import argparse
-import base64
-import contextlib
-import functools
-import http.server
-import json
 import os
-import shutil
-import socket
-import struct
 import subprocess
 import sys
-import tempfile
-import threading
 import time
-import urllib.request
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                os.pardir))
+from cdp import chrome, screenshot, serve, tap  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, os.pardir, os.pardir))
@@ -51,207 +44,6 @@ WEB_DIR = os.path.join(REPO, "build", "web")
 # metadata/<locale>/ layout (scanned for the main F-Droid repo, and mapped into
 # the self-hosted collection by the release workflow).
 META = os.path.join(REPO, "metadata", "en-US", "images")
-
-
-# --------------------------------------------------------------------------
-# Minimal WebSocket client (RFC 6455, text frames, client-masked) -- just
-# enough to speak the Chrome DevTools Protocol. Avoids a websocket-client dep.
-# --------------------------------------------------------------------------
-class _WebSocket:
-    def __init__(self, url):
-        # url like ws://host:port/devtools/page/<id>
-        assert url.startswith("ws://")
-        hostport, _, path = url[len("ws://"):].partition("/")
-        host, _, port = hostport.partition(":")
-        self._sock = socket.create_connection((host, int(port or 80)))
-        key = base64.b64encode(os.urandom(16)).decode()
-        req = (
-            f"GET /{path} HTTP/1.1\r\n"
-            f"Host: {hostport}\r\n"
-            "Upgrade: websocket\r\n"
-            "Connection: Upgrade\r\n"
-            f"Sec-WebSocket-Key: {key}\r\n"
-            "Sec-WebSocket-Version: 13\r\n\r\n"
-        )
-        self._sock.sendall(req.encode())
-        self._buf = b""
-        # Read past the handshake response headers.
-        while b"\r\n\r\n" not in self._buf:
-            self._buf += self._sock.recv(4096)
-        _, _, self._buf = self._buf.partition(b"\r\n\r\n")
-
-    def _recv_exact(self, n):
-        while len(self._buf) < n:
-            chunk = self._sock.recv(65536)
-            if not chunk:
-                raise ConnectionError("websocket closed")
-            self._buf += chunk
-        out, self._buf = self._buf[:n], self._buf[n:]
-        return out
-
-    def send(self, text):
-        payload = text.encode()
-        header = bytearray([0x81])  # FIN + text opcode
-        n = len(payload)
-        mask_bit = 0x80
-        if n < 126:
-            header.append(mask_bit | n)
-        elif n < (1 << 16):
-            header.append(mask_bit | 126)
-            header += struct.pack(">H", n)
-        else:
-            header.append(mask_bit | 127)
-            header += struct.pack(">Q", n)
-        mask = os.urandom(4)
-        header += mask
-        masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
-        self._sock.sendall(bytes(header) + masked)
-
-    def recv(self):
-        # Reassemble one message (handles fragmentation + 64-bit lengths).
-        data = b""
-        while True:
-            b0, b1 = self._recv_exact(2)
-            fin = b0 & 0x80
-            length = b1 & 0x7F
-            if length == 126:
-                length = struct.unpack(">H", self._recv_exact(2))[0]
-            elif length == 127:
-                length = struct.unpack(">Q", self._recv_exact(8))[0]
-            data += self._recv_exact(length)
-            if fin:
-                return data.decode()
-
-    def close(self):
-        with contextlib.suppress(Exception):
-            self._sock.close()
-
-
-class _CDP:
-    """Thin request/response wrapper over a DevTools page WebSocket."""
-
-    def __init__(self, ws_url):
-        self._ws = _WebSocket(ws_url)
-        self._id = 0
-
-    def call(self, method, **params):
-        self._id += 1
-        mid = self._id
-        self._ws.send(json.dumps({"id": mid, "method": method,
-                                  "params": params}))
-        # Skip protocol events until our matching id comes back.
-        while True:
-            msg = json.loads(self._ws.recv())
-            if msg.get("id") == mid:
-                if "error" in msg:
-                    raise RuntimeError(f"{method}: {msg['error']}")
-                return msg.get("result", {})
-
-    def close(self):
-        self._ws.close()
-
-
-# --------------------------------------------------------------------------
-# Local static server for build/web.
-# --------------------------------------------------------------------------
-@contextlib.contextmanager
-def serve(directory):
-    class _QuietHandler(http.server.SimpleHTTPRequestHandler):
-        def log_message(self, *a, **k):  # silence per-request logging
-            pass
-
-    handler = functools.partial(_QuietHandler, directory=directory)
-    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    port = httpd.server_address[1]
-    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
-    thread.start()
-    try:
-        yield port
-    finally:
-        httpd.shutdown()
-
-
-# --------------------------------------------------------------------------
-# Headless Chrome lifecycle.
-# --------------------------------------------------------------------------
-def _chrome_exe():
-    for name in ("google-chrome", "google-chrome-stable", "chromium",
-                 "chromium-browser"):
-        exe = shutil.which(name)
-        if exe:
-            return exe
-    sys.exit("error: Chrome/Chromium not found on PATH.")
-
-
-@contextlib.contextmanager
-def chrome(width, height):
-    profile = tempfile.mkdtemp(prefix="op-shots-")
-    port = _free_port()
-    proc = subprocess.Popen(
-        [_chrome_exe(), "--headless=new", f"--remote-debugging-port={port}",
-         f"--user-data-dir={profile}", "--no-first-run",
-         "--no-default-browser-check", "--disable-gpu",
-         "--hide-scrollbars", f"--window-size={width},{height}", "about:blank"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    try:
-        page_ws = _wait_for_page_ws(port)
-        yield _CDP(page_ws)
-    finally:
-        proc.terminate()
-        with contextlib.suppress(Exception):
-            proc.wait(timeout=5)
-        shutil.rmtree(profile, ignore_errors=True)
-
-
-def _free_port():
-    s = socket.socket()
-    s.bind(("127.0.0.1", 0))
-    port = s.getsockname()[1]
-    s.close()
-    return port
-
-
-def _wait_for_page_ws(port, timeout=15):
-    deadline = time.time() + timeout
-    url = f"http://127.0.0.1:{port}/json"
-    while time.time() < deadline:
-        try:
-            with urllib.request.urlopen(url, timeout=1) as resp:
-                targets = json.loads(resp.read())
-            for t in targets:
-                if t.get("type") == "page" and t.get("webSocketDebuggerUrl"):
-                    return t["webSocketDebuggerUrl"]
-        except Exception:
-            pass
-        time.sleep(0.3)
-    sys.exit("error: Chrome DevTools endpoint never came up.")
-
-
-# --------------------------------------------------------------------------
-# High-level capture actions.
-# --------------------------------------------------------------------------
-def tap(cdp, x, y):
-    """A synthetic touch tap at CSS pixel (x, y) on the Flutter canvas.
-
-    The viewport emulates a touch device (``mobile=True``), so Flutter web
-    listens for pointer/touch events. We send a stable-id touchStart, hold
-    briefly, then touchEnd -- a deliberate tap that Material buttons
-    (FilledButton) register, where a too-quick tap was dropped.
-    """
-    point = {"x": x, "y": y, "id": 0}
-    cdp.call("Input.dispatchTouchEvent", type="touchStart",
-             touchPoints=[point])
-    time.sleep(0.12)
-    cdp.call("Input.dispatchTouchEvent", type="touchEnd", touchPoints=[])
-    time.sleep(0.05)
-
-
-def screenshot(cdp, out_path):
-    result = cdp.call("Page.captureScreenshot", format="png",
-                      captureBeyondViewport=False)
-    with open(out_path, "wb") as f:
-        f.write(base64.b64decode(result["data"]))
-    print("wrote", out_path)
 
 
 # --------------------------------------------------------------------------

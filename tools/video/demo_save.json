@@ -1,0 +1,2082 @@
+{
+  "save:klondike-draw1": {
+    "variant": "klondike-draw1",
+    "seed": 48238,
+    "state": {
+      "piles": [
+        {
+          "kind": 0,
+          "cards": [
+            {
+              "s": 2,
+              "r": 3,
+              "u": false
+            }
+          ]
+        },
+        {
+          "kind": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 8,
+              "u": true
+            },
+            {
+              "s": 1,
+              "r": 11,
+              "u": true
+            },
+            {
+              "s": 1,
+              "r": 13,
+              "u": true
+            },
+            {
+              "s": 2,
+              "r": 13,
+              "u": true
+            },
+            {
+              "s": 2,
+              "r": 12,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 13,
+              "u": true
+            },
+            {
+              "s": 1,
+              "r": 7,
+              "u": true
+            },
+            {
+              "s": 1,
+              "r": 6,
+              "u": true
+            },
+            {
+              "s": 2,
+              "r": 10,
+              "u": true
+            },
+            {
+              "s": 2,
+              "r": 7,
+              "u": true
+            },
+            {
+              "s": 2,
+              "r": 4,
+              "u": true
+            },
+            {
+              "s": 2,
+              "r": 11,
+              "u": true
+            },
+            {
+              "s": 2,
+              "r": 5,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 2,
+          "cards": [
+            {
+              "s": 1,
+              "r": 1,
+              "u": true
+            },
+            {
+              "s": 1,
+              "r": 2,
+              "u": true
+            },
+            {
+              "s": 1,
+              "r": 3,
+              "u": true
+            },
+            {
+              "s": 1,
+              "r": 4,
+              "u": true
+            },
+            {
+              "s": 1,
+              "r": 5,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 2,
+          "cards": [
+            {
+              "s": 0,
+              "r": 1,
+              "u": true
+            },
+            {
+              "s": 0,
+              "r": 2,
+              "u": true
+            },
+            {
+              "s": 0,
+              "r": 3,
+              "u": true
+            },
+            {
+              "s": 0,
+              "r": 4,
+              "u": true
+            },
+            {
+              "s": 0,
+              "r": 5,
+              "u": true
+            },
+            {
+              "s": 0,
+              "r": 6,
+              "u": true
+            },
+            {
+              "s": 0,
+              "r": 7,
+              "u": true
+            },
+            {
+              "s": 0,
+              "r": 8,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 2,
+          "cards": [
+            {
+              "s": 3,
+              "r": 1,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 2,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 3,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 4,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 5,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 6,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 7,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 8,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 9,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 10,
+              "u": true
+            },
+            {
+              "s": 3,
+              "r": 11,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 2,
+          "cards": [
+            {
+              "s": 2,
+              "r": 1,
+              "u": true
+            },
+            {
+              "s": 2,
+              "r": 2,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 3,
+          "cards": []
+        },
+        {
+          "kind": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 9,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 9,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 3,
+          "cards": [
+            {
+              "s": 1,
+              "r": 12,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 0,
+              "r": 10,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 11,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 3,
+          "cards": [
+            {
+              "s": 1,
+              "r": 10,
+              "u": false
+            },
+            {
+              "s": 0,
+              "r": 12,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 9,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 3,
+          "cards": [
+            {
+              "s": 1,
+              "r": 8,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 12,
+              "u": true
+            }
+          ]
+        },
+        {
+          "kind": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 13,
+              "u": true
+            }
+          ]
+        }
+      ],
+      "moveCount": 111,
+      "elapsedSeconds": 214,
+      "undo": [
+        {
+          "from": 12,
+          "to": 2,
+          "cards": [
+            {
+              "s": 1,
+              "r": 1,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 12,
+          "to": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 1,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 3,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 1,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 1,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 11,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 2,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 11,
+          "to": 2,
+          "cards": [
+            {
+              "s": 1,
+              "r": 2,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 12,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 3,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 12,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 2,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 2,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 10,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 9,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 3,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 0,
+          "cards": [
+            {
+              "s": 0,
+              "r": 8,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 3,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 9,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 5,
+              "u": false
+            },
+            {
+              "s": 0,
+              "r": 4,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 11,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 4,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 10,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 0,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 12,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 5,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 11,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 8,
+              "u": false
+            },
+            {
+              "s": 0,
+              "r": 3,
+              "u": false
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 3,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 3,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 12,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 10,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 12,
+          "to": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 12,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 12,
+          "to": 2,
+          "cards": [
+            {
+              "s": 1,
+              "r": 3,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 9,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 3,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 0,
+          "cards": [
+            {
+              "s": 0,
+              "r": 8,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 3,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 9,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 5,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 11,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 4,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 10,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 0,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 12,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 5,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 11,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 8,
+              "u": false
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 12,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 10,
+          "to": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 10,
+          "to": 5,
+          "cards": [
+            {
+              "s": 2,
+              "r": 1,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 10,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 9,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 3,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 0,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 3,
+          "cards": [
+            {
+              "s": 0,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 0,
+          "cards": [
+            {
+              "s": 2,
+              "r": 3,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 9,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 5,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 11,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 4,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 10,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 7,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 12,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 3,
+              "r": 6,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 13,
+              "u": false
+            },
+            {
+              "s": 1,
+              "r": 11,
+              "u": false
+            },
+            {
+              "s": 2,
+              "r": 8,
+              "u": false
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 12,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 13,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 1,
+              "r": 6,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 10,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 2,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 9,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "cards": [
+            {
+              "s": 3,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": true,
+          "fu": false
+        },
+        {
+          "from": 1,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 7,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 9,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 8,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 1,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 9,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 9,
+          "to": 2,
+          "cards": [
+            {
+              "s": 1,
+              "r": 4,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 6,
+          "to": 2,
+          "cards": [
+            {
+              "s": 1,
+              "r": 5,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": false
+        },
+        {
+          "from": 11,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 10,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 9,
+          "to": 4,
+          "cards": [
+            {
+              "s": 3,
+              "r": 11,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        },
+        {
+          "from": 11,
+          "to": 5,
+          "cards": [
+            {
+              "s": 2,
+              "r": 2,
+              "u": true
+            }
+          ],
+          "fm": false,
+          "fu": true
+        }
+      ],
+      "redo": []
+    }
+  },
+  "stats:klondike-draw1": {
+    "totalWins": 3,
+    "bestWins": [
+      {
+        "timestamp": "2026-08-29T20:14:00.000Z",
+        "timeSeconds": 187,
+        "moves": 132
+      },
+      {
+        "timestamp": "2026-09-01T07:42:00.000Z",
+        "timeSeconds": 231,
+        "moves": 148
+      },
+      {
+        "timestamp": "2026-09-03T21:05:00.000Z",
+        "timeSeconds": 264,
+        "moves": 156
+      }
+    ]
+  }
+}
