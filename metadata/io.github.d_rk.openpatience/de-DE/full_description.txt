@@ -1,0 +1,17 @@
+Open Patience ist ein entspanntes, werbefreies Solitär-Spiel — nur du und
+die Karten.
+
+Enthaltene Klassiker:
+
+* Klondike (1 oder 3 Karten ziehen)
+* FreeCell
+
+Funktionen:
+
+* Keine Werbung, kein Tracking, kein Netzwerkzugriff
+* Rückgängig und Wiederholen, mit Timer und Zugzähler
+* Tippen oder Ziehen zum Spielen; Doppeltippen legt eine Karte ab
+* Dein Spiel wird automatisch gespeichert und kann jederzeit fortgesetzt werden
+
+Kostenlos und quelloffen, lizenziert unter der GNU Affero General Public
+License v3.0 (AGPL-3.0). Mit Flutter entwickelt.

@@ -1,0 +1,1 @@
+Disable AGP's dependency-metadata block so F-Droid's scanner accepts the release build.

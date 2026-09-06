@@ -1,0 +1,16 @@
+Open Patience is a relaxing, ad-free solitaire game — just you and the cards.
+
+Included classics:
+
+* Klondike (draw 1 and draw 3)
+* FreeCell
+
+Features:
+
+* No ads, no tracking, no network access
+* Undo and redo, with a timer and move counter
+* Tap or drag to play; double-tap to send a card to its foundation
+* Your game is saved automatically, so you can resume any time
+
+Free and open source, licensed under the GNU Affero General Public License
+v3.0 (AGPL-3.0). Built with Flutter.

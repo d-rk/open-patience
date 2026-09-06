@@ -1,0 +1,7 @@
+Replace loss tracking with a fastest-wins leaderboard
+
+## Summary
+- Removes loss tracking from the Records screen entirely — discarding an in-progress deal (new deal, restart, or swiping away a Continue save) no longer records anything.
+- Every win is now recorded with a timestamp; the Records screen shows total wins plus a table of the 10 fastest wins (rank, time, moves, date), with gold/silver/bronze tinting for the top 3.
+- When reached straight from a win, the screen shows a celebratory banner naming that win's time/moves, with a "#K BEST" chip and a highlighted row if it placed on the leaderboard.
+- Old pre-change `Stats` data degrades to a fresh, empty leaderboard on next read (no migration, per design decision).
