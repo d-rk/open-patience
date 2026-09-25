@@ -120,7 +120,7 @@ class _Banner extends StatelessWidget {
             builder: (BuildContext context, GameBlocState state) {
               return Text(
                 '${formatDuration(state.state.elapsedSeconds)} · '
-                '${state.state.moveCount} moves',
+                '${formatMoves(state.state.moveCount)}',
                 style: TextStyle(
                   color: GamePalette.cardFace.withValues(alpha: 0.85),
                   fontSize: 12,

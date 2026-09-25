@@ -177,7 +177,7 @@ class _WinBanner extends StatelessWidget {
                       fontSize: 15,
                     ),
                   ),
-                  TextSpan(text: ' · $moves moves'),
+                  TextSpan(text: ' · ${formatMoves(moves)}'),
                 ],
               ),
             ),
@@ -424,7 +424,7 @@ class _LeaderboardRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              '${record.moves} moves',
+              formatMoves(record.moves),
               key: ValueKey<String>('moves-$rank'),
               style: TextStyle(
                 color: GamePalette.cardFace.withValues(alpha: 0.7),

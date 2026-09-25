@@ -266,6 +266,6 @@ void main() {
     await a.up();
     await tester.pumpAndSettle();
     expect(bloc.state.state.pileAt(7).length, 2);
-    expect(find.text('1 moves'), findsOneWidget);
+    expect(find.text('1 move'), findsOneWidget);
   });
 }

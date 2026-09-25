@@ -224,7 +224,7 @@ class _ContinueSection extends StatelessWidget {
                 title: Text(variantTitle(saved.variant)),
                 subtitle: Text(
                   '${formatDuration(saved.state.elapsedSeconds)} · '
-                  '${saved.state.moveCount} moves',
+                  '${formatMoves(saved.state.moveCount)}',
                 ),
                 trailing: TextButton.icon(
                   onPressed: () => onResume(saved),
