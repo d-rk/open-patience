@@ -355,17 +355,16 @@ class CardFace extends StatelessWidget {
                 ),
               ),
               // Fine diamond-and-pip texture, kept strictly inside the inner
-              // hairline and clipped to the rounded corners.
+              // hairline; its rounded-corner clip is baked into the cached
+              // raster (see [CardBackPattern]).
               Padding(
                 padding: EdgeInsets.all(patternInset),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(radius - patternInset),
-                  child: CardBackPattern(
-                    size: Size(
-                      size.width - 2 * patternInset,
-                      size.height - 2 * patternInset,
-                    ),
+                child: CardBackPattern(
+                  size: Size(
+                    size.width - 2 * patternInset,
+                    size.height - 2 * patternInset,
                   ),
+                  cornerRadius: radius - patternInset,
                 ),
               ),
             ],
