@@ -91,9 +91,9 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// first render is diffed against `null` and recognised as a deal.
   GameState? _dealBaseline;
 
-  /// The state instance last evaluated for a set-piece, so the per-tick rebuilds
-  /// during a deal don't re-trigger it (the bloc state is unchanged, so it stays
-  /// identical).
+  /// The state instance last evaluated for a set-piece, so other rebuilds of
+  /// the same board (a settle release, a layout change) don't re-trigger it
+  /// (the bloc state is unchanged, so it stays identical).
   GameState? _lastDealState;
 
   /// The set-piece the board plays when the game is won: cards peel off the
@@ -113,12 +113,14 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   Ticker? _cascadeTicker;
 
   /// Time elapsed since the running [_cascadeTicker] started, refreshed on
-  /// every tick.
-  Duration _cascadeElapsed = Duration.zero;
+  /// every tick. Foundation cards listen to it directly (see [_cardContent]).
+  final ValueNotifier<Duration> _cascadeElapsed = ValueNotifier<Duration>(
+    Duration.zero,
+  );
 
-  /// The state instance last evaluated for the win cascade, so the cascade's
-  /// own per-tick rebuilds don't re-trigger it (the `GameWon` state is unchanged
-  /// across those ticks, so it stays identical).
+  /// The state instance last evaluated for the win cascade, so later rebuilds
+  /// of the same board don't re-trigger it (the `GameWon` state is unchanged,
+  /// so it stays identical).
   GameState? _lastCascadeState;
 
   @override
@@ -131,6 +133,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   void dispose() {
     _disposeDeal();
     _disposeCascade();
+    _cascadeElapsed.dispose();
     super.dispose();
   }
 
@@ -355,11 +358,58 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     // activation delay elapses; once activated it reveals its real target so
     // AnimatedPositioned tweens it into place. Settling (a just-dropped card)
     // takes precedence — the two never overlap in practice (a deal is the first
-    // render; a drop comes later).
-    final Offset? dealOrigin = (!isSettling && _isDealPending(key, geometry))
-        ? dealOriginOf(geometry)
-        : null;
-    final bool isDealing = dealOrigin != null;
+    // render; a drop comes later). Each card watches the deal clock itself via
+    // [_DealGate] and rebuilds only when *its* activation flips, so a deal tick
+    // never rebuilds the whole board.
+    final AnimationController? deal = isSettling ? null : _dealController;
+    final Duration dealDelay = deal == null
+        ? Duration.zero
+        : _dealSequence.delayFor(key, geometry);
+    return _DealGate(
+      key: key.widgetKey,
+      deal: deal,
+      delay: dealDelay,
+      builder: (BuildContext context, bool isDealing) {
+        final Offset? dealOrigin = isDealing ? dealOriginOf(geometry) : null;
+        return AnimatedPositioned(
+          duration: isSettling ? Duration.zero : moveDuration,
+          curve: GameMotion.moveCurve,
+          left: isSettling
+              ? settle.dx
+              : (dealOrigin != null ? dealOrigin.dx : placement.rect.left),
+          top: isSettling
+              ? settle.dy
+              : (dealOrigin != null ? dealOrigin.dy : placement.rect.top),
+          width: placement.rect.width,
+          height: placement.rect.height,
+          onEnd: isSettling
+              ? () => _scheduleSettleRelease(key)
+              : (isMoving ? () => _release(key) : null),
+          child: _cardContent(
+            context,
+            placement,
+            pile,
+            game,
+            geometry,
+            cardSize,
+            isDealing: isDealing,
+          ),
+        );
+      },
+    );
+  }
+
+  /// The flip-wrapped visual for one card, plus the win-cascade transform for
+  /// foundation cards while the cascade plays.
+  Widget _cardContent(
+    BuildContext context,
+    CardPlacement placement,
+    Pile pile,
+    GameState game,
+    BoardGeometry geometry,
+    Size cardSize, {
+    required bool isDealing,
+  }) {
     // While a card waits at the fly-from origin it shows its back, so the deck
     // building up at the origin never flashes a face-up card. Crucially this is
     // routed through the persistent CardFlip below (not a bare CardFace): the
@@ -377,55 +427,49 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     // across the CardFace↔CardView swap that a draw / reveal / deal triggers) so
     // it persists and can animate the orientation change. The gesture and
     // Draggable layers stay inside its child, and it is the identity transform
-    // at rest, so drag and taps are unaffected.
+    // at rest, so drag and taps are unaffected. The face sits in its own
+    // RepaintBoundary, so moving, flipping or tumbling a card only re-composites
+    // its layer instead of repainting every card on the board.
     final Widget flip = CardFlip(
       key: ValueKey<String>(
         'flip-${placement.card.suit.name}-${placement.card.rank}',
       ),
       card: flipCard,
       size: cardSize,
-      child: faceChild,
+      child: RepaintBoundary(child: faceChild),
     );
+    if (_cascadeTicker == null || pile.kind != PileKind.foundation) {
+      return flip;
+    }
     // The win cascade offsets and tilts foundation cards as they tumble off
-    // the board; at rest (and for non-foundation cards) both are zero, so this
-    // is a no-op transform that never interferes with drags, taps or the deal
-    // set-piece.
-    final Offset cascadeOffset = _cascadeOffsetFor(
-      pile,
-      placement.card,
-      game,
-      placement.rect,
-      geometry.size,
-    );
-    final double cascadeRotation = _cascadeRotationFor(
-      pile,
-      placement.card,
-      game,
-      placement.rect,
-      geometry.size,
-    );
-    final Widget child = cascadeOffset == Offset.zero && cascadeRotation == 0.0
-        ? flip
-        : Transform.translate(
-            offset: cascadeOffset,
-            child: Transform.rotate(angle: cascadeRotation, child: flip),
-          );
-    return AnimatedPositioned(
-      key: key.widgetKey,
-      duration: isSettling ? Duration.zero : moveDuration,
-      curve: GameMotion.moveCurve,
-      left: isSettling
-          ? settle.dx
-          : (isDealing ? dealOrigin.dx : placement.rect.left),
-      top: isSettling
-          ? settle.dy
-          : (isDealing ? dealOrigin.dy : placement.rect.top),
-      width: placement.rect.width,
-      height: placement.rect.height,
-      onEnd: isSettling
-          ? () => _scheduleSettleRelease(key)
-          : (isMoving ? () => _release(key) : null),
-      child: child,
+    // the board. It listens to the cascade clock directly, so each tick only
+    // updates this transform — the card subtree ([flip]) is not rebuilt.
+    final Rect origin = placement.rect;
+    final CardKey key = placement.key;
+    return ValueListenableBuilder<Duration>(
+      valueListenable: _cascadeElapsed,
+      child: flip,
+      builder: (BuildContext context, Duration elapsed, Widget? child) {
+        return Transform.translate(
+          offset: _cascadeSequence.offsetAt(
+            key,
+            elapsed,
+            game,
+            origin,
+            geometry.size,
+          ),
+          child: Transform.rotate(
+            angle: _cascadeSequence.rotationAt(
+              key,
+              elapsed,
+              game,
+              origin,
+              geometry.size,
+            ),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -460,8 +504,8 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
 
   /// Evaluates whether the transition into [next] is a set-piece the
   /// [_dealSequence] should play, and drives its controller. Called once per
-  /// distinct board state (guarded by [_lastDealState] so the deal's own
-  /// per-tick rebuilds don't re-trigger it). The first render is diffed against
+  /// distinct board state (guarded by [_lastDealState] so other rebuilds of
+  /// the same state don't re-trigger it). The first render is diffed against
   /// a null baseline, so it always reads as a deal. Under reduce-motion the
   /// controller is skipped entirely, so cards render at their targets at once.
   void _syncDeal(GameState next, BoardGeometry geometry, bool reduceMotion) {
@@ -481,29 +525,8 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       duration: _dealSequence.totalFor(geometry),
     );
     _dealController = controller;
-    controller.addListener(_onDealTick);
     controller.addStatusListener(_onDealStatus);
     controller.forward();
-  }
-
-  /// Whether [key] is a deal card still waiting at the origin — its activation
-  /// delay has not yet elapsed. False once no set-piece is playing.
-  bool _isDealPending(CardKey key, BoardGeometry geometry) {
-    final AnimationController? controller = _dealController;
-    if (controller == null || controller.isCompleted) {
-      return false;
-    }
-    // Once the controller completes it stops its ticker, which nulls
-    // `lastElapsedDuration`; the `isCompleted` guard above catches that frame so
-    // the `?? Duration.zero` fallback below (meaning "not started, all pending")
-    // never fires post-completion and re-pends every settled card to the origin.
-    final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
-    return elapsed < _dealSequence.delayFor(key, geometry);
-  }
-
-  /// Rebuilds each set-piece tick so cards cross their activation thresholds.
-  void _onDealTick() {
-    setState(() {});
   }
 
   /// Tears the set-piece controller down once it completes. Deferred to after
@@ -528,7 +551,6 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       return;
     }
     _dealController = null;
-    controller.removeListener(_onDealTick);
     controller.removeStatusListener(_onDealStatus);
     controller.dispose();
   }
@@ -536,8 +558,8 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
   /// Engages the win cascade when the bloc reports a `GameWon` state. Driven by
   /// the bloc *state type* (the engine has already decided the game is won),
   /// not a piles-diff, and needs no [BoardGeometry] (see [CascadeSequence]).
-  /// Guarded by [_lastCascadeState] so the cascade's own per-tick rebuilds
-  /// don't re-trigger it. Skipped under reduce-motion, so the win simply lands
+  /// Guarded by [_lastCascadeState] so later rebuilds of the same state don't
+  /// re-trigger it. Skipped under reduce-motion, so the win simply lands
   /// with no cascade.
   void _syncCascade(GameBlocState blocState, bool reduceMotion) {
     final GameState next = blocState.state;
@@ -550,61 +572,18 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       return;
     }
     _disposeCascade();
-    _cascadeElapsed = Duration.zero;
+    _cascadeElapsed.value = Duration.zero;
     final Ticker ticker = createTicker(_onCascadeTick);
     _cascadeTicker = ticker;
     ticker.start();
   }
 
-  /// The cascade's board-local translation for a card on [pile] resting at
-  /// [origin]: [CascadeSequence.offsetAt] of the controller's elapsed time for
-  /// foundation cards while the cascade plays, and [Offset.zero] (a no-op)
-  /// otherwise.
-  Offset _cascadeOffsetFor(
-    Pile pile,
-    Card card,
-    GameState game,
-    Rect origin,
-    Size boardSize,
-  ) {
-    if (_cascadeTicker == null || pile.kind != PileKind.foundation) {
-      return Offset.zero;
-    }
-    return _cascadeSequence.offsetAt(
-      CardKey.of(card),
-      _cascadeElapsed,
-      game,
-      origin,
-      boardSize,
-    );
-  }
-
-  /// The cascade's tilt for a card on [pile] resting at [origin]:
-  /// [CascadeSequence.rotationAt] while the cascade plays, `0.0` (a no-op)
-  /// otherwise.
-  double _cascadeRotationFor(
-    Pile pile,
-    Card card,
-    GameState game,
-    Rect origin,
-    Size boardSize,
-  ) {
-    if (_cascadeTicker == null || pile.kind != PileKind.foundation) {
-      return 0.0;
-    }
-    return _cascadeSequence.rotationAt(
-      CardKey.of(card),
-      _cascadeElapsed,
-      game,
-      origin,
-      boardSize,
-    );
-  }
-
-  /// Rebuilds each cascade tick so the bounce advances. Runs forever — the
-  /// cascade never completes on its own — until [_disposeCascade] stops it.
+  /// Advances the cascade clock each tick; only the foundation cards'
+  /// transforms listen to it, so the board itself never rebuilds. Runs forever
+  /// — the cascade never completes on its own — until [_disposeCascade] stops
+  /// it.
   void _onCascadeTick(Duration elapsed) {
-    setState(() => _cascadeElapsed = elapsed);
+    _cascadeElapsed.value = elapsed;
   }
 
   /// Stops and disposes the active cascade ticker, if any. Idempotent.
@@ -749,5 +728,79 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         cardIndex: data.cardIndex,
       ),
     );
+  }
+}
+
+/// Holds one card back at the deal origin until its activation [delay] on the
+/// [deal] clock elapses. It listens to the clock itself and rebuilds only when
+/// the card's pending state flips — once per card per deal — so the board is
+/// not rebuilt on every deal tick. [builder] receives whether the card is still
+/// waiting at the origin. With no [deal] running the card is never pending.
+class _DealGate extends StatefulWidget {
+  const _DealGate({
+    required super.key,
+    required this.deal,
+    required this.delay,
+    required this.builder,
+  });
+
+  final AnimationController? deal;
+  final Duration delay;
+  final Widget Function(BuildContext context, bool isDealing) builder;
+
+  @override
+  State<_DealGate> createState() => _DealGateState();
+}
+
+class _DealGateState extends State<_DealGate> {
+  late bool _pending;
+
+  @override
+  void initState() {
+    super.initState();
+    _pending = _isPending();
+    widget.deal?.addListener(_onTick);
+  }
+
+  @override
+  void didUpdateWidget(covariant _DealGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.deal, widget.deal)) {
+      oldWidget.deal?.removeListener(_onTick);
+      widget.deal?.addListener(_onTick);
+    }
+    _pending = _isPending();
+  }
+
+  @override
+  void dispose() {
+    widget.deal?.removeListener(_onTick);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _pending);
+
+  /// Whether the card is still waiting at the origin: a deal is running and
+  /// its activation delay has not yet elapsed.
+  bool _isPending() {
+    final AnimationController? controller = widget.deal;
+    if (controller == null || controller.isCompleted) {
+      return false;
+    }
+    // Once the controller completes it stops its ticker, which nulls
+    // `lastElapsedDuration`; the `isCompleted` guard above catches that frame
+    // so the `?? Duration.zero` fallback below (meaning "not started, all
+    // pending") never fires post-completion and re-pends every settled card to
+    // the origin.
+    final Duration elapsed = controller.lastElapsedDuration ?? Duration.zero;
+    return elapsed < widget.delay;
+  }
+
+  void _onTick() {
+    final bool pending = _isPending();
+    if (pending != _pending) {
+      setState(() => _pending = pending);
+    }
   }
 }
