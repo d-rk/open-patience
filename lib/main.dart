@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'persistence/records_repository.dart';
 import 'persistence/shared_prefs_records_repository.dart';
 import 'ui/main_menu_screen.dart';
+import 'ui/orientation_keeper.dart';
 import 'ui/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -26,6 +27,10 @@ class OpenPatienceApp extends StatelessWidget {
     return MaterialApp(
       title: 'Open Patience',
       theme: AppTheme.themeData,
+      // Above the navigator, so the orientation survives a screen-off on
+      // every route, not just the one that happens to be on top.
+      builder: (BuildContext context, Widget? child) =>
+          OrientationKeeper(child: child ?? const SizedBox.shrink()),
       home: MainMenuScreen(
         repository: repository,
         autoTick: const Duration(seconds: 1),
