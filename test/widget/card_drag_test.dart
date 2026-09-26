@@ -8,6 +8,7 @@ import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
 import 'package:open_patience/presentation/card_view.dart';
+import 'package:open_patience/presentation/slot_placeholder.dart';
 import 'package:open_patience/ui/game_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -267,5 +268,69 @@ void main() {
     await tester.pumpAndSettle();
     expect(bloc.state.state.pileAt(7).length, 2);
     expect(find.text('1 move'), findsOneWidget);
+  });
+
+  testWidgets('lifting the last card of a column shows its slot mid-drag', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    final GameBloc bloc = _bloc(
+      repo,
+      _game(<List<Card>>[
+        <Card>[_up(Suit.spades, 5)],
+        <Card>[_up(Suit.hearts, 6)],
+      ]),
+    );
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+
+    final Rect home = tester.getRect(_cardFace(Suit.spades, 5));
+    final TestGesture gesture = await tester.startGesture(home.center);
+    await gesture.moveTo(tester.getCenter(_cardFace(Suit.hearts, 6)));
+    await tester.pump();
+
+    // Mid-drag the column's empty slot is already showing where the card was.
+    final Iterable<Rect> slotRects = tester
+        .widgetList<SlotPlaceholder>(find.byType(SlotPlaceholder))
+        .map((SlotPlaceholder w) => tester.getRect(find.byWidget(w)));
+    expect(slotRects, contains(home));
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(bloc.state.state.pileAt(6).isEmpty, isTrue);
+  });
+
+  testWidgets('dragging a foundation top card shows the card beneath it', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    final GameBloc bloc = _bloc(
+      repo,
+      GameState(
+        piles: <Pile>[
+          Pile(kind: PileKind.stock),
+          Pile(kind: PileKind.waste),
+          Pile(
+            kind: PileKind.foundation,
+            cards: <Card>[_up(Suit.clubs, aceRank), _up(Suit.clubs, 2)],
+          ),
+          for (int i = 0; i < 3; i++) Pile(kind: PileKind.foundation),
+          Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.hearts, 3)]),
+          for (int i = 1; i < 7; i++) Pile(kind: PileKind.tableau),
+        ],
+      ),
+    );
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+
+    final Rect home = tester.getRect(_cardFace(Suit.clubs, 2));
+    final TestGesture gesture = await tester.startGesture(home.center);
+    await gesture.moveTo(tester.getCenter(_cardFace(Suit.hearts, 3)));
+    await tester.pump();
+
+    expect(tester.getRect(_cardFace(Suit.clubs, aceRank)), home);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
   });
 }

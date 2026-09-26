@@ -54,7 +54,12 @@ class CardPlacement {
   CardKey get key => CardKey.of(card);
 }
 
-/// An empty pile's slot-marker rect (foundation / free-cell / stock / tableau).
+/// A pile's slot-marker rect (foundation / free-cell / waste / tableau, and an
+/// empty stock). Every pile keeps its marker, painted *beneath* its cards, so
+/// lifting a pile's last card in a drag reveals the empty slot right away
+/// instead of it popping in on drop. A non-empty stock has none: its top card
+/// is the tap target and the marker's recycle glyph only makes sense once the
+/// stock is empty.
 @immutable
 class SlotPlacement {
   const SlotPlacement({
@@ -262,19 +267,23 @@ class _Builder {
   double get _cardW => metrics.cardSize.width;
   double get _cardH => metrics.cardSize.height;
 
-  /// Records a single-card (stock/foundation/free-cell) or empty slot at
-  /// [origin]. Returns the board-local rect it occupies.
+  /// Records a single-card pile (stock/foundation/free-cell) at [origin], with
+  /// its slot marker beneath (see [SlotPlacement]). Returns the board-local
+  /// rect it occupies.
   ///
-  /// A foundation pile places only its top card, unless
-  /// [revealFoundationStacks] is on — then every card in the pile gets its own
-  /// placement, all at [origin], bottom-to-top (see [BoardGeometry.resolve]).
+  /// A foundation pile places its top card plus the card beneath it (hidden
+  /// under the top, so a drag reveals it), unless [revealFoundationStacks] is
+  /// on — then every card in the pile gets its own placement, all at
+  /// [origin], bottom-to-top (see [BoardGeometry.resolve]).
   Rect _placeSingleOrSlot(int pileIndex, Offset origin) {
     final Pile pile = game.pileAt(pileIndex);
     final Rect slotRect = origin & metrics.cardSize;
-    if (pile.isEmpty) {
+    if (pile.isEmpty || pile.kind != PileKind.stock) {
       slots.add(
         SlotPlacement(pileIndex: pileIndex, kind: pile.kind, rect: slotRect),
       );
+    }
+    if (pile.isEmpty) {
       dropTargets[pileIndex] = slotRect;
       return slotRect;
     }
@@ -292,6 +301,19 @@ class _Builder {
         );
       }
     } else {
+      if (pile.kind == PileKind.foundation && topIndex > 0) {
+        // The card beneath the top, hidden under it, so dragging the top card
+        // away reveals it mid-drag (like the waste's backing card).
+        cards.add(
+          CardPlacement(
+            card: pile.cards[topIndex - 1],
+            pileIndex: pileIndex,
+            indexInPile: topIndex - 1,
+            isTop: false,
+            rect: slotRect,
+          ),
+        );
+      }
       cards.add(
         CardPlacement(
           card: pile.cards[topIndex],
@@ -311,15 +333,11 @@ class _Builder {
   /// board-local rect the fan occupies.
   Rect _placeWaste(int pileIndex, Offset origin) {
     final Pile pile = game.pileAt(pileIndex);
+    final Rect slotRect = origin & metrics.cardSize;
+    slots.add(
+      SlotPlacement(pileIndex: pileIndex, kind: PileKind.waste, rect: slotRect),
+    );
     if (pile.isEmpty) {
-      final Rect slotRect = origin & metrics.cardSize;
-      slots.add(
-        SlotPlacement(
-          pileIndex: pileIndex,
-          kind: PileKind.waste,
-          rect: slotRect,
-        ),
-      );
       dropTargets[pileIndex] = slotRect;
       return slotRect;
     }
@@ -373,15 +391,15 @@ class _Builder {
     double regionBottom,
   ) {
     final Pile pile = game.pileAt(pileIndex);
+    final Rect slotRect = origin & metrics.cardSize;
+    slots.add(
+      SlotPlacement(
+        pileIndex: pileIndex,
+        kind: PileKind.tableau,
+        rect: slotRect,
+      ),
+    );
     if (pile.isEmpty) {
-      final Rect slotRect = origin & metrics.cardSize;
-      slots.add(
-        SlotPlacement(
-          pileIndex: pileIndex,
-          kind: PileKind.tableau,
-          rect: slotRect,
-        ),
-      );
       dropTargets[pileIndex] = _tableauDropTarget(
         origin,
         slotRect.bottom,
