@@ -37,6 +37,9 @@ flutter:
   # tools/art/*.blend via tools/art/build_art.py — never fetched at runtime.
   assets:
     - assets/images/
+    # Card sound effects, generated from Kenney's CC0 "Casino Audio" pack by
+    # tools/sfx/build_sfx.py — never hand-edited, never fetched at runtime.
+    - assets/sounds/
 
   # Bundled OFL fonts (see assets/fonts/OFL-*.txt for licenses). Bundled as
   # local assets — never fetched at runtime — so the F-Droid build stays

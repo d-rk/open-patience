@@ -53,3 +53,6 @@ media/*
 # Python bytecode cache (tools/)
 __pycache__/
 *.pyc
+
+# tools/sfx download cache
+tools/sfx/.cache/

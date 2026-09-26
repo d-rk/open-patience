@@ -21,6 +21,7 @@ tools/
   art/     Blender-rendered splash + menu banner art
   logo/    app icon + launcher/web/F-Droid icons (pure-SVG → PNG)
   fdroid/  F-Droid release plumbing + store screenshots
+  sfx/     card sound effects (Kenney CC0 pack → assets/sounds/)
   video/   gameplay video for the README (demo save + screencast)
   test/    stdlib-only unit tests for cdp.py + video/ — run in CI
 ```
@@ -293,6 +294,29 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
   too). Re-record it by hand, and re-upload to YouTube, when the UI changes
   enough that the video misrepresents the app — then regenerate the
   thumbnail from the new recording.
+
+## sfx/ — sound effects
+
+- `build_sfx.py` — the single source of truth for `assets/sounds/`. Downloads
+  Kenney's CC0 *Casino Audio* pack (pinned URL + SHA-256, cached in the
+  gitignored `tools/sfx/.cache/`) and renders each entry of its `RECIPES`
+  table with ffmpeg: leading silence stripped, optional trim, optional quiet
+  second layer (the foundation sounds add a chip click), fade-out, mono
+  44.1 kHz, peaks normalised to −1 dBFS, Vorbis. Encoding is bit-exact, so a
+  re-run with unchanged recipes produces byte-identical files and no diff.
+  Also copies the pack's `License.txt` to
+  `assets/sounds/LICENSE-kenney-casino-audio.txt`.
+
+To change a sound, edit its recipe (or pick another pack file), re-run, listen,
+commit. The Dart side refers to the outputs by name in
+`lib/presentation/sound/sound_board.dart`; `test/unit/sound_assets_test.dart`
+fails if a name there has no file. The pure parts (recipe table, ffmpeg
+arguments, checksum, loudness maths) are unit-tested in
+`tools/test/sfx_test.py`, which runs in CI.
+
+```bash
+python3 tools/sfx/build_sfx.py   # needs ffmpeg with libvorbis
+```
 
 ## Notes
 
