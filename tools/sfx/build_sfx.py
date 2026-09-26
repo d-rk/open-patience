@@ -11,7 +11,7 @@ byte-identical files. Everything is rendered into a staging directory first
 and swapped into place with a rename (see swap_into_place); on any failure
 assets/sounds/ is left untouched.
 
-Needs ffmpeg (with libvorbis) on PATH.
+Needs ffmpeg and ffprobe (with libvorbis) on PATH.
 """
 
 import hashlib
@@ -40,12 +40,13 @@ LICENSE_OUT = "LICENSE-kenney-casino-audio.txt"
 PEAK_TARGET_DB = -1.0
 SILENCE_THRESHOLD_DB = -50
 
-# AudioplayersSoundSink._releaseAfter (in
-# lib/presentation/sound/audioplayers_sound_sink.dart) hands a low-latency
-# player back to its pool 2s after a clip starts, on the assumption the clip
-# has certainly finished by then. Keep every rendered clip comfortably under
-# that with a 1.8s ceiling, so a future recipe change can't quietly grow a
-# clip past the point where it gets cut off mid-playback.
+# These are short one-shots, not background tracks. AudioplayersSoundSink
+# (lib/presentation/sound/audioplayers_sound_sink.dart) gives each sound its
+# own fixed round-robin pool of 3 AudioPlayers; a 4th rapid play of the same
+# sound restarts the oldest of the three, cutting it off. Keep every
+# rendered clip at or under 1.8s so that's never something a player actually
+# needs to sit through — a future recipe change that grows a clip past this
+# ceiling should fail loudly instead of quietly risking a cut-off clip.
 MAX_CLIP_S = 1.8
 
 
@@ -161,8 +162,8 @@ def check_duration(name, seconds):
     if seconds > MAX_CLIP_S:
         raise ValueError(
             f"{name}.ogg is {seconds:.2f}s, longer than the {MAX_CLIP_S}s "
-            "cap (AudioplayersSoundSink releases pooled players after "
-            "_releaseAfter)")
+            "cap (AudioplayersSoundSink's round-robin pool restarts the "
+            "oldest of its 3 players on a 4th rapid play)")
 
 
 def probe_duration(path):

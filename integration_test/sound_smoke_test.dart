@@ -3,6 +3,7 @@
 // the actual .ogg files meet the platform's decoder. This proves every
 // bundled file loads into the plugin and play() doesn't error — it does NOT
 // prove audio was audible (emulators often run with -noaudio).
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:open_patience/presentation/sound/audioplayers_sound_sink.dart';
@@ -27,5 +28,10 @@ void main() {
     }
 
     expect(errors, isEmpty);
+
+    // Position polling must be off: a playing sound must not keep
+    // scheduling frames (the bug CI caught).
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(SchedulerBinding.instance.transientCallbackCount, 0);
   });
 }
