@@ -172,7 +172,7 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
   match).
 
   ```bash
-  tools/fdroid/verify-reproducible-build.sh              # HEAD, arm64-v8a, flutter 3.38.5
+  tools/fdroid/verify-reproducible-build.sh              # HEAD, arm64-v8a, flutter 3.47.5
   tools/fdroid/verify-reproducible-build.sh v1.0.4 x86_64
   ```
 
