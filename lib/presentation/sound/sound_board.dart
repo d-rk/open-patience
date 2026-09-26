@@ -17,8 +17,8 @@ class SoundBoard implements SoundEffects {
     required SettingsRepository settings,
     Random? random,
     DateTime Function()? clock,
-  }) : _sink = sink,
-       _settings = settings,
+  }) : _sink = sink, // ignore: prefer_initializing_formals
+       _settings = settings, // ignore: prefer_initializing_formals
        _random = random ?? Random(),
        _clock = clock ?? DateTime.now;
 

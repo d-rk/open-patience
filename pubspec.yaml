@@ -7,7 +7,7 @@ publish_to: 'none'
 version: 1.0.7+9
 
 environment:
-  sdk: '>=3.10.0 <4.0.0'
+  sdk: '>=3.12.0 <4.0.0'
   # Pinned exactly (not a range) so F-Droid's reproducible build can extract
   # and check out the same Flutter version. Bump in lockstep with the CI /
   # F-Droid toolchain when upgrading Flutter.

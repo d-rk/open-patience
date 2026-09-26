@@ -33,7 +33,9 @@ class GameState with Equatable {
     List<Move> undoStack = const <Move>[],
     List<Move> redoStack = const <Move>[],
   }) : _piles = List<Pile>.of(piles),
+       // ignore: prefer_initializing_formals
        _moveCount = moveCount,
+       // ignore: prefer_initializing_formals
        _elapsedSeconds = elapsedSeconds,
        _undoStack = List<Move>.of(undoStack),
        _redoStack = List<Move>.of(redoStack);

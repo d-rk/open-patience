@@ -33,6 +33,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     this.autoSolveStep = const Duration(milliseconds: 120),
     this.sound = const SilentSoundEffects(),
   }) : rules = GameRegistry.rulesFor(variant),
+       // ignore: prefer_initializing_formals
        _seed = seed,
        _state = state,
        _random = random ?? Random(),
