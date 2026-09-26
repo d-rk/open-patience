@@ -1,6 +1,8 @@
 // Real-device check that every bundled sound decodes and plays through the
 // audio plugin. Headless tests never touch the plugin; this is the one place
-// the actual .ogg files meet the platform's decoder.
+// the actual .ogg files meet the platform's decoder. This proves every
+// bundled file loads into the plugin and play() doesn't error — it does NOT
+// prove audio was audible (emulators often run with -noaudio).
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:open_patience/presentation/sound/audioplayers_sound_sink.dart';
