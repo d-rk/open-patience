@@ -7,8 +7,9 @@ tools/sfx/.cache/), then renders each RECIPES entry with ffmpeg: strip
 leading silence, optionally trim, optionally mix in a quiet second layer,
 fade out, downmix to mono 44.1 kHz, peak-normalise to -1 dBFS and encode
 Vorbis. Encoding is bit-exact, so re-running on the same inputs rewrites
-byte-identical files. Everything is rendered into a temp dir first; on any
-failure assets/sounds/ is left untouched.
+byte-identical files. Everything is rendered into a staging directory first
+and swapped into place with a rename (see swap_into_place); on any failure
+assets/sounds/ is left untouched.
 
 Needs ffmpeg (with libvorbis) on PATH.
 """
@@ -113,9 +114,7 @@ def filter_graph(recipe, gain_db=None):
         # graph can otherwise produce (from the mono downmix and the
         # reversed-afade trick). volume's default float precision would
         # apply the gain in that louder domain and overshoot the target, so
-        # pin it to the same fixed precision volumedetect measured in —
-        # confirmed by ffprobe/volumedetect on the rendered output landing
-        # at ~-1 dBFS (see task-2-report.md).
+        # pin it to the same fixed precision volumedetect measured in.
         "volumedetect" if gain_db is None
         else f"volume={gain_db:.2f}dB:precision=fixed",
     ]
@@ -184,23 +183,55 @@ def render(recipe, src_dir, out_dir):
                    capture_output=True, check=True)
 
 
+def swap_into_place(staged, target):
+    """Replace the [target] directory with [staged] (must be on the same
+    filesystem, so the swap is a rename, not a copy). On success [staged] no
+    longer exists and [target] holds its former contents. On any failure
+    [target] is left exactly as it was and nothing is left behind under its
+    name — not even a half-renamed backup."""
+    if not os.path.isdir(staged):
+        raise FileNotFoundError(f"staged directory not found: {staged}")
+    backup = target + ".bak"
+    if os.path.exists(backup):
+        shutil.rmtree(backup)
+    had_target = os.path.exists(target)
+    if had_target:
+        os.rename(target, backup)
+    try:
+        os.replace(staged, target)
+    except OSError:
+        if had_target:
+            if os.path.exists(target):
+                shutil.rmtree(target)
+            os.rename(backup, target)
+        raise
+    else:
+        if had_target and os.path.exists(backup):
+            shutil.rmtree(backup)
+
+
 def main():
     if shutil.which("ffmpeg") is None:
         sys.exit("ffmpeg not found on PATH")
     zip_path = fetch_pack()
     with tempfile.TemporaryDirectory() as tmp:
         src_dir = os.path.join(tmp, "src")
-        out_dir = os.path.join(tmp, "out")
         os.makedirs(src_dir)
-        os.makedirs(out_dir)
         extract(zip_path, src_dir)
-        for r in RECIPES:
-            render(r, src_dir, out_dir)
-            print(f"  {r.output}.ogg")
-        shutil.copy(os.path.join(src_dir, LICENSE_OUT), out_dir)
-        if os.path.isdir(OUT_DIR):
-            shutil.rmtree(OUT_DIR)
-        shutil.copytree(out_dir, OUT_DIR)
+
+        # Staged on the same filesystem as OUT_DIR (not the /tmp above,
+        # which may be a different filesystem) so the final swap is a rename,
+        # never a partial copy.
+        staged = tempfile.mkdtemp(prefix="sounds-", dir=os.path.dirname(OUT_DIR))
+        try:
+            for r in RECIPES:
+                render(r, src_dir, staged)
+                print(f"  {r.output}.ogg")
+            shutil.copy(os.path.join(src_dir, LICENSE_OUT), staged)
+            swap_into_place(staged, OUT_DIR)
+        finally:
+            if os.path.isdir(staged):
+                shutil.rmtree(staged)
     print(f"wrote {len(RECIPES)} sounds to {os.path.relpath(OUT_DIR, ROOT)}")
 
 

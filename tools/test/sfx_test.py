@@ -4,9 +4,11 @@ network) — run: python3 tools/test/sfx_test.py"""
 
 import os
 import re
+import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, os.pardir, "sfx"))
@@ -90,6 +92,52 @@ class FfmpegArgsTest(unittest.TestCase):
 
     def test_fade_length_comes_from_the_recipe(self):
         self.assertIn("afade=t=in:d=0.15", sfx.filter_graph(recipe("win")))
+
+
+class SwapIntoPlaceTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def make_dir(self, name, files):
+        path = os.path.join(self.tmp, name)
+        os.makedirs(path)
+        for fname, content in files.items():
+            with open(os.path.join(path, fname), "w") as f:
+                f.write(content)
+        return path
+
+    def test_replaces_target_contents(self):
+        target = self.make_dir("target", {"old.txt": "old"})
+        staged = self.make_dir("staged", {"new.txt": "new"})
+        sfx.swap_into_place(staged, target)
+        self.assertEqual(os.listdir(target), ["new.txt"])
+        self.assertFalse(os.path.exists(staged))
+        self.assertFalse(os.path.exists(target + ".bak"))
+
+    def test_creates_target_when_it_does_not_exist_yet(self):
+        target = os.path.join(self.tmp, "brand_new")
+        staged = self.make_dir("staged2", {"a.txt": "a"})
+        sfx.swap_into_place(staged, target)
+        self.assertEqual(os.listdir(target), ["a.txt"])
+        self.assertFalse(os.path.exists(staged))
+
+    def test_missing_staged_dir_leaves_target_untouched(self):
+        target = self.make_dir("target2", {"keep.txt": "keep"})
+        missing = os.path.join(self.tmp, "does_not_exist")
+        with self.assertRaises(FileNotFoundError):
+            sfx.swap_into_place(missing, target)
+        self.assertEqual(os.listdir(target), ["keep.txt"])
+        self.assertFalse(os.path.exists(target + ".bak"))
+
+    def test_failed_rename_restores_the_target(self):
+        target = self.make_dir("target3", {"keep.txt": "keep"})
+        staged = self.make_dir("staged3", {"new.txt": "new"})
+        with mock.patch("build_sfx.os.replace", side_effect=OSError("boom")):
+            with self.assertRaises(OSError):
+                sfx.swap_into_place(staged, target)
+        self.assertEqual(os.listdir(target), ["keep.txt"])
+        self.assertFalse(os.path.exists(target + ".bak"))
 
 
 class LoudnessTest(unittest.TestCase):
