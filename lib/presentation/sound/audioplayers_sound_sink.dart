@@ -11,12 +11,18 @@ import 'sound_sink.dart';
 /// listening to (iOS `ambient`, which also honors the silent switch; Android
 /// game usage without taking audio focus). Every failure is reported to
 /// [onError] and swallowed — sound can never crash or stall the game — and
-/// playing a file that has not finished preloading is a silent no-op.
+/// playing a file that has not finished preloading is a silent no-op. Each
+/// player is handed back to its pool [_releaseAfter] after a clip starts,
+/// since a low-latency pool never recycles one on its own.
 class AudioplayersSoundSink implements SoundSink {
   AudioplayersSoundSink({void Function(Object error)? onError})
     : _onError = onError ?? _debugLog;
 
   static const int _maxPlayersPerSound = 3;
+
+  /// Longer than the longest bundled clip (~1.3 s), so the player has
+  /// certainly finished before its [StopFunction] is called.
+  static const Duration _releaseAfter = Duration(seconds: 2);
 
   static final AudioContext _context = AudioContext(
     android: const AudioContextAndroid(
@@ -59,7 +65,20 @@ class AudioplayersSoundSink implements SoundSink {
     if (pool == null) {
       return;
     }
-    unawaited(pool.start(volume: volume).then<void>((_) {}, onError: _onError));
+    unawaited(_playAndRelease(pool, volume));
+  }
+
+  /// Low-latency pools never recycle a player on their own, so hand it back
+  /// once the clip has certainly finished; otherwise every play would leak a
+  /// native player and the pool cap would never apply.
+  Future<void> _playAndRelease(AudioPool pool, double volume) async {
+    try {
+      final StopFunction stop = await pool.start(volume: volume);
+      await Future<void>.delayed(_releaseAfter);
+      await stop();
+    } catch (error) {
+      _onError(error);
+    }
   }
 
   static void _debugLog(Object error) => debugPrint('sound: $error');
