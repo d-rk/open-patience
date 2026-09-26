@@ -236,6 +236,58 @@ void main() {
     expect(settings.soundEnabled, isTrue);
   });
 
+  testWidgets('landscape phone: menu does not overflow and Exit still works', (
+    WidgetTester tester,
+  ) async {
+    // A real landscape phone: ~360dp tall, well under the ~393dp the
+    // dialog content (banner + actions + sound tile + divider + exit)
+    // needs when laid out as a plain non-scrolling Column.
+    tester.view.physicalSize = const Size(800, 360);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    final SettingsRepository settings = await settingsRepo();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (BuildContext context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => BlocProvider<GameBloc>.value(
+                      value: bloc,
+                      child: GameScreen(settings: settings),
+                    ),
+                  ),
+                ),
+                child: const Text('play'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('play'));
+    await tester.pumpAndSettle();
+    await _openMenu(tester);
+
+    // No overflow (RenderFlex overflow throws during layout/paint).
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(find.text('Exit to menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Exit to menu'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('play'), findsOneWidget); // back on the launcher screen
+    expect(find.byType(GameScreen), findsNothing);
+  });
+
   testWidgets('no settings wired in means no sound tile', (
     WidgetTester tester,
   ) async {
