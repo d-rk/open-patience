@@ -22,8 +22,8 @@ import 'zone_tray.dart';
 /// The responsive board. Reads the current [GameState] from the [GameBloc] and
 /// resolves every card, slot and drop-target rect for the available space via
 /// [BoardGeometry], then paints them into a single positioned [Stack]: one
-/// [Positioned] card per placement, one [Positioned] [SlotPlaceholder] per empty
-/// pile, and one [Positioned] [DragTarget] hit region per pile. It owns no state
+/// [Positioned] card per placement, one [Positioned] [SlotPlaceholder] per pile
+/// (beneath its cards), and one [Positioned] [DragTarget] hit region per pile. It owns no state
 /// and no rules: every gesture is forwarded straight to the bloc as a
 /// [GameEvent]. Rebuilds are scoped to *board* changes (piles), so the
 /// once-a-second timer tick never repaints it.

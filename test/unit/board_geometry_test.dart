@@ -148,12 +148,19 @@ void main() {
       );
     });
 
-    test('empty piles produce slot placements, filled piles do not', () {
-      final Set<int> slotPiles = g.slots
-          .map((SlotPlacement s) => s.pileIndex)
-          .toSet();
-      expect(slotPiles.contains(3), isTrue); // empty foundation
-      expect(slotPiles.contains(2), isFalse); // foundation with the ace
+    test('every pile keeps its slot marker beneath its cards', () {
+      // Drawn under the bottom card, so lifting a pile's last card in a drag
+      // reveals its empty slot instead of the slot popping in on drop.
+      Rect slotOf(int pile) =>
+          g.slots.firstWhere((SlotPlacement s) => s.pileIndex == pile).rect;
+      expect(slotOf(3), isNotNull); // empty foundation
+      expect(slotOf(2), _rectOf(g, Suit.clubs, aceRank)); // under the ace
+      expect(slotOf(6), _rectOf(g, Suit.spades, 5)); // under a lone card
+      expect(slotOf(7), _rectOf(g, Suit.hearts, kingRank)); // under a column
+    });
+
+    test('a non-empty stock has no slot marker (it is its own tap target)', () {
+      expect(g.slots.where((SlotPlacement s) => s.pileIndex == 0), isEmpty);
     });
 
     test('each pile has a drop-target rect covering its cards', () {
@@ -440,7 +447,7 @@ void main() {
   });
 
   group('revealFoundationStacks', () {
-    test('off by default: only the top card of a foundation is placed', () {
+    test('off by default: a lone foundation card is placed once', () {
       final BoardGeometry g = BoardGeometry.resolve(
         game: _klondike(),
         width: 400,
@@ -500,6 +507,26 @@ void main() {
       expect(g.cards.where((CardPlacement p) => p.pileIndex == 3), isEmpty);
       expect(g.slots.where((SlotPlacement s) => s.pileIndex == 3).length, 1);
     });
+  });
+
+  test('a foundation keeps the card beneath its top as a backing card', () {
+    // Dragging the top card off a foundation must reveal the card below it
+    // during the drag, not only after the drop.
+    final BoardGeometry g = BoardGeometry.resolve(
+      game: _klondikeMultiFoundationCards(),
+      width: 400,
+      height: 800,
+      shortestSide: 400,
+      isLandscape: false,
+      wasteVisibleCount: 1,
+    );
+    final List<CardPlacement> foundation = g.cards
+        .where((CardPlacement p) => p.pileIndex == 2)
+        .toList();
+    expect(foundation.map((CardPlacement p) => p.card.rank), <int>[aceRank, 2]);
+    expect(foundation.first.isTop, isFalse);
+    expect(foundation.last.isTop, isTrue);
+    expect(foundation.first.rect, foundation.last.rect);
   });
 }
 
