@@ -1,0 +1,3 @@
+Add sound effects
+
+Adds short, tactile card sound effects (no music), on by default, with a **Sound: On/Off** toggle in the in-game menu.

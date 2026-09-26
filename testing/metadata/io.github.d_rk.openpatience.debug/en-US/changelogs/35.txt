@@ -1,0 +1,6 @@
+Show a pile's slot (or underlying card) while its top card is dragged
+
+## Problem
+Dragging the last card of a tableau column showed nothing where it had been. The empty-slot placeholder only popped in after the drop, once the pile was actually empty in the game state. Two other cases behaved the same way:
+- dragging a free cell's card, or the lone waste card, showed nothing beneath it
+- dragging a foundation's top card showed nothing beneath it; the card under it only appeared after the drop
