@@ -33,7 +33,7 @@ class StatBar extends StatelessWidget {
             const SizedBox(width: 12),
             GamePill(
               icon: Icons.swap_vert,
-              label: '${state.state.moveCount} moves',
+              label: formatMoves(state.state.moveCount),
             ),
           ],
         );

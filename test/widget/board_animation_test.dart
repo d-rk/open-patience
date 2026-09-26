@@ -626,4 +626,77 @@ void main() {
     expect(bloc.state.state.pileAt(1).topCard!.faceUp, isTrue);
     expect(_cardFace(Suit.hearts, 9), findsOneWidget);
   });
+
+  testWidgets('every card paints into its own repaint boundary', (
+    WidgetTester tester,
+  ) async {
+    // Without per-card boundaries one moving card forces every card on the
+    // board to repaint each animation frame.
+    await _pump(tester, const Size(400, 800), state: _dragPair());
+
+    final Finder cards = find.descendant(
+      of: find.byType(Board),
+      matching: find.byType(AnimatedPositioned),
+    );
+    expect(cards, findsWidgets);
+    for (final Element card in tester.elementList(cards)) {
+      expect(
+        find.descendant(
+          of: find.byElementPredicate((Element e) => identical(e, card)),
+          matching: find.byType(RepaintBoundary),
+        ),
+        findsWidgets,
+      );
+    }
+  });
+
+  testWidgets('deal ticks do not rebuild cards that are not changing', (
+    WidgetTester tester,
+  ) async {
+    // The deal used to setState the whole board every frame, rebuilding (and
+    // re-laying-out) all 52 cards for its whole ~2s run. Only a card crossing
+    // its activation delay should rebuild.
+    final GameState deal = GameState.newGame(
+      GameRegistry.rulesFor('klondike-draw1'),
+      seed: 1,
+    );
+    final GameBloc bloc = await _startDeal(
+      tester,
+      const Size(400, 800),
+      state: deal,
+    );
+    // The second column's bottom card is dealt early and stays face down, so
+    // once dealt nothing about it changes for the rest of the deal.
+    final Card early = bloc.state.state.pileAt(7).cards.first;
+    final Finder earlyFinder = _faceDown(early.suit, early.rank);
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final CardFace before = tester.widget<CardFace>(earlyFinder);
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(identical(tester.widget<CardFace>(earlyFinder), before), isTrue);
+
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('cascade ticks move cards without rebuilding them', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, const Size(400, 800), state: _almostWon());
+    await tester.tap(_cardFace(Suit.spades, kingRank));
+    await tester.pump(const Duration(milliseconds: 350)); // fire onTap
+    await tester.pump(); // rebuild: GameWon, the cascade begins
+    await tester.pump(const Duration(milliseconds: 300));
+    // One more frame for the king's finished flight to release its paint-order
+    // lift (a one-off board rebuild, not a per-tick one).
+    await tester.pump(const Duration(milliseconds: 16));
+
+    final Finder king = _cardFace(Suit.spades, kingRank);
+    final CardFace before = tester.widget<CardFace>(king);
+    final Offset from = tester.getTopLeft(king);
+    await tester.pump(const Duration(milliseconds: 100));
+    // The card moved, but only its transform changed: same widget instance.
+    expect(tester.getTopLeft(king), isNot(equals(from)));
+    expect(identical(tester.widget<CardFace>(king), before), isTrue);
+  });
 }

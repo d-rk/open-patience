@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import '../ui/theme/game_palette.dart';
 
 /// The fine, tone-on-tone diamond-and-pip texture drawn on the face-down card
-/// back. Purely decorative: it takes a [size] and paints a dense lattice of
+/// back. Purely decorative: it takes a [size] and shows a dense lattice of
 /// small green diamonds, each holding a tiny suit pip, all scaled to that size
 /// so the texture stays uniform whether the card renders at 48px on a phone or
 /// much larger.
@@ -13,17 +16,82 @@ import '../ui/theme/game_palette.dart';
 /// the frame band and behind this texture for a seamless look. A fine, uniform
 /// texture (rather than a few big shapes) also fans cleanly: a stacked card's
 /// thin visible sliver never breaks into ugly partial shapes.
+///
+/// The texture is ~140 vector paths. Re-tessellating them for every face-down
+/// card on every animation frame is far too much GPU work (it hung FreeCell's
+/// 52-card deal on a low-end Adreno GPU and made moves stutter on tablets), so
+/// [DiamondPipPainter] runs once per size into a [ui.Image] — with the
+/// [cornerRadius] clip baked in — via [CardBackRaster], and every card back
+/// blits that shared image as a single textured quad.
 class CardBackPattern extends StatelessWidget {
-  const CardBackPattern({required this.size, super.key});
+  const CardBackPattern({required this.size, this.cornerRadius = 0, super.key});
 
   final Size size;
 
+  /// Radius of the rounded-rectangle clip baked into the texture.
+  final double cornerRadius;
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox.fromSize(
-      size: size,
-      child: CustomPaint(size: size, painter: const DiamondPipPainter()),
+    final double pixelRatio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1;
+    return RawImage(
+      image: CardBackRaster.imageFor(size, cornerRadius, pixelRatio),
+      width: size.width,
+      height: size.height,
+      fit: BoxFit.fill,
+      filterQuality: FilterQuality.medium,
     );
+  }
+}
+
+/// A small process-wide cache of rasterised [DiamondPipPainter] textures, keyed
+/// by logical size, corner radius and device pixel ratio. A board only ever
+/// shows one card size at a time (two across a rotation), so the cache is tiny
+/// and bounded; evicted images are left to the garbage collector because a
+/// mounted [RawImage] may still reference them.
+class CardBackRaster {
+  const CardBackRaster._();
+
+  static const int _maxEntries = 4;
+
+  static final Map<(Size, double, double), ui.Image> _cache =
+      <(Size, double, double), ui.Image>{};
+
+  /// The texture for a [size] pattern clipped to [cornerRadius], rendered at
+  /// [pixelRatio] physical pixels per logical pixel. Returns the identical
+  /// [ui.Image] for identical arguments.
+  static ui.Image imageFor(Size size, double cornerRadius, double pixelRatio) {
+    final (Size, double, double) key = (size, cornerRadius, pixelRatio);
+    final ui.Image? cached = _cache.remove(key);
+    if (cached != null) {
+      _cache[key] = cached; // re-insert as most recently used
+      return cached;
+    }
+    final ui.Image image = _render(size, cornerRadius, pixelRatio);
+    if (_cache.length >= _maxEntries) {
+      _cache.remove(_cache.keys.first);
+    }
+    _cache[key] = image;
+    return image;
+  }
+
+  static ui.Image _render(Size size, double cornerRadius, double pixelRatio) {
+    final int width = math.max(1, (size.width * pixelRatio).ceil());
+    final int height = math.max(1, (size.height * pixelRatio).ceil());
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder)
+      ..scale(pixelRatio)
+      ..clipRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          Radius.circular(math.max(0, cornerRadius)),
+        ),
+      );
+    const DiamondPipPainter().paint(canvas, size);
+    final ui.Picture picture = recorder.endRecording();
+    final ui.Image image = picture.toImageSync(width, height);
+    picture.dispose();
+    return image;
   }
 }
 

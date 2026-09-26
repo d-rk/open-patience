@@ -59,3 +59,6 @@ String formatDuration(int seconds) {
   final String ss = secs.toString().padLeft(2, '0');
   return '$mm:$ss';
 }
+
+/// Formats a move [count] as `1 move` / `N moves`.
+String formatMoves(int count) => count == 1 ? '1 move' : '$count moves';

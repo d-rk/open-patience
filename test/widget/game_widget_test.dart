@@ -147,7 +147,7 @@ void main() {
 
     await _dragTo(tester, _cardFace(Suit.spades, 7), _cardFace(Suit.hearts, 8));
 
-    expect(find.text('1 moves'), findsOneWidget);
+    expect(find.text('1 move'), findsOneWidget);
     expect(bloc.state.state.pileAt(7).length, 2);
   });
 
@@ -164,7 +164,7 @@ void main() {
     await _pump(tester, bloc);
     await _tapCard(tester, _cardFace(Suit.spades, aceRank));
 
-    expect(find.text('1 moves'), findsOneWidget);
+    expect(find.text('1 move'), findsOneWidget);
     expect(
       bloc.state.state.pileAt(6).isEmpty,
       isTrue,
@@ -194,7 +194,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bloc.state.state.pileAt(5).length, 3);
-    expect(find.text('1 moves'), findsOneWidget);
+    expect(find.text('1 move'), findsOneWidget);
   });
 
   testWidgets('undo then redo walks the move counter back and forward', (
@@ -212,7 +212,7 @@ void main() {
 
     await _pump(tester, bloc);
     await _dragTo(tester, _cardFace(Suit.spades, 7), _cardFace(Suit.hearts, 8));
-    expect(find.text('1 moves'), findsOneWidget);
+    expect(find.text('1 move'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Undo'));
     await tester.pumpAndSettle();
@@ -220,7 +220,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Redo'));
     await tester.pumpAndSettle();
-    expect(find.text('1 moves'), findsOneWidget);
+    expect(find.text('1 move'), findsOneWidget);
   });
 
   testWidgets('winning navigates to the records screen and records the win', (
@@ -246,7 +246,7 @@ void main() {
     await _dismissWinCascade(tester);
 
     expect(find.byType(RecordsScreen), findsOneWidget);
-    expect(find.text('You won in 00:00 · 1 moves'), findsOneWidget);
+    expect(find.text('You won in 00:00 · 1 move'), findsOneWidget);
     final Stats stats = await repo.statsFor('klondike-draw1');
     expect(stats.totalWins, 1);
   });
@@ -353,7 +353,7 @@ void main() {
 
     await _pump(tester, bloc);
     await _dragTo(tester, _cardFace(Suit.spades, 7), _cardFace(Suit.hearts, 8));
-    expect(find.text('1 moves'), findsOneWidget);
+    expect(find.text('1 move'), findsOneWidget);
 
     // Simulate the OS pausing the app: GameScreen saves on paused.
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
@@ -370,7 +370,7 @@ void main() {
     addTearDown(resumed.close);
     await _pump(tester, resumed);
 
-    expect(find.text('1 moves'), findsOneWidget);
+    expect(find.text('1 move'), findsOneWidget);
     expect(resumed.state.state.pileAt(7).length, 2);
   });
 
