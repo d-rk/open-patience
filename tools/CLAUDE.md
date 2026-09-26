@@ -228,6 +228,13 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
   thin wrapper around `storage.py`. Backs up any existing prefs file before
   overwriting, timestamped; `--restore` puts the newest backup back.
 
+  Since sound effects were added, the Linux desktop build also needs the
+  GStreamer dev packages at build time (`gstreamer1-devel
+  gstreamer1-plugins-base-devel` on Fedora; `libgstreamer1.0-dev
+  libgstreamer-plugins-base1.0-dev` on Debian/Ubuntu), plus the base plugins
+  (Ogg/Vorbis) installed at runtime for `audioplayers` to play the bundled
+  `.ogg` clips.
+
   ```bash
   python3 tools/video/seed_linux_save.py     # preload the demo save
   flutter run -d linux --release             # record this — no debug banner
@@ -303,7 +310,10 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
   table with ffmpeg: leading silence stripped, optional trim, optional quiet
   second layer (the foundation sounds add a chip click), fade-out, mono
   44.1 kHz, peaks normalised to −1 dBFS, Vorbis. Encoding is bit-exact, so a
-  re-run with unchanged recipes produces byte-identical files and no diff.
+  re-run with unchanged recipes produces byte-identical files and no diff —
+  byte-identical for the same ffmpeg/libvorbis build; a different ffmpeg may
+  produce different bytes, so only commit regenerated sounds when a recipe
+  changed.
   Also copies the pack's `License.txt` to
   `assets/sounds/LICENSE-kenney-casino-audio.txt`.
 
