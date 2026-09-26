@@ -83,5 +83,9 @@ class AudioplayersSoundSink implements SoundSink {
     }
   }
 
-  static void _debugLog(Object error) => debugPrint('sound: $error');
+  static void _debugLog(Object error) {
+    if (kDebugMode) {
+      debugPrint('sound: $error');
+    }
+  }
 }
