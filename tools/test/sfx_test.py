@@ -140,6 +140,20 @@ class SwapIntoPlaceTest(unittest.TestCase):
         self.assertFalse(os.path.exists(target + ".bak"))
 
 
+class ClipLengthTest(unittest.TestCase):
+    def test_within_limit_passes(self):
+        sfx.check_duration("place_1", sfx.MAX_CLIP_S)
+
+    def test_over_limit_raises(self):
+        with self.assertRaises(ValueError):
+            sfx.check_duration("deal", sfx.MAX_CLIP_S + 0.01)
+
+    def test_message_names_the_clip(self):
+        with self.assertRaises(ValueError) as ctx:
+            sfx.check_duration("deal", 5.0)
+        self.assertIn("deal", str(ctx.exception))
+
+
 class LoudnessTest(unittest.TestCase):
     def test_parses_max_volume(self):
         err = "[Parsed_volumedetect_0 @ 0x1] max_volume: -7.5 dB\n"

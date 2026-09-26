@@ -21,7 +21,9 @@ class AudioplayersSoundSink implements SoundSink {
   static const int _maxPlayersPerSound = 3;
 
   /// Longer than the longest bundled clip (~1.3 s), so the player has
-  /// certainly finished before its [StopFunction] is called.
+  /// certainly finished before its [StopFunction] is called. Kept ahead of
+  /// `MAX_CLIP_S` (1.8 s) in tools/sfx/build_sfx.py, which refuses to render
+  /// any clip that wouldn't fit inside this window.
   static const Duration _releaseAfter = Duration(seconds: 2);
 
   static final AudioContext _context = AudioContext(

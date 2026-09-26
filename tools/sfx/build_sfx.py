@@ -40,6 +40,14 @@ LICENSE_OUT = "LICENSE-kenney-casino-audio.txt"
 PEAK_TARGET_DB = -1.0
 SILENCE_THRESHOLD_DB = -50
 
+# AudioplayersSoundSink._releaseAfter (in
+# lib/presentation/sound/audioplayers_sound_sink.dart) hands a low-latency
+# player back to its pool 2s after a clip starts, on the assumption the clip
+# has certainly finished by then. Keep every rendered clip comfortably under
+# that with a 1.8s ceiling, so a future recipe change can't quietly grow a
+# clip past the point where it gets cut off mid-playback.
+MAX_CLIP_S = 1.8
+
 
 class ChecksumError(Exception):
     pass
@@ -147,6 +155,24 @@ def normalising_gain(max_volume_db):
     return PEAK_TARGET_DB - max_volume_db
 
 
+def check_duration(name, seconds):
+    """Raise if [name]'s rendered clip is longer than MAX_CLIP_S — see the
+    comment on MAX_CLIP_S for why."""
+    if seconds > MAX_CLIP_S:
+        raise ValueError(
+            f"{name}.ogg is {seconds:.2f}s, longer than the {MAX_CLIP_S}s "
+            "cap (AudioplayersSoundSink releases pooled players after "
+            "_releaseAfter)")
+
+
+def probe_duration(path):
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "csv=p=0", path],
+        capture_output=True, text=True, check=True)
+    return float(out.stdout.strip())
+
+
 def fetch_pack():
     os.makedirs(CACHE_DIR, exist_ok=True)
     path = os.path.join(CACHE_DIR, "kenney_casino-audio.zip")
@@ -181,6 +207,10 @@ def render(recipe, src_dir, out_dir):
     out_path = os.path.join(out_dir, recipe.output + ".ogg")
     subprocess.run(ffmpeg_args(recipe, src_dir, out_path, gain),
                    capture_output=True, check=True)
+    # Checked here, before swap_into_place, so a too-long clip is caught
+    # while it's still only in the staging directory — assets/sounds is
+    # never touched by a failing render.
+    check_duration(recipe.output, probe_duration(out_path))
 
 
 def swap_into_place(staged, target):
