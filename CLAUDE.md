@@ -20,12 +20,12 @@ Cross-platform (mobile/tablet) solitaire game built in **Flutter** with
    is one new file in `lib/core/games/` — never a change to a widget.
 4. **Follow the Dart/Flutter style guide** (below). Use explicit static
    types on all public APIs.
-5. **Generated assets are never hand-edited.** Icons, splash/banner art and
-   F-Droid store screenshots are produced by the scripts under `tools/` — each
-   script is the single source of truth for the files it emits. To change an
-   output, edit the script (or its source `.blend`/SVG) and re-run it; never
-   touch the generated PNG directly. See **`tools/CLAUDE.md`** for what each
-   script owns and how to run it.
+5. **Generated assets are never hand-edited.** Icons, splash/banner art,
+   sound effects, and F-Droid store screenshots are produced by the scripts
+   under `tools/` — each script is the single source of truth for the files
+   it emits. To change an output, edit the script (or its source
+   `.blend`/SVG) and re-run it; never touch the generated PNG directly. See
+   **`tools/CLAUDE.md`** for what each script owns and how to run it.
 6. **Commit authorship stays human.** Never add a `Co-Authored-By` trailer
    or "Generated with ..." line crediting an AI agent/tool. This repo
    enforces it with a `commit-msg` hook (`git config core.hooksPath
@@ -229,7 +229,7 @@ integration_test/
   golden_path_test.dart
 tools/             # developer scripts (regenerate committed assets, F-Droid
                    # plumbing) — see tools/CLAUDE.md
-  art/  logo/  fdroid/  video/
+  art/  logo/  fdroid/  sfx/  video/
 media/             # generated README gameplay video (see tools/video/) —
                    # gitignored except the committed gameplay_thumbnail.png
 .github/workflows/ci.yml

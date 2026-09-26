@@ -9,8 +9,17 @@ import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
 import 'package:open_patience/presentation/card_view.dart';
 import 'package:open_patience/presentation/slot_placeholder.dart';
+import 'package:open_patience/presentation/sound/sound_cue.dart';
+import 'package:open_patience/presentation/sound/sound_effects.dart';
 import 'package:open_patience/ui/game_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class _FakeSound implements SoundEffects {
+  final List<SoundCue> played = <SoundCue>[];
+
+  @override
+  void play(SoundCue cue) => played.add(cue);
+}
 
 Card _up(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
 
@@ -332,5 +341,46 @@ void main() {
 
     await gesture.up();
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('dragging a card onto its foundation plays the foundation cue', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    final _FakeSound sound = _FakeSound();
+    final GameBloc bloc = GameBloc(
+      variant: 'klondike-draw1',
+      repository: repo,
+      seed: 5,
+      state: GameState(
+        piles: <Pile>[
+          Pile(kind: PileKind.stock),
+          Pile(kind: PileKind.waste),
+          Pile(
+            kind: PileKind.foundation,
+            cards: <Card>[_up(Suit.spades, aceRank)],
+          ),
+          Pile(kind: PileKind.foundation),
+          Pile(kind: PileKind.foundation),
+          Pile(kind: PileKind.foundation),
+          Pile(kind: PileKind.tableau, cards: <Card>[_up(Suit.spades, 2)]),
+          for (int i = 1; i < 7; i++) Pile(kind: PileKind.tableau),
+        ],
+      ),
+      sound: sound,
+    );
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+
+    final TestGesture gesture = await tester.startGesture(
+      _grab(tester, _cardFace(Suit.spades, 2)),
+    );
+    await gesture.moveTo(tester.getCenter(_cardFace(Suit.spades, 1)));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.state.pileAt(2).length, 2);
+    expect(sound.played, <SoundCue>[SoundCue.foundation]);
   });
 }

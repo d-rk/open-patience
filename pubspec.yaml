@@ -7,11 +7,11 @@ publish_to: 'none'
 version: 1.0.7+9
 
 environment:
-  sdk: '>=3.10.0 <4.0.0'
+  sdk: '>=3.12.0 <4.0.0'
   # Pinned exactly (not a range) so F-Droid's reproducible build can extract
   # and check out the same Flutter version. Bump in lockstep with the CI /
   # F-Droid toolchain when upgrading Flutter.
-  flutter: 3.38.5
+  flutter: 3.47.5
 
 dependencies:
   flutter:
@@ -19,6 +19,7 @@ dependencies:
   flutter_bloc: ^9.1.1
   equatable: ^2.0.7
   shared_preferences: ^2.5.3
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +30,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.1
   flutter_native_splash: ^2.4.7
+  fake_async: ^1.3.3
 
 flutter:
   uses-material-design: true
@@ -37,6 +39,9 @@ flutter:
   # tools/art/*.blend via tools/art/build_art.py — never fetched at runtime.
   assets:
     - assets/images/
+    # Card sound effects, generated from Kenney's CC0 "Casino Audio" pack by
+    # tools/sfx/build_sfx.py — never hand-edited, never fetched at runtime.
+    - assets/sounds/
 
   # Bundled OFL fonts (see assets/fonts/OFL-*.txt for licenses). Bundled as
   # local assets — never fetched at runtime — so the F-Droid build stays

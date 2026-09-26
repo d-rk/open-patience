@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../persistence/settings_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
@@ -24,11 +25,14 @@ import 'variant_labels.dart';
 /// navigating to the records screen the moment the game is won. The
 /// [GameBloc] is provided by the caller.
 class GameScreen extends StatefulWidget {
-  const GameScreen({this.autoTick, super.key});
+  const GameScreen({this.autoTick, this.settings, super.key});
 
   /// When set, a [Tick] is dispatched on this interval while the game is in
   /// progress. Left null in widget tests to avoid pending timers.
   final Duration? autoTick;
+
+  /// Backs the in-game menu's Sound toggle; null hides the toggle.
+  final SettingsRepository? settings;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -114,7 +118,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                   TopBar(
                     onMenu: () async {
                       setState(() => _menuOpen = true);
-                      await showGameMenu(context, context.read<GameBloc>());
+                      await showGameMenu(
+                        context,
+                        context.read<GameBloc>(),
+                        settings: widget.settings,
+                      );
                       if (mounted) {
                         setState(() => _menuOpen = false);
                       }

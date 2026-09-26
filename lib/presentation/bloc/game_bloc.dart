@@ -12,6 +12,8 @@ import '../../core/pile.dart';
 import '../../core/seed.dart';
 import '../../core/solver.dart';
 import '../../persistence/records_repository.dart';
+import '../sound/sound_cue.dart';
+import '../sound/sound_effects.dart';
 import 'game_bloc_state.dart';
 import 'game_event.dart';
 
@@ -29,7 +31,9 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     required GameState state,
     Random? random,
     this.autoSolveStep = const Duration(milliseconds: 120),
+    this.sound = const SilentSoundEffects(),
   }) : rules = GameRegistry.rulesFor(variant),
+       // ignore: prefer_initializing_formals
        _seed = seed,
        _state = state,
        _random = random ?? Random(),
@@ -56,20 +60,24 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     Random? random,
     bool almostWon = false,
     Duration autoSolveStep = const Duration(milliseconds: 120),
+    SoundEffects sound = const SilentSoundEffects(),
   }) {
     final GameState state = GameState.newGame(
       GameRegistry.rulesFor(variant),
       seed: seed,
       almostWon: almostWon,
     );
-    return GameBloc(
+    final GameBloc bloc = GameBloc(
       variant: variant,
       repository: repository,
       seed: seed,
       state: state,
       random: random,
       autoSolveStep: autoSolveStep,
+      sound: sound,
     );
+    sound.play(SoundCue.deal);
+    return bloc;
   }
 
   final String variant;
@@ -79,6 +87,10 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
 
   /// Delay between moves while the auto-solver cascade plays out.
   final Duration autoSolveStep;
+
+  /// Where cues go. Silent by default, so tests and resumes stay quiet
+  /// unless a real [SoundEffects] is wired in.
+  final SoundEffects sound;
 
   bool _solving = false;
 
@@ -120,7 +132,11 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       cards: cards,
     );
     if (_state.tryMove(move, rules)) {
+      _playMoveCue();
       await _emitAfterMove(emit);
+    } else if (event.fromPile != event.toPile) {
+      // Dropping a card back where it came from is a cancel, not a mistake.
+      sound.play(SoundCue.illegal);
     }
   }
 
@@ -142,6 +158,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
             currentRules.buildDraw(_state) ?? currentRules.buildRecycle(_state);
         if (move != null) {
           _state.applyMove(move);
+          _playMoveCue();
           await _emitAfterMove(emit);
         }
       }
@@ -170,6 +187,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       cards: source.cards.sublist(index),
     );
     if (_state.tryMove(move, rules)) {
+      _playMoveCue();
       await _emitAfterMove(emit);
     }
   }
@@ -202,6 +220,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       cards: source.cards.sublist(index),
     );
     if (_state.tryMove(move, rules)) {
+      _playMoveCue();
       await _emitAfterMove(emit);
     }
   }
@@ -217,6 +236,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       return;
     }
     _state.undo();
+    sound.play(SoundCue.undo);
     // Undo can move the board out of a won state, so re-derive the snapshot
     // rather than assuming in-progress.
     emit(_snapshotOf(_state, rules));
@@ -234,6 +254,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       return;
     }
     _state.redo();
+    sound.play(SoundCue.undo);
     emit(_snapshotOf(_state, rules));
     await _persist();
   }
@@ -247,6 +268,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     }
     _seed = event.seed ?? randomSeed(_random);
     _state = GameState.newGame(rules, seed: _seed);
+    sound.play(SoundCue.deal);
     await repository.clearSave(variant);
     emit(_snapshotOf(_state, rules));
   }
@@ -259,6 +281,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       return;
     }
     _state = GameState.newGame(rules, seed: _seed);
+    sound.play(SoundCue.deal);
     // The prior deal's autosave is now stale — drop it so the reset deal is
     // not resumable to its abandoned progress.
     await repository.clearSave(variant);
@@ -297,6 +320,7 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
           return;
         }
         _state.applyMove(move);
+        _playMoveCue();
         if (_state.isWon(rules)) {
           final int elapsed = _state.elapsedSeconds;
           final int moves = _state.moveCount;
@@ -375,5 +399,23 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
       }
     }
     return targets.first;
+  }
+
+  /// Plays the cue for the move just applied: `win` alone if it won the
+  /// game, otherwise its landing sound plus a trailing `flip` when it
+  /// uncovered a face-down card.
+  void _playMoveCue() {
+    final Move? move = _state.lastMove;
+    if (move == null) {
+      return;
+    }
+    if (_state.isWon(rules)) {
+      sound.play(SoundCue.win);
+      return;
+    }
+    sound.play(cueForMove(move, _state));
+    if (move.flipUnderCard) {
+      sound.play(SoundCue.flip);
+    }
   }
 }
