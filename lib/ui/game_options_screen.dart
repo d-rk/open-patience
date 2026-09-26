@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/game_catalog.dart';
 import '../core/seed.dart';
 import '../persistence/records_repository.dart';
+import '../persistence/settings_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
+import '../presentation/sound/sound_effects.dart';
 import 'game_screen.dart';
 import 'records_screen.dart';
 import 'theme/widgets.dart';
@@ -19,6 +21,8 @@ class GameOptionsScreen extends StatelessWidget {
     required this.repository,
     this.autoTick,
     this.debugDeals = false,
+    this.settings,
+    this.sound = const SilentSoundEffects(),
     super.key,
   });
 
@@ -32,12 +36,18 @@ class GameOptionsScreen extends StatelessWidget {
   /// in a production build.
   final bool debugDeals;
 
+  /// Forwarded to [GameScreen] for the menu's Sound toggle.
+  final SettingsRepository? settings;
+
+  /// Handed to every [GameBloc] this page creates.
+  final SoundEffects sound;
+
   void _open(BuildContext context, GameBloc bloc) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (BuildContext context) => BlocProvider<GameBloc>(
           create: (BuildContext context) => bloc,
-          child: GameScreen(autoTick: autoTick),
+          child: GameScreen(autoTick: autoTick, settings: settings),
         ),
       ),
     );
@@ -47,7 +57,12 @@ class GameOptionsScreen extends StatelessWidget {
     final int seed = randomSeed();
     _open(
       context,
-      GameBloc.newGame(variant: variant, repository: repository, seed: seed),
+      GameBloc.newGame(
+        variant: variant,
+        repository: repository,
+        seed: seed,
+        sound: sound,
+      ),
     );
   }
 
@@ -60,6 +75,7 @@ class GameOptionsScreen extends StatelessWidget {
         repository: repository,
         seed: seed,
         almostWon: true,
+        sound: sound,
       ),
     );
   }
@@ -80,6 +96,7 @@ class GameOptionsScreen extends StatelessWidget {
         repository: repository,
         seed: saved.seed,
         state: saved.state,
+        sound: sound,
       ),
     );
   }

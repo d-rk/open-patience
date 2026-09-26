@@ -5,7 +5,9 @@ import 'package:open_patience/core/card.dart';
 import 'package:open_patience/core/game_state.dart';
 import 'package:open_patience/core/pile.dart';
 import 'package:open_patience/persistence/records_repository.dart';
+import 'package:open_patience/persistence/settings_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
+import 'package:open_patience/persistence/shared_prefs_settings_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
 import 'package:open_patience/presentation/bloc/game_event.dart';
 import 'package:open_patience/ui/game_screen.dart';
@@ -185,5 +187,62 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('play'), findsOneWidget); // back on the launcher screen
     expect(find.byType(GameScreen), findsNothing);
+  });
+
+  Future<SettingsRepository> settingsRepo() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return SharedPrefsSettingsRepository(prefs);
+  }
+
+  Future<void> pumpWithSettings(
+    WidgetTester tester,
+    GameBloc bloc,
+    SettingsRepository settings,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<GameBloc>.value(
+          value: bloc,
+          child: GameScreen(settings: settings),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('the menu shows sound on by default and toggles it off', (
+    WidgetTester tester,
+  ) async {
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    final SettingsRepository settings = await settingsRepo();
+    await pumpWithSettings(tester, bloc, settings);
+    await _openMenu(tester);
+
+    expect(find.text('Sound: On'), findsOneWidget);
+    expect(find.byIcon(Icons.volume_up), findsOneWidget);
+
+    await tester.tap(find.text('Sound: On'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sound: Off'), findsOneWidget);
+    expect(find.byIcon(Icons.volume_off), findsOneWidget);
+    expect(settings.soundEnabled, isFalse);
+    // The dialog stays open so the player sees the new state.
+    expect(find.text('New Deal'), findsOneWidget);
+
+    await tester.tap(find.text('Sound: Off'));
+    await tester.pumpAndSettle();
+    expect(settings.soundEnabled, isTrue);
+  });
+
+  testWidgets('no settings wired in means no sound tile', (
+    WidgetTester tester,
+  ) async {
+    final _RecordingBloc bloc = await _repoBloc();
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+    await _openMenu(tester);
+    expect(find.textContaining('Sound:'), findsNothing);
   });
 }

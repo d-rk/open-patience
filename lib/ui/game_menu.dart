@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../persistence/settings_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
@@ -11,7 +12,11 @@ import 'variant_labels.dart';
 
 /// Opens the in-game menu: variant title + live stats banner over Restart,
 /// Shuffle and Exit actions. Each action dismisses the dialog first.
-Future<void> showGameMenu(BuildContext context, GameBloc bloc) {
+Future<void> showGameMenu(
+  BuildContext context,
+  GameBloc bloc, {
+  SettingsRepository? settings,
+}) {
   return showDialog<void>(
     context: context,
     builder: (BuildContext dialogContext) {
@@ -62,6 +67,13 @@ Future<void> showGameMenu(BuildContext context, GameBloc bloc) {
                         ),
                       ],
                     ),
+                    if (settings != null) ...<Widget>[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: _SoundTile(settings: settings),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Divider(color: GamePalette.gold.withValues(alpha: 0.4)),
                     const SizedBox(height: 4),
@@ -130,6 +142,36 @@ class _Banner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Toggles sound effects in place — the dialog stays open so the player sees
+/// the new state.
+class _SoundTile extends StatefulWidget {
+  const _SoundTile({required this.settings});
+
+  final SettingsRepository settings;
+
+  @override
+  State<_SoundTile> createState() => _SoundTileState();
+}
+
+class _SoundTileState extends State<_SoundTile> {
+  @override
+  Widget build(BuildContext context) {
+    final bool on = widget.settings.soundEnabled;
+    return GameActionTile(
+      icon: on ? Icons.volume_up : Icons.volume_off,
+      label: on ? 'Sound: On' : 'Sound: Off',
+      background: GamePalette.feltGreenMid,
+      foreground: GamePalette.cardFace,
+      onPressed: () async {
+        await widget.settings.setSoundEnabled(!on);
+        if (mounted) {
+          setState(() {});
+        }
+      },
     );
   }
 }

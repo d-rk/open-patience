@@ -5,7 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/game_catalog.dart';
 import '../persistence/records_repository.dart';
+import '../persistence/settings_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
+import '../presentation/sound/sound_effects.dart';
 import 'debug_deals.dart';
 import 'game_options_screen.dart';
 import 'game_screen.dart';
@@ -20,12 +22,24 @@ import 'widgets/menu_banner.dart';
 /// reloads its saves after returning from a pushed route so the Continue
 /// section always reflects the repository's current state.
 class MainMenuScreen extends StatefulWidget {
-  const MainMenuScreen({required this.repository, this.autoTick, super.key});
+  const MainMenuScreen({
+    required this.repository,
+    this.autoTick,
+    this.settings,
+    this.sound = const SilentSoundEffects(),
+    super.key,
+  });
 
   final RecordsRepository repository;
 
   /// Forwarded to each [GameScreen]; null in tests to avoid pending timers.
   final Duration? autoTick;
+
+  /// Forwarded to [GameScreen] for the menu's Sound toggle.
+  final SettingsRepository? settings;
+
+  /// Handed to every [GameBloc] this page creates.
+  final SoundEffects sound;
 
   @override
   State<MainMenuScreen> createState() => _MainMenuScreenState();
@@ -76,6 +90,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           debugDeals:
               shouldShowDebugDeals(debugMode: kDebugMode, flavor: appFlavor) ||
               _debugModeUnlocked,
+          settings: widget.settings,
+          sound: widget.sound,
         ),
       ),
     );
@@ -110,8 +126,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             repository: widget.repository,
             seed: saved.seed,
             state: saved.state,
+            sound: widget.sound,
           ),
-          child: GameScreen(autoTick: widget.autoTick),
+          child: GameScreen(
+            autoTick: widget.autoTick,
+            settings: widget.settings,
+          ),
         ),
       ),
     );
