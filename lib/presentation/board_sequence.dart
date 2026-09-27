@@ -200,7 +200,7 @@ class CascadeSequence {
   /// A continuous tumble to accompany the bounce: `0.0` at the moment [key]
   /// activates, growing steadily (never capped — a bouncing card keeps
   /// spinning for as long as it's in view) in the direction of [origin]'s
-  /// [_xSign]. Spin speed varies per bounce for visual liveliness.
+  /// [_xSign].
   double rotationAt(
     CardKey key,
     Duration elapsed,
@@ -213,18 +213,7 @@ class CascadeSequence {
       return 0.0;
     }
     final double t = (elapsed - delay).inMicroseconds / 1e6;
-    final Offset velocity = _velocityFor(key, origin, boardSize.width);
-    final double spanX = math.max(0.0, boardSize.width - origin.width);
-    // Count bounces: how many times has the card crossed a reflection boundary?
-    final double rawX = -origin.left + velocity.dx * t;
-    final int bounceCountX = (rawX / spanX).floor();
-    // Use bounce count to vary spin speed (deterministic from card + bounce)
-    final int seed = key.hashCode & 0x7fffffff;
-    final double spinVariation =
-        0.8 + ((seed + bounceCountX * 37) % 1000) / 1000 * 0.4;
-    final double spin =
-        _xSign(origin, boardSize.width) * _spinSpeed * spinVariation * t;
-    return spin;
+    return _xSign(origin, boardSize.width) * _spinSpeed * t;
   }
 
   /// The position (in the same board-local coordinate [origin]'s edge sits

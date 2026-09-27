@@ -136,39 +136,24 @@ void main() {
     expect(distAce, isNot(closeTo(distKing, 2.0)));
   });
 
-  test('CascadeSequence rotation accelerates non-uniformly', () {
+  test('CascadeSequence spins at a steady rate through bounces', () {
+    // A spin rate that jumps at a wall makes the card's angle snap — seen
+    // as flicker — so the tumble must stay linear in time.
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
     const CardKey king = CardKey(Suit.clubs, kingRank);
     final Duration delay = c.delayFor(king, won);
-    // Measure rotation at different times to detect non-linear acceleration
-    final double spin1 = c.rotationAt(
+    double spinAt(int ms) => c.rotationAt(
       king,
-      delay + const Duration(milliseconds: 200),
+      delay + Duration(milliseconds: ms),
       won,
       _origin,
       _board,
     );
-    final double spin2 = c.rotationAt(
-      king,
-      delay + const Duration(milliseconds: 400),
-      won,
-      _origin,
-      _board,
-    );
-    final double spin3 = c.rotationAt(
-      king,
-      delay + const Duration(milliseconds: 600),
-      won,
-      _origin,
-      _board,
-    );
-    // With uniform spin, delta should be constant. Non-uniform means
-    // the spin speed is changing (per-bounce variation).
-    final double delta1 = spin2.abs() - spin1.abs();
-    final double delta2 = spin3.abs() - spin2.abs();
-    // Deltas should differ (evidence of non-uniform acceleration)
-    expect(delta1, isNot(closeTo(delta2, 0.001)));
+    final double step = spinAt(100) - spinAt(0);
+    for (int ms = 100; ms < 10000; ms += 100) {
+      expect(spinAt(ms + 100) - spinAt(ms), closeTo(step, 1e-9));
+    }
   });
 
   test('CascadeSequence offset is zero exactly at activation', () {
