@@ -26,6 +26,10 @@ import zipfile
 from dataclasses import dataclass
 from typing import Optional
 
+# Import synth module for generated sounds
+sys.path.insert(0, os.path.dirname(__file__))
+import synth
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, os.pardir, os.pardir))
 OUT_DIR = os.path.join(ROOT, "assets", "sounds")
@@ -75,7 +79,7 @@ RECIPES = (
     Recipe("undo_1", "card-slide-5"),
     Recipe("undo_2", "card-slide-6"),
     Recipe("deal", "card-shuffle", trim_s=1.2, fade_ms=150),
-    Recipe("win", "card-fan-2", fade_ms=150),
+    Recipe("win", "harp_glissando_synth", fade_ms=150),
 )
 
 
@@ -132,10 +136,16 @@ def filter_graph(recipe, gain_db=None):
 
 
 def ffmpeg_args(recipe, src_dir, out_path, gain_db=None):
-    args = ["ffmpeg", "-hide_banner", "-nostdin", "-y",
-            "-i", os.path.join(src_dir, recipe.source + ".ogg")]
+    # Try .ogg first (from Kenney pack), then .wav (synth sounds)
+    src_path = os.path.join(src_dir, recipe.source + ".ogg")
+    if not os.path.exists(src_path):
+        src_path = os.path.join(src_dir, recipe.source + ".wav")
+    args = ["ffmpeg", "-hide_banner", "-nostdin", "-y", "-i", src_path]
     if recipe.layer:
-        args += ["-i", os.path.join(src_dir, recipe.layer + ".ogg")]
+        layer_path = os.path.join(src_dir, recipe.layer + ".ogg")
+        if not os.path.exists(layer_path):
+            layer_path = os.path.join(src_dir, recipe.layer + ".wav")
+        args += ["-i", layer_path]
     args += ["-filter_complex", filter_graph(recipe, gain_db),
              "-map", "[out]"]
     if gain_db is None:
@@ -187,9 +197,11 @@ def fetch_pack():
 def extract(zip_path, dest):
     needed = ({r.source for r in RECIPES}
               | {r.layer for r in RECIPES if r.layer})
+    # Filter out synth sounds (they're generated separately)
+    pack_needed = {s for s in needed if not s.endswith("_synth")}
     with zipfile.ZipFile(zip_path) as z:
         names = set(z.namelist())
-        for stem in sorted(needed):
+        for stem in sorted(pack_needed):
             member = f"Audio/{stem}.ogg"
             if member not in names:
                 raise SystemExit(f"recipe source {member} is not in the pack")
@@ -249,6 +261,11 @@ def main():
         src_dir = os.path.join(tmp, "src")
         os.makedirs(src_dir)
         extract(zip_path, src_dir)
+
+        # Generate synthesized sounds
+        buf = synth.harp_glissando()
+        synth_wav = os.path.join(src_dir, "harp_glissando_synth.wav")
+        synth.write_wav(synth_wav, buf)
 
         # Staged on the same filesystem as OUT_DIR (not the /tmp above,
         # which may be a different filesystem) so the final swap is a rename,
