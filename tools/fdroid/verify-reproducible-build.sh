@@ -2,7 +2,7 @@
 # Verify that this app's release APK build is reproducible: build the SAME
 # commit TWICE, in two independent, freshly-created Docker containers (root
 # inside, so paths matching F-Droid/GitHub Actions conventions can be created
-# without needing host sudo), and diff the resulting libapp.so.
+# without needing host sudo), and diff the resulting native libraries.
 #
 # Why this exists: a Dart AOT snapshot embeds the absolute filesystem path of
 # the app source root it was compiled from. Two builds only produce a
@@ -22,7 +22,7 @@
 #      runs, so a stale/mutated SDK checkout can't quietly explain a match).
 #   3. Builds the given ABI with the exact flags the fdroiddata recipe and
 #      release-apks.yml use.
-#   4. Extracts and hashes lib/<abi>/libapp.so.
+#   4. Extracts and hashes every lib/<abi>/*.so (libapp.so, libdartjni.so, ...).
 #
 # Usage:
 #   tools/fdroid/verify-reproducible-build.sh [commit] [abi] [flutter-version]
@@ -81,13 +81,16 @@ export PATH="/flutter-sdk/bin:$PATH"
 export PUB_CACHE="$(pwd)/.pub-cache"
 flutter config --no-analytics >/dev/null
 flutter pub get --enforce-lockfile
+# Same jni build-id patch as release-apks.yml and the fdroiddata recipe.
+sed -i -e '1a add_link_options("LINKER:--build-id=none")' \
+  "$PUB_CACHE"/hosted/pub.dev/jni-*/src/CMakeLists.txt
 
 export SOURCE_DATE_EPOCH=0
 flutter build apk --release --flavor production --split-per-abi \
   --target-platform="$target_platform"
 
 apk="build/app/outputs/flutter-apk/app-${abi}-production-release.apk"
-unzip -p "$apk" "lib/${abi}/libapp.so" | sha256sum | awk '{print $1}' > /mnt/out/hash.txt
+unzip -p "$apk" "lib/${abi}/*.so" | sha256sum | awk '{print $1}' > /mnt/out/hash.txt
 cp "$apk" "/mnt/out/app-${abi}-production-release.apk"
 echo "container build done: $(cat /mnt/out/hash.txt)"
 EOS
@@ -111,7 +114,7 @@ hash_a="$(cat "$WORK/a/hash.txt")"
 hash_b="$(cat "$WORK/b/hash.txt")"
 
 echo ""
-echo "libapp.so (lib/$ABI) sha256:"
+echo "native libs (lib/$ABI/*.so) sha256:"
 echo "  container A: $hash_a"
 echo "  container B: $hash_b"
 

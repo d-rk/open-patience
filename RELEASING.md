@@ -36,6 +36,14 @@ machine needs the Android NDK installed, not just the SDK platform tools. The
 self-hosted fdroiddata recipe may need an explicit `ndk:` entry pinning that
 version if its builder image doesn't already provision one.
 
+`libdartjni.so` is also the one native library we compile ourselves, and lld
+stamps it with a build-id hashed from the unstripped output — which differs
+between the GitHub runner and F-Droid's buildserver, breaking the
+reproducible-build check. `release-apks.yml`, the fdroiddata recipe's
+`prebuild`, and `tools/fdroid/verify-reproducible-build.sh` all patch jni's
+`CMakeLists.txt` with `add_link_options("LINKER:--build-id=none")` after
+`pub get`; keep the three in lockstep.
+
 ## What `--verify-only` covers
 
 `--verify-only` re-runs four generators and fails if any committed output is

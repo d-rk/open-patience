@@ -81,6 +81,12 @@ jobs:
         run: |
           export PUB_CACHE=$(pwd)/.pub-cache
           flutter pub get --enforce-lockfile
+          # jni (via audioplayers -> path_provider_android) compiles
+          # libdartjni.so with CMake; lld's default build-id hashes the
+          # unstripped output, so it differs between this runner and F-Droid's
+          # buildserver. The fdroiddata recipe applies this same patch.
+          sed -i -e '1a add_link_options("LINKER:--build-id=none")' \
+            $PUB_CACHE/hosted/pub.dev/jni-*/src/CMakeLists.txt
 
       - name: Build per-ABI release APKs (reproducible)
         run: |
