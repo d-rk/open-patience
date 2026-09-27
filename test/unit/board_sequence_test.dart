@@ -105,29 +105,31 @@ void main() {
   test('CascadeSequence varies velocity per card (deterministic)', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
-    const CardKey king1 = CardKey(Suit.clubs, kingRank);
-    const CardKey king2 = CardKey(Suit.hearts, kingRank);
+    // Use cards with very different ranks to ensure hash difference affects
+    // the (seed ~/ 1000) % 1000 calculation that controls speed variation
+    const CardKey ace = CardKey(Suit.clubs, aceRank);
+    const CardKey king = CardKey(Suit.clubs, kingRank);
     // Different cards should traverse different paths (different speeds)
     // by measuring distance at same time elapsed
-    final Offset off1 = c.offsetAt(
-      king1,
+    final Offset offAce = c.offsetAt(
+      ace,
       const Duration(milliseconds: 300),
       won,
       _origin,
       _board,
     );
-    final Offset off2 = c.offsetAt(
-      king2,
+    final Offset offKing = c.offsetAt(
+      king,
       const Duration(milliseconds: 300),
       won,
       _origin,
       _board,
     );
-    final double dist1 = math.sqrt(off1.dx * off1.dx + off1.dy * off1.dy);
-    final double dist2 = math.sqrt(off2.dx * off2.dx + off2.dy * off2.dy);
+    final double distAce = math.sqrt(offAce.dx * offAce.dx + offAce.dy * offAce.dy);
+    final double distKing = math.sqrt(offKing.dx * offKing.dx + offKing.dy * offKing.dy);
     // Different cards should have traveled different distances due to
     // varying speed (velocity magnitude varies per card, ±15%)
-    expect(dist1, isNot(closeTo(dist2, 1.0)));
+    expect(distAce, isNot(closeTo(distKing, 2.0)));
   });
 
   test('CascadeSequence rotation accelerates non-uniformly', () {
