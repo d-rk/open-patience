@@ -142,11 +142,12 @@ class CascadeSequence {
   /// Delay between successive ranks peeling off.
   static const Duration stagger = Duration(milliseconds: 45);
 
-  /// Constant travel speed, in logical pixels per second, on each axis'
+  /// Base travel speed, in logical pixels per second, on each axis'
   /// resultant vector. Never decays — a lossless bounce keeps this speed
   /// forever, which is what lets the cascade run indefinitely instead of
-  /// settling.
+  /// settling. Per-card speed varies ±15% for visual liveliness.
   static const double _speed = 300;
+  static const double _speedVariation = 0.15;
 
   /// The launch angle (degrees, from the horizontal) is drawn from this range
   /// per card, keeping every trajectory visibly diagonal — never dead
@@ -234,7 +235,8 @@ class CascadeSequence {
     return lo + folded;
   }
 
-  /// The constant launch velocity for [key]: a fixed [_speed] split into an
+  /// The launch velocity for [key]: a speed derived from [key]'s identity
+  /// (so every card gets a distinct, reproducible speed ±15%), split into an
   /// x/y pair by an angle drawn deterministically from [key]'s identity (so
   /// every card gets a distinct, reproducible diagonal trajectory), with the
   /// horizontal sign biased by [_xSign] so a card first heads away from
@@ -244,8 +246,15 @@ class CascadeSequence {
     final double angleDeg =
         _minAngleDeg + (seed % 1000) / 1000 * _angleSpreadDeg;
     final double angle = angleDeg * math.pi / 180;
+    // Speed variation: use a different part of the seed to get a multiplier
+    // between (1 - variation) and (1 + variation), e.g. 0.85-1.15
+    final double speedMult =
+        1.0 -
+        _speedVariation +
+        (((seed ~/ 1000) % 1000) / 1000) * 2 * _speedVariation;
+    final double speed = _speed * speedMult;
     final double xSign = _xSign(origin, boardWidth);
-    return Offset(xSign * _speed * math.cos(angle), _speed * math.sin(angle));
+    return Offset(xSign * speed * math.cos(angle), speed * math.sin(angle));
   }
 
   /// How many cards sit above [key] in its own foundation pile (`0` for the

@@ -24,6 +24,18 @@ tools/fdroid/release.sh --skip-verify  # skip the asset regeneration/diff-check
 tools/fdroid/release.sh --verify-only  # just audit the generated assets, nothing else
 ```
 
+## Toolchain note: native build since sound effects
+
+Since the sound-effects change, `audioplayers` pulls in `path_provider_android`
+2.3.x, which in turn pulls in the `jni` plugin — that plugin compiles native
+code via CMake/NDK as part of the Android build (it ships `libdartjni.so`
+alongside `libapp.so`/`libflutter.so` in the release APK). A normal
+`flutter build apk` picks up whatever NDK version `flutter.ndkVersion`
+resolves to (see `android/app/build.gradle.kts`), so a from-scratch build
+machine needs the Android NDK installed, not just the SDK platform tools. The
+self-hosted fdroiddata recipe may need an explicit `ndk:` entry pinning that
+version if its builder image doesn't already provision one.
+
 ## What `--verify-only` covers
 
 `--verify-only` re-runs four generators and fails if any committed output is

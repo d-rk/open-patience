@@ -16,7 +16,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.38.5
+          flutter-version: 3.47.5
           cache: true
 
       - name: Install dependencies
@@ -49,9 +49,9 @@ jobs:
       # Stdlib-only, sub-second. storage_test.py in particular is what makes
       # a future shared_preferences upgrade fail loudly here instead of
       # silently producing a blank gameplay video.
-      - name: Video pipeline tool tests (CDP client, storage mapping, timeline)
+      - name: Tool tests (CDP client, storage mapping, timeline, sfx)
         run: |
-          python3 tools/test/cdp_test.py && python3 tools/test/storage_test.py && python3 tools/test/timeline_test.py
+          python3 tools/test/cdp_test.py && python3 tools/test/storage_test.py && python3 tools/test/timeline_test.py && python3 tools/test/sfx_test.py
 
   # Real-device end-to-end lane: heavier, so it runs on its own — treat as a
   # pre-release gate rather than a per-push blocker. Runs the golden-path
@@ -69,7 +69,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.38.5
+          flutter-version: 3.47.5
           cache: true
 
       - name: Install dependencies

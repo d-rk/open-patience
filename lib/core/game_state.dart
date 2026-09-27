@@ -33,7 +33,9 @@ class GameState with Equatable {
     List<Move> undoStack = const <Move>[],
     List<Move> redoStack = const <Move>[],
   }) : _piles = List<Pile>.of(piles),
+       // ignore: prefer_initializing_formals
        _moveCount = moveCount,
+       // ignore: prefer_initializing_formals
        _elapsedSeconds = elapsedSeconds,
        _undoStack = List<Move>.of(undoStack),
        _redoStack = List<Move>.of(redoStack);
@@ -93,6 +95,11 @@ class GameState with Equatable {
   int get undoCount => _undoStack.length;
 
   int get redoCount => _redoStack.length;
+
+  /// The most recently applied move as recorded for undo — carrying its
+  /// resolved side-effect flags such as [Move.flipUnderCard] — or `null`
+  /// when nothing has been played (or everything was undone).
+  Move? get lastMove => _undoStack.isEmpty ? null : _undoStack.last;
 
   Pile pileAt(int index) => _piles[index];
 

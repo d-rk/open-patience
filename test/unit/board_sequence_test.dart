@@ -102,6 +102,60 @@ void main() {
     expect(c.delayFor(const CardKey(Suit.spades, 5), mid), Duration.zero);
   });
 
+  test('CascadeSequence varies velocity per card (deterministic)', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    // Use cards with very different ranks to ensure hash difference affects
+    // the (seed ~/ 1000) % 1000 calculation that controls speed variation
+    const CardKey ace = CardKey(Suit.clubs, aceRank);
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    // Different cards should traverse different paths (different speeds)
+    // by measuring distance at same time elapsed
+    final Offset offAce = c.offsetAt(
+      ace,
+      const Duration(milliseconds: 300),
+      won,
+      _origin,
+      _board,
+    );
+    final Offset offKing = c.offsetAt(
+      king,
+      const Duration(milliseconds: 300),
+      won,
+      _origin,
+      _board,
+    );
+    final double distAce = math.sqrt(
+      offAce.dx * offAce.dx + offAce.dy * offAce.dy,
+    );
+    final double distKing = math.sqrt(
+      offKing.dx * offKing.dx + offKing.dy * offKing.dy,
+    );
+    // Different cards should have traveled different distances due to
+    // varying speed (velocity magnitude varies per card, ±15%)
+    expect(distAce, isNot(closeTo(distKing, 2.0)));
+  });
+
+  test('CascadeSequence spins at a steady rate through bounces', () {
+    // A spin rate that jumps at a wall makes the card's angle snap — seen
+    // as flicker — so the tumble must stay linear in time.
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final Duration delay = c.delayFor(king, won);
+    double spinAt(int ms) => c.rotationAt(
+      king,
+      delay + Duration(milliseconds: ms),
+      won,
+      _origin,
+      _board,
+    );
+    final double step = spinAt(100) - spinAt(0);
+    for (int ms = 100; ms < 10000; ms += 100) {
+      expect(spinAt(ms + 100) - spinAt(ms), closeTo(step, 1e-9));
+    }
+  });
+
   test('CascadeSequence offset is zero exactly at activation', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();

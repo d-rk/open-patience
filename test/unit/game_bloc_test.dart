@@ -11,6 +11,8 @@ import 'package:open_patience/persistence/stats.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
 import 'package:open_patience/presentation/bloc/game_bloc_state.dart';
 import 'package:open_patience/presentation/bloc/game_event.dart';
+import 'package:open_patience/presentation/sound/sound_cue.dart';
+import 'package:open_patience/presentation/sound/sound_effects.dart';
 
 /// Records every call so tests can assert the bloc drives persistence.
 class _FakeRepo implements RecordsRepository {
@@ -54,7 +56,18 @@ class _FakeRepo implements RecordsRepository {
   Future<List<SavedGame>> loadAllSaves() async => <SavedGame>[];
 }
 
+/// Records every cue the bloc plays.
+class _FakeSound implements SoundEffects {
+  final List<SoundCue> played = <SoundCue>[];
+
+  @override
+  void play(SoundCue cue) => played.add(cue);
+}
+
+List<SoundCue> _played(GameBloc bloc) => (bloc.sound as _FakeSound).played;
+
 Card _up(Suit s, int r) => Card(suit: s, rank: r, faceUp: true);
+Card _down(Suit s, int r) => Card(suit: s, rank: r, faceUp: false);
 
 List<Card> _run(Suit s, int maxRank) => <Card>[
   for (int r = aceRank; r <= maxRank; r++) _up(s, r),
@@ -98,6 +111,7 @@ GameBloc _bloc(
   GameState state, {
   int seed = 7,
   Duration autoSolveStep = Duration.zero,
+  SoundEffects? sound,
 }) {
   return GameBloc(
     variant: 'klondike-draw1',
@@ -106,6 +120,7 @@ GameBloc _bloc(
     state: state,
     random: Random(1),
     autoSolveStep: autoSolveStep,
+    sound: sound ?? _FakeSound(),
   );
 }
 
@@ -633,6 +648,195 @@ void main() {
         );
         expect(repo.calls.contains('clear:klondike-draw1'), isTrue);
       },
+    );
+  });
+
+  group('sound cues', () {
+    GameState oneMoveFromWin() => _klondikeBoard(
+      foundationClubs: _run(Suit.clubs, 13),
+      foundationDiamonds: _run(Suit.diamonds, 13),
+      foundationHearts: _run(Suit.hearts, 13),
+      foundationSpades: _run(Suit.spades, 12),
+      col6: <Card>[_up(Suit.spades, 13)],
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'a tableau move plays place',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          col6: <Card>[_up(Suit.spades, 7)],
+          col7: <Card>[_up(Suit.hearts, 8)],
+        ),
+      ),
+      act: (GameBloc bloc) =>
+          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0)),
+      verify: (GameBloc bloc) =>
+          expect(_played(bloc), <SoundCue>[SoundCue.place]),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'a move that reveals a face-down card plays place then flip',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          col6: <Card>[_down(Suit.hearts, 9), _up(Suit.spades, 7)],
+          col7: <Card>[_up(Suit.hearts, 8)],
+        ),
+      ),
+      act: (GameBloc bloc) =>
+          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 1)),
+      verify: (GameBloc bloc) =>
+          expect(_played(bloc), <SoundCue>[SoundCue.place, SoundCue.flip]),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'double-tap to a foundation plays foundation',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          foundationSpades: _run(Suit.spades, 2),
+          col6: <Card>[_up(Suit.spades, 3)],
+        ),
+      ),
+      act: (GameBloc bloc) => bloc.add(const DoubleTapRequested(fromPile: 6)),
+      verify: (GameBloc bloc) =>
+          expect(_played(bloc), <SoundCue>[SoundCue.foundation]),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'a stock tap plays draw',
+      build: () =>
+          _bloc(_FakeRepo(), GameState.newGame(KlondikeRules(), seed: 3)),
+      act: (GameBloc bloc) => bloc.add(const TapMoveRequested(fromPile: stock)),
+      verify: (GameBloc bloc) =>
+          expect(_played(bloc), <SoundCue>[SoundCue.draw]),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'a rejected drop plays illegal',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          col6: <Card>[_up(Suit.spades, 7)],
+          col7: <Card>[_up(Suit.clubs, 8)],
+        ),
+      ),
+      act: (GameBloc bloc) =>
+          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0)),
+      verify: (GameBloc bloc) =>
+          expect(_played(bloc), <SoundCue>[SoundCue.illegal]),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'dropping a card back onto its own pile is silent',
+      build: () =>
+          _bloc(_FakeRepo(), _klondikeBoard(col6: <Card>[_up(Suit.spades, 7)])),
+      act: (GameBloc bloc) =>
+          bloc.add(const MoveRequested(fromPile: 6, toPile: 6, cardIndex: 0)),
+      verify: (GameBloc bloc) => expect(_played(bloc), isEmpty),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'a tap with no legal target is silent',
+      build: () =>
+          _bloc(_FakeRepo(), _klondikeBoard(col6: <Card>[_up(Suit.spades, 7)])),
+      act: (GameBloc bloc) => bloc.add(const TapMoveRequested(fromPile: 6)),
+      verify: (GameBloc bloc) => expect(_played(bloc), isEmpty),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'undo and redo each play undo',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          col6: <Card>[_up(Suit.spades, 7)],
+          col7: <Card>[_up(Suit.hearts, 8)],
+        ),
+      ),
+      act: (GameBloc bloc) => bloc
+        ..add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0))
+        ..add(const UndoRequested())
+        ..add(const RedoRequested()),
+      verify: (GameBloc bloc) => expect(_played(bloc), <SoundCue>[
+        SoundCue.place,
+        SoundCue.undo,
+        SoundCue.undo,
+      ]),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'undo with nothing to undo is silent',
+      build: () => _bloc(_FakeRepo(), _klondikeBoard()),
+      act: (GameBloc bloc) => bloc.add(const UndoRequested()),
+      verify: (GameBloc bloc) => expect(_played(bloc), isEmpty),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'new deal and restart each play deal',
+      build: () => _bloc(_FakeRepo(), _klondikeBoard()),
+      act: (GameBloc bloc) => bloc
+        ..add(const NewDealRequested(seed: 7))
+        ..add(const RestartDealRequested()),
+      verify: (GameBloc bloc) =>
+          expect(_played(bloc), <SoundCue>[SoundCue.deal, SoundCue.deal]),
+    );
+
+    test('GameBloc.newGame plays deal once; a resumed bloc is silent', () {
+      final _FakeSound fresh = _FakeSound();
+      final GameBloc dealt = GameBloc.newGame(
+        variant: 'klondike-draw1',
+        repository: _FakeRepo(),
+        seed: 1,
+        sound: fresh,
+      );
+      addTearDown(dealt.close);
+      expect(fresh.played, <SoundCue>[SoundCue.deal]);
+
+      final _FakeSound resumed = _FakeSound();
+      final GameBloc bloc = _bloc(
+        _FakeRepo(),
+        _klondikeBoard(),
+        sound: resumed,
+      );
+      addTearDown(bloc.close);
+      expect(resumed.played, isEmpty);
+    });
+
+    blocTest<GameBloc, GameBlocState>(
+      'the winning move plays only win',
+      build: () => _bloc(_FakeRepo(), oneMoveFromWin()),
+      act: (GameBloc bloc) => bloc.add(
+        const MoveRequested(
+          fromPile: 6,
+          toPile: spadesFoundation,
+          cardIndex: 0,
+        ),
+      ),
+      verify: (GameBloc bloc) =>
+          expect(_played(bloc), <SoundCue>[SoundCue.win]),
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'auto-solve plays foundation per card and ends on win alone',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          foundationClubs: _run(Suit.clubs, 13),
+          foundationDiamonds: _run(Suit.diamonds, 13),
+          foundationHearts: _run(Suit.hearts, 13),
+          foundationSpades: _run(Suit.spades, 10),
+          col6: <Card>[_up(Suit.spades, 11)],
+          col7: <Card>[_up(Suit.spades, kingRank), _up(Suit.spades, 12)],
+        ),
+      ),
+      act: (GameBloc bloc) => bloc.add(const AutoSolveRequested()),
+      wait: const Duration(milliseconds: 50),
+      verify: (GameBloc bloc) => expect(_played(bloc), <SoundCue>[
+        SoundCue.foundation,
+        SoundCue.foundation,
+        SoundCue.win,
+      ]),
     );
   });
 }

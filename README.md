@@ -76,3 +76,6 @@ Public License v3.0** (AGPL-3.0-only) — see [`LICENSE`](LICENSE). You are
 free to use, study, share and modify it; if you run a modified version as a
 network service, the AGPL requires you to offer that version's source to its
 users.
+
+Sound effects are from [Kenney's *Casino Audio*](https://kenney.nl/assets/casino-audio)
+pack (CC0), processed by `tools/sfx/build_sfx.py`.

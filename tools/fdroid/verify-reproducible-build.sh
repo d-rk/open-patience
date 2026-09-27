@@ -29,14 +29,14 @@
 #
 #   commit           default: HEAD
 #   abi              default: arm64-v8a  (armeabi-v7a | arm64-v8a | x86_64)
-#   flutter-version  default: 3.38.5 — must match pubspec.yaml's `flutter:` pin
+#   flutter-version  default: 3.47.5 — must match pubspec.yaml's `flutter:` pin
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 COMMIT="${1:-HEAD}"
 ABI="${2:-arm64-v8a}"
-FLUTTER_VERSION="${3:-3.38.5}"
+FLUTTER_VERSION="${3:-3.47.5}"
 
 case "$ABI" in
   armeabi-v7a) TARGET_PLATFORM=android-arm ;;

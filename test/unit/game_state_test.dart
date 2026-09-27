@@ -197,4 +197,44 @@ void main() {
       );
     });
   });
+
+  group('lastMove', () {
+    test('is null before any move', () {
+      final GameState state = GameState(piles: _klondikePiles());
+      expect(state.lastMove, isNull);
+    });
+
+    test('is the applied move with its resolved flipUnderCard flag', () {
+      final GameState state = GameState(
+        piles: _klondikePiles(
+          col6: <Card>[_c(Suit.hearts, 9, up: false), _c(Suit.spades, 7)],
+          col7: <Card>[_c(Suit.hearts, 8)],
+        ),
+      );
+      final bool moved = state.tryMove(
+        Move(fromPile: 6, toPile: 7, cards: <Card>[_c(Suit.spades, 7)]),
+        KlondikeRules(),
+      );
+      expect(moved, isTrue);
+      expect(state.lastMove?.toPile, 7);
+      expect(state.lastMove?.flipUnderCard, isTrue);
+    });
+
+    test('follows undo and redo', () {
+      final GameState state = GameState(
+        piles: _klondikePiles(
+          col6: <Card>[_c(Suit.spades, 7)],
+          col7: <Card>[_c(Suit.hearts, 8)],
+        ),
+      );
+      state.tryMove(
+        Move(fromPile: 6, toPile: 7, cards: <Card>[_c(Suit.spades, 7)]),
+        KlondikeRules(),
+      );
+      state.undo();
+      expect(state.lastMove, isNull);
+      state.redo();
+      expect(state.lastMove?.toPile, 7);
+    });
+  });
 }
