@@ -102,6 +102,69 @@ void main() {
     expect(c.delayFor(const CardKey(Suit.spades, 5), mid), Duration.zero);
   });
 
+  test('CascadeSequence varies velocity per card (deterministic)', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king1 = CardKey(Suit.clubs, kingRank);
+    const CardKey king2 = CardKey(Suit.hearts, kingRank);
+    // Different cards should traverse different paths (different speeds)
+    // by measuring distance at same time elapsed
+    final Offset off1 = c.offsetAt(
+      king1,
+      const Duration(milliseconds: 300),
+      won,
+      _origin,
+      _board,
+    );
+    final Offset off2 = c.offsetAt(
+      king2,
+      const Duration(milliseconds: 300),
+      won,
+      _origin,
+      _board,
+    );
+    final double dist1 = math.sqrt(off1.dx * off1.dx + off1.dy * off1.dy);
+    final double dist2 = math.sqrt(off2.dx * off2.dx + off2.dy * off2.dy);
+    // Different cards should have traveled different distances due to
+    // varying speed (velocity magnitude varies per card, ±15%)
+    expect(dist1, isNot(closeTo(dist2, 2.0)));
+  });
+
+  test('CascadeSequence rotation accelerates non-uniformly', () {
+    const CascadeSequence c = CascadeSequence();
+    final GameState won = _won();
+    const CardKey king = CardKey(Suit.clubs, kingRank);
+    final Duration delay = c.delayFor(king, won);
+    // Measure rotation at different times to detect non-linear acceleration
+    final double spin1 = c.rotationAt(
+      king,
+      delay + const Duration(milliseconds: 200),
+      won,
+      _origin,
+      _board,
+    );
+    final double spin2 = c.rotationAt(
+      king,
+      delay + const Duration(milliseconds: 400),
+      won,
+      _origin,
+      _board,
+    );
+    final double spin3 = c.rotationAt(
+      king,
+      delay + const Duration(milliseconds: 600),
+      won,
+      _origin,
+      _board,
+    );
+    // With uniform spin, delta should be constant. Non-uniform means
+    // the spin speed is changing (per-bounce variation).
+    final double delta1 = spin2.abs() - spin1.abs();
+    final double delta2 = spin3.abs() - spin2.abs();
+    // Deltas should differ (evidence of non-uniform acceleration)
+    expect(delta1, isNot(closeTo(delta2, 0.001)));
+  });
+
   test('CascadeSequence offset is zero exactly at activation', () {
     const CascadeSequence c = CascadeSequence();
     final GameState won = _won();
