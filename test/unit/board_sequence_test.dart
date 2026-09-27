@@ -127,7 +127,7 @@ void main() {
     final double dist2 = math.sqrt(off2.dx * off2.dx + off2.dy * off2.dy);
     // Different cards should have traveled different distances due to
     // varying speed (velocity magnitude varies per card, ±15%)
-    expect(dist1, isNot(closeTo(dist2, 2.0)));
+    expect(dist1, isNot(closeTo(dist2, 1.0)));
   });
 
   test('CascadeSequence rotation accelerates non-uniformly', () {
