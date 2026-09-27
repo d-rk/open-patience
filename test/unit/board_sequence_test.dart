@@ -125,8 +125,12 @@ void main() {
       _origin,
       _board,
     );
-    final double distAce = math.sqrt(offAce.dx * offAce.dx + offAce.dy * offAce.dy);
-    final double distKing = math.sqrt(offKing.dx * offKing.dx + offKing.dy * offKing.dy);
+    final double distAce = math.sqrt(
+      offAce.dx * offAce.dx + offAce.dy * offAce.dy,
+    );
+    final double distKing = math.sqrt(
+      offKing.dx * offKing.dx + offKing.dy * offKing.dy,
+    );
     // Different cards should have traveled different distances due to
     // varying speed (velocity magnitude varies per card, ±15%)
     expect(distAce, isNot(closeTo(distKing, 2.0)));
