@@ -86,6 +86,16 @@ class FfmpegArgsTest(unittest.TestCase):
         self.assertIn("volume=-10.0dB", graph)
         self.assertIn("amix=inputs=2", graph)
 
+    def test_synth_source_is_read_as_wav(self):
+        args = sfx.ffmpeg_args(recipe("win"), "/src", None)
+        self.assertIn("/src/harp_glissando_synth.wav", args)
+
+    def test_source_extension_does_not_depend_on_the_filesystem(self):
+        with tempfile.TemporaryDirectory() as src:
+            open(os.path.join(src, "card-place-1.wav"), "w").close()
+            args = sfx.ffmpeg_args(recipe("place_1"), src, None)
+        self.assertIn(os.path.join(src, "card-place-1.ogg"), args)
+
     def test_trim_only_when_requested(self):
         self.assertIn("atrim=end=1.2", sfx.filter_graph(recipe("deal")))
         self.assertNotIn("atrim", sfx.filter_graph(recipe("place_1")))

@@ -135,17 +135,21 @@ def filter_graph(recipe, gain_db=None):
     return ";".join(parts)
 
 
+def is_synth(stem):
+    return stem.endswith("_synth")
+
+
+def source_path(src_dir, stem):
+    # Synth sounds are written as .wav by synth.py; the rest come from the
+    # Kenney pack as .ogg.
+    return os.path.join(src_dir, stem + (".wav" if is_synth(stem) else ".ogg"))
+
+
 def ffmpeg_args(recipe, src_dir, out_path, gain_db=None):
-    # Try .ogg first (from Kenney pack), then .wav (synth sounds)
-    src_path = os.path.join(src_dir, recipe.source + ".ogg")
-    if not os.path.exists(src_path):
-        src_path = os.path.join(src_dir, recipe.source + ".wav")
-    args = ["ffmpeg", "-hide_banner", "-nostdin", "-y", "-i", src_path]
+    args = ["ffmpeg", "-hide_banner", "-nostdin", "-y",
+            "-i", source_path(src_dir, recipe.source)]
     if recipe.layer:
-        layer_path = os.path.join(src_dir, recipe.layer + ".ogg")
-        if not os.path.exists(layer_path):
-            layer_path = os.path.join(src_dir, recipe.layer + ".wav")
-        args += ["-i", layer_path]
+        args += ["-i", source_path(src_dir, recipe.layer)]
     args += ["-filter_complex", filter_graph(recipe, gain_db),
              "-map", "[out]"]
     if gain_db is None:
@@ -198,7 +202,7 @@ def extract(zip_path, dest):
     needed = ({r.source for r in RECIPES}
               | {r.layer for r in RECIPES if r.layer})
     # Filter out synth sounds (they're generated separately)
-    pack_needed = {s for s in needed if not s.endswith("_synth")}
+    pack_needed = {s for s in needed if not is_synth(s)}
     with zipfile.ZipFile(zip_path) as z:
         names = set(z.namelist())
         for stem in sorted(pack_needed):
