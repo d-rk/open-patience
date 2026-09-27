@@ -222,7 +222,8 @@ class CascadeSequence {
     final int seed = key.hashCode & 0x7fffffff;
     final double spinVariation =
         0.8 + ((seed + bounceCountX * 37) % 1000) / 1000 * 0.4;
-    final double spin = _xSign(origin, boardSize.width) * _spinSpeed * spinVariation * t;
+    final double spin =
+        _xSign(origin, boardSize.width) * _spinSpeed * spinVariation * t;
     return spin;
   }
 
@@ -259,7 +260,9 @@ class CascadeSequence {
     // Speed variation: use a different part of the seed to get a multiplier
     // between (1 - variation) and (1 + variation), e.g. 0.85-1.15
     final double speedMult =
-        1.0 - _speedVariation + (((seed ~/ 1000) % 1000) / 1000) * 2 * _speedVariation;
+        1.0 -
+        _speedVariation +
+        (((seed ~/ 1000) % 1000) / 1000) * 2 * _speedVariation;
     final double speed = _speed * speedMult;
     final double xSign = _xSign(origin, boardWidth);
     return Offset(xSign * speed * math.cos(angle), speed * math.sin(angle));
