@@ -1,0 +1,1 @@
+Deaktiviert den AGP-Dependency-Metadata-Block, damit der F-Droid-Scanner den Build akzeptiert.
