@@ -1,0 +1,1 @@
+Fehlerbehebung: Eine Karte konnte auf dem Ablagestapel hängen bleiben, die eigentlich oberste Karte verdecken und das Spielfeld blockieren. Das passierte, wenn man beim Ziehen einer Karte mit einem zweiten Finger auf den Nachziehstapel tippte (oder Rückgängig drückte). Das Ziehen endet jetzt immer sauber, und beim Ablegen werden nur die Karten bewegt, die man aufgenommen hat.

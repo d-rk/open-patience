@@ -1,0 +1,1 @@
+Sound effects! Cards now make satisfying sounds when you deal, move, undo and win — with a harp flourish for the victory cascade. Toggle sound anytime from the in-game menu. Also: livelier win cascade, the slot under a dragged card now shows, the in-game menu scrolls on small screens, and smoother animations.

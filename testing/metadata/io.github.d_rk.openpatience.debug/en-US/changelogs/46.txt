@@ -1,0 +1,3 @@
+fix(drag): release a drag whose card is torn down mid-flight
+
+## Bug

@@ -1,0 +1,1 @@
+Reproduzierbare, architekturspezifische Builds für F-Droid.
