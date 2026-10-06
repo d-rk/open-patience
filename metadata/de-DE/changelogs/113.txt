@@ -1,1 +1,0 @@
-Soundeffekte! Karten klingen jetzt beim Geben, Ziehen, Rückgängigmachen und Gewinnen — mit einem Harfen-Glissando für die Siegeskaskade. Ton jederzeit im Spielmenü ein- und ausschalten. Außerdem: lebendigere Siegeskaskade, der Platz unter einer gezogenen Karte ist nun sichtbar, das Spielmenü scrollt auf kleinen Bildschirmen, und flüssigere Animationen.

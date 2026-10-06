@@ -1,0 +1,1 @@
+Bug fix: a card could get stuck on top of the waste pile, hiding the real top card and freezing the board. This happened when the stock was tapped (or undo pressed) with a second finger while dragging a card. Dragging now always finishes cleanly, and a drop only ever moves the cards you picked up.
