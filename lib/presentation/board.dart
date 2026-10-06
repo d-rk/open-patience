@@ -328,9 +328,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         kind: slot.kind,
         cardSize: cardSize,
         onTap: slot.kind == PileKind.stock
-            ? () => context.read<GameBloc>().add(
-                TapMoveRequested(fromPile: slot.pileIndex),
-              )
+            ? () => _tapStock(context, slot.pileIndex)
             : null,
       ),
     );
@@ -617,8 +615,7 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
       case PileKind.stock:
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () =>
-              context.read<GameBloc>().add(TapMoveRequested(fromPile: idx)),
+          onTap: () => _tapStock(context, idx),
           child: CardFace(card: placement.card.faceDownCard, size: cardSize),
         );
       case PileKind.waste:
@@ -672,6 +669,16 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     return rules is KlondikeRules ? rules.drawCount : 1;
   }
 
+  /// Draws (or recycles) from the stock — unless a card is mid-drag, so a
+  /// second finger can't change the board under the one holding a card (the
+  /// same lock that stops it starting a second drag).
+  void _tapStock(BuildContext context, int pileIndex) {
+    if (DragScope.maybeOf(context)?.value != null) {
+      return;
+    }
+    context.read<GameBloc>().add(TapMoveRequested(fromPile: pileIndex));
+  }
+
   void _tap(BuildContext context, int pileIndex, int cardIndex) {
     context.read<GameBloc>().add(
       TapMoveRequested(fromPile: pileIndex, cardIndex: cardIndex),
@@ -697,6 +704,14 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     Offset globalDrop,
     int toPile,
   ) {
+    // A drop only counts while its drag still holds the board. A drag whose
+    // card was torn down mid-flight (the board changed under the finger) has
+    // already handed its claim back, and its pile/index may now name other
+    // cards — acting on it could move cards the player never picked up.
+    final ActiveDrag? activeDrag = DragScope.maybeOf(context);
+    if (activeDrag != null && !identical(activeDrag.value, data)) {
+      return;
+    }
     final GameBloc bloc = context.read<GameBloc>();
     if (!MediaQuery.of(context).disableAnimations) {
       final Pile pile = bloc.state.state.pileAt(data.fromPile);

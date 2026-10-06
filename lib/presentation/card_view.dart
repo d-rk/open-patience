@@ -70,9 +70,7 @@ class CardView extends StatelessWidget {
 
     if (card.faceUp && dragData != null) {
       final List<Card> stack = dragStack ?? <Card>[card];
-      final ValueNotifier<CardDragData?>? activeDrag = DragScope.maybeOf(
-        context,
-      );
+      final ActiveDrag? activeDrag = DragScope.maybeOf(context);
       if (activeDrag == null) {
         return _draggable(stack, child, null);
       }
@@ -91,7 +89,7 @@ class CardView extends StatelessWidget {
   Widget _draggable(
     List<Card> stack,
     Widget child,
-    ValueNotifier<CardDragData?>? activeDrag, [
+    ActiveDrag? activeDrag, [
     CardDragData? active,
   ]) {
     // While dragging, the moving cards ride in the floating feedback and leave
@@ -115,9 +113,67 @@ class CardView extends StatelessWidget {
         !(active.fromPile == dragData!.fromPile &&
             active.cardIndex == dragData!.cardIndex);
 
+    return _ScopedDraggable(
+      dragData: dragData!,
+      activeDrag: activeDrag,
+      locked: locked,
+      feedback: _DragFeedback(cards: stack, size: size),
+      size: size,
+      placeholder: placeholder,
+      child: child,
+    );
+  }
+}
+
+/// The [Draggable] for one card, holding its claim on the board's
+/// [ActiveDrag] for exactly as long as its drag runs. If the card is torn down
+/// mid-drag (the board changed under the finger and it is no longer
+/// draggable), Flutter never reports `onDragEnd` to it, so [dispose] hands the
+/// claim back instead — otherwise the board would stay locked to a drag that
+/// no longer exists.
+class _ScopedDraggable extends StatefulWidget {
+  const _ScopedDraggable({
+    required this.dragData,
+    required this.activeDrag,
+    required this.locked,
+    required this.feedback,
+    required this.size,
+    required this.placeholder,
+    required this.child,
+  });
+
+  final CardDragData dragData;
+  final ActiveDrag? activeDrag;
+  final bool locked;
+  final Widget feedback;
+  final Size size;
+  final Widget placeholder;
+  final Widget child;
+
+  @override
+  State<_ScopedDraggable> createState() => _ScopedDraggableState();
+}
+
+class _ScopedDraggableState extends State<_ScopedDraggable> {
+  /// The drag data this card put into [_ScopedDraggable.activeDrag], while
+  /// its drag is running.
+  CardDragData? _claim;
+
+  @override
+  void dispose() {
+    final CardDragData? claim = _claim;
+    if (claim != null) {
+      widget.activeDrag?.releaseOrphan(claim);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Size size = widget.size;
     return Draggable<CardDragData>(
-      data: dragData,
-      maxSimultaneousDrags: locked ? 0 : 1,
+      data: widget.dragData,
+      maxSimultaneousDrags: widget.locked ? 0 : 1,
       // Center the grabbed card on the finger. Flutter always hit-tests drop
       // targets at the pointer, so pinning the card's center there makes drops
       // land where the card *looks* like it is — far more forgiving than
@@ -128,12 +184,22 @@ class CardView extends StatelessWidget {
             BuildContext context,
             Offset position,
           ) => Offset(size.width / 2, size.height / 2),
-      feedback: _DragFeedback(cards: stack, size: size),
-      childWhenDragging: placeholder,
-      onDragStarted: () => activeDrag?.value = dragData,
-      onDragEnd: (_) => activeDrag?.value = null,
-      child: locked ? IgnorePointer(child: child) : child,
+      feedback: widget.feedback,
+      childWhenDragging: widget.placeholder,
+      onDragStarted: _onDragStarted,
+      onDragEnd: (_) => _onDragEnd(),
+      child: widget.locked ? IgnorePointer(child: widget.child) : widget.child,
     );
+  }
+
+  void _onDragStarted() {
+    _claim = widget.dragData;
+    widget.activeDrag?.value = widget.dragData;
+  }
+
+  void _onDragEnd() {
+    _claim = null;
+    widget.activeDrag?.value = null;
   }
 }
 
