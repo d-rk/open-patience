@@ -51,6 +51,23 @@ suggest_patch_bump() {
   echo "${major}.${minor}.$(( patch + 1 ))"
 }
 
+# Echo the per-ABI versionCodes for versionCode $2, space-separated. Releases
+# ship one APK per ABI with versionCode = code*10 + abi; the abi numbers are
+# read from the `abiCodes` map in the gradle file $1 (the single source of
+# truth for the split), so the two can never drift. Fails if there is none.
+abi_version_codes() {
+  local gradle="$1" code="$2" abis abi
+  [ -f "$gradle" ] || return 1
+  abis="$(awk '/abiCodes[[:space:]]*=[[:space:]]*mapOf\(/ { on = 1 }
+               on { print; if (index($0, ")")) exit }' "$gradle" \
+    | grep -oE 'to[[:space:]]+[0-9]+' | grep -oE '[0-9]+')" || return 1
+  local codes=()
+  for abi in $abis; do
+    codes+=("$(( code * 10 + abi ))")
+  done
+  echo "${codes[*]}"
+}
+
 # Succeed iff the argument is a strict X.Y.Z semver (no prefix, no suffix).
 is_valid_semver() {
   [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
@@ -110,22 +127,36 @@ prompt_version_name() {
   done
 }
 
-# Ensure a non-empty changelog exists for this code in every locale, opening
-# $EDITOR to author any that are missing or empty.
+# Write the release changelog for every locale. F-Droid reads one changelog
+# per APK versionCode, so each locale's notes are authored once — opening
+# $EDITOR on the first per-ABI file when it is missing or empty — then copied
+# to the release's other per-ABI codes. The previous release's set ($2) is
+# removed: only the latest release's notes are kept.
 ensure_changelogs() {
-  local repo="$1" code="$2" locale path
+  local repo="$1" cur_code="$2" code="$3" locale path primary c
   local editor="${EDITOR:-${VISUAL:-vi}}"
+  local gradle="$repo/android/app/build.gradle.kts" codes cur_codes
+  codes="$(abi_version_codes "$gradle" "$code")" \
+    || die "no abiCodes map in $gradle; cannot derive per-ABI versionCodes"
+  cur_codes="$(abi_version_codes "$gradle" "$cur_code")"
   for locale in "${LOCALES[@]}"; do
-    path="$(changelog_path "$repo" "$locale" "$code")"
-    if [ -s "$path" ]; then
-      echo "changelog present: $path"
-      continue
+    primary="$(changelog_path "$repo" "$locale" "${codes%% *}")"
+    if [ -s "$primary" ]; then
+      echo "changelog present: $primary"
+    else
+      mkdir -p "$(dirname "$primary")"
+      : > "$primary"
+      echo "opening $editor to write the $locale changelog ($primary)…"
+      "$editor" "$primary"
+      [ -s "$primary" ] || die "changelog $primary is empty; aborting"
     fi
-    mkdir -p "$(dirname "$path")"
-    : > "$path"
-    echo "opening $editor to write the $locale changelog ($path)…"
-    "$editor" "$path"
-    [ -s "$path" ] || die "changelog $path is empty; aborting"
+    for c in $codes; do
+      path="$(changelog_path "$repo" "$locale" "$c")"
+      [ "$path" = "$primary" ] || cp "$primary" "$path"
+    done
+    for c in $cur_codes; do
+      rm -f "$(changelog_path "$repo" "$locale" "$c")"
+    done
   done
 }
 
@@ -196,7 +227,7 @@ main() {
   echo "current: $cur_name (code $cur_code)  ->  new code will be $code"
   name="$(prompt_version_name "$pubspec")"
 
-  ensure_changelogs "$repo" "$code"
+  ensure_changelogs "$repo" "$cur_code" "$code"
 
   if [ "$skip_verify" -eq 1 ]; then
     echo "skipping asset verification (--skip-verify)."
@@ -207,12 +238,13 @@ main() {
   write_pubspec_version "$pubspec" "$name" "$code"
   echo "bumped pubspec to version: $name+$code"
 
-  local files=("$pubspec")
+  # -A on the changelog dirs also stages the previous release's removed set.
+  local paths=("$pubspec")
   local locale
   for locale in "${LOCALES[@]}"; do
-    files+=("$(changelog_path "$repo" "$locale" "$code")")
+    paths+=("$repo/metadata/$locale/changelogs")
   done
-  git -C "$repo" add "${files[@]}"
+  git -C "$repo" add -A -- "${paths[@]}"
   git -C "$repo" commit -m "chore(release): v$name (code $code)"
   git -C "$repo" tag -a "v$name" -m "Release v$name (code $code)"
 

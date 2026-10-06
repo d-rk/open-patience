@@ -132,8 +132,12 @@ Edit the palette or the `CARDS` layout in `build_logo.py` — never an icon PNG.
 - `release.sh` — cut a release interactively. Preflight (clean tree, on `main`,
   not behind `origin`) → pick the new versionName (defaults to a patch bump;
   the versionCode auto-increments) → require both `en-US` + `de-DE` changelogs
-  for the new code (opens `$EDITOR` for any missing) → verify every generated
-  asset is up to date (`--skip-verify` to bypass) → rewrite the single
+  (opens `$EDITOR` for any missing). Releases ship one APK per ABI with
+  versionCode `N*10 + abi`, so each locale's notes are written once and copied
+  to every per-ABI code (`<N>1.txt`…, abi numbers read from `abiCodes` in
+  `android/app/build.gradle.kts`), replacing the previous release's set →
+  verify every generated asset is up to date (`--skip-verify` to bypass) →
+  rewrite the single
   `pubspec.yaml` `version:` line → commit `chore(release): vX.Y.Z (code N)`,
   annotated-tag `vX.Y.Z`, and (on confirmation) `git push --follow-tags`.
   pubspec is the *only* committed version source (`android/local.properties` is

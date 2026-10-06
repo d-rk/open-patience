@@ -50,4 +50,17 @@ eq "$(grep -c '^version:' "$pubspec")" "1" "exactly one version line remains"
 eq "$(changelog_path /r en-US 5)" "/r/metadata/en-US/changelogs/5.txt" "changelog en"
 eq "$(changelog_path /r de-DE 5)" "/r/metadata/de-DE/changelogs/5.txt" "changelog de"
 
+# --- per-ABI versionCodes, derived from the gradle abiCodes map ---
+gradle="$work/build.gradle.kts"
+cat > "$gradle" <<'GRADLE'
+android {
+    defaultConfig { versionCode = flutter.versionCode }
+}
+val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86_64" to 3)
+GRADLE
+eq "$(abi_version_codes "$gradle" 12)" "121 122 123" "abi_version_codes 12"
+eq "$(abi_version_codes "$gradle" 7)" "71 72 73" "abi_version_codes 7"
+! (abi_version_codes "$work/missing.gradle.kts" 12) 2>/dev/null \
+  || fail "abi_version_codes accepted a missing gradle file"
+
 echo "PASS"
