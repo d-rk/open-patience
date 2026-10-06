@@ -28,7 +28,19 @@ version: 1.2.3+7
 environment:
   sdk: ^3.5.0
 EOF
-mkdir -p "$repo/metadata/en-US" "$repo/metadata/de-DE"
+# The ABI split: each release ships one APK per ABI, versionCode = code*10+abi.
+mkdir -p "$repo/android/app"
+cat > "$repo/android/app/build.gradle.kts" <<'GRADLE'
+val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86_64" to 3)
+GRADLE
+# The previous release's per-ABI changelogs, plus the initial-release one.
+for locale in en-US de-DE; do
+  mkdir -p "$repo/metadata/$locale/changelogs"
+  echo "Initial Release" > "$repo/metadata/$locale/changelogs/2.txt"
+  for abi in 1 2 3; do
+    echo "Old notes" > "$repo/metadata/$locale/changelogs/7$abi.txt"
+  done
+done
 git -C "$repo" add -A
 git -C "$repo" commit -qm "init"
 git -C "$repo" remote add origin "$origin"
@@ -51,9 +63,22 @@ chmod +x "$editor"
 grep -q '^version: 1.2.4+8$' "$repo/pubspec.yaml" \
   || fail "pubspec not bumped to 1.2.4+8"
 
-# Both changelogs written, keyed by the new code.
-[ -s "$repo/metadata/en-US/changelogs/8.txt" ] || fail "missing en-US changelog"
-[ -s "$repo/metadata/de-DE/changelogs/8.txt" ] || fail "missing de-DE changelog"
+# Each locale's notes written once, then fanned out to every per-ABI code of
+# the new release (8 -> 81/82/83); the previous release's set is replaced and
+# the initial-release changelog is left alone.
+for locale in en-US de-DE; do
+  dir="$repo/metadata/$locale/changelogs"
+  for abi in 1 2 3; do
+    grep -qx 'Release notes for the test.' "$dir/8$abi.txt" \
+      || fail "missing $locale changelog 8$abi"
+    [ ! -e "$dir/7$abi.txt" ] || fail "previous $locale changelog 7$abi kept"
+  done
+  [ ! -e "$dir/8.txt" ] || fail "$locale changelog written under the bare code"
+  [ -s "$dir/2.txt" ] || fail "initial $locale changelog removed"
+done
+# Everything the release touched is in the commit.
+[ -z "$(git -C "$repo" status --porcelain)" ] \
+  || fail "release left uncommitted changes: $(git -C "$repo" status --porcelain)"
 
 # Commit + annotated tag created locally.
 git -C "$repo" log -1 --pretty=%s | grep -q '^chore(release): v1.2.4 (code 8)$' \
