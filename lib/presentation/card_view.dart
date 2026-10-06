@@ -10,13 +10,19 @@ import 'card_back_pattern.dart';
 import 'drag_scope.dart';
 
 /// The payload a dragged card carries: enough for a drop target to describe the
-/// intended move (`from` pile + the index of the grabbed card) without the
+/// intended move (`from` pile, the index of the grabbed card, and the exact
+/// [cards] picked up — the grabbed card and everything above it) without the
 /// widget ever deciding legality.
 class CardDragData {
-  const CardDragData({required this.fromPile, required this.cardIndex});
+  const CardDragData({
+    required this.fromPile,
+    required this.cardIndex,
+    required this.cards,
+  });
 
   final int fromPile;
   final int cardIndex;
+  final List<Card> cards;
 }
 
 /// A single, purely-presentational playing card. Renders [card]'s face (or back
@@ -28,7 +34,6 @@ class CardView extends StatelessWidget {
     required this.card,
     required this.size,
     this.dragData,
-    this.dragStack,
     this.onTap,
     this.onDoubleTap,
     super.key,
@@ -44,12 +49,9 @@ class CardView extends StatelessWidget {
   final Card card;
   final Size size;
 
-  /// When non-null and [card] is face up, the card can be dragged.
+  /// When non-null and [card] is face up, the card can be dragged, carrying
+  /// [CardDragData.cards] along as one stacked piece.
   final CardDragData? dragData;
-
-  /// The whole face-up group being dragged, for stacked drag feedback. Defaults
-  /// to just this card.
-  final List<Card>? dragStack;
 
   final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
@@ -69,15 +71,15 @@ class CardView extends StatelessWidget {
     }
 
     if (card.faceUp && dragData != null) {
-      final List<Card> stack = dragStack ?? <Card>[card];
-      final ActiveDrag? activeDrag = DragScope.maybeOf(context);
-      if (activeDrag == null) {
+      final List<Card> stack = dragData!.cards;
+      final DragScope? scope = DragScope.maybeOf(context);
+      if (scope == null) {
         return _draggable(stack, child, null);
       }
       return ValueListenableBuilder<CardDragData?>(
-        valueListenable: activeDrag,
+        valueListenable: scope.activeDrag,
         builder: (BuildContext context, CardDragData? active, _) =>
-            _draggable(stack, child, activeDrag, active),
+            _draggable(stack, child, scope, active),
       );
     }
     return child;
@@ -89,7 +91,7 @@ class CardView extends StatelessWidget {
   Widget _draggable(
     List<Card> stack,
     Widget child,
-    ActiveDrag? activeDrag, [
+    DragScope? scope, [
     CardDragData? active,
   ]) {
     // While dragging, the moving cards ride in the floating feedback and leave
@@ -113,67 +115,9 @@ class CardView extends StatelessWidget {
         !(active.fromPile == dragData!.fromPile &&
             active.cardIndex == dragData!.cardIndex);
 
-    return _ScopedDraggable(
-      dragData: dragData!,
-      activeDrag: activeDrag,
-      locked: locked,
-      feedback: _DragFeedback(cards: stack, size: size),
-      size: size,
-      placeholder: placeholder,
-      child: child,
-    );
-  }
-}
-
-/// The [Draggable] for one card, holding its claim on the board's
-/// [ActiveDrag] for exactly as long as its drag runs. If the card is torn down
-/// mid-drag (the board changed under the finger and it is no longer
-/// draggable), Flutter never reports `onDragEnd` to it, so [dispose] hands the
-/// claim back instead — otherwise the board would stay locked to a drag that
-/// no longer exists.
-class _ScopedDraggable extends StatefulWidget {
-  const _ScopedDraggable({
-    required this.dragData,
-    required this.activeDrag,
-    required this.locked,
-    required this.feedback,
-    required this.size,
-    required this.placeholder,
-    required this.child,
-  });
-
-  final CardDragData dragData;
-  final ActiveDrag? activeDrag;
-  final bool locked;
-  final Widget feedback;
-  final Size size;
-  final Widget placeholder;
-  final Widget child;
-
-  @override
-  State<_ScopedDraggable> createState() => _ScopedDraggableState();
-}
-
-class _ScopedDraggableState extends State<_ScopedDraggable> {
-  /// The drag data this card put into [_ScopedDraggable.activeDrag], while
-  /// its drag is running.
-  CardDragData? _claim;
-
-  @override
-  void dispose() {
-    final CardDragData? claim = _claim;
-    if (claim != null) {
-      widget.activeDrag?.releaseOrphan(claim);
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final Size size = widget.size;
     return Draggable<CardDragData>(
-      data: widget.dragData,
-      maxSimultaneousDrags: widget.locked ? 0 : 1,
+      data: dragData,
+      maxSimultaneousDrags: locked ? 0 : 1,
       // Center the grabbed card on the finger. Flutter always hit-tests drop
       // targets at the pointer, so pinning the card's center there makes drops
       // land where the card *looks* like it is — far more forgiving than
@@ -184,22 +128,17 @@ class _ScopedDraggableState extends State<_ScopedDraggable> {
             BuildContext context,
             Offset position,
           ) => Offset(size.width / 2, size.height / 2),
-      feedback: widget.feedback,
-      childWhenDragging: widget.placeholder,
-      onDragStarted: _onDragStarted,
-      onDragEnd: (_) => _onDragEnd(),
-      child: widget.locked ? IgnorePointer(child: widget.child) : widget.child,
+      feedback: _DragFeedback(cards: stack, size: size),
+      childWhenDragging: placeholder,
+      onDragStarted: () => scope?.begin(dragData!),
+      // Not `onDragEnd`: Flutter only calls that while this card is still in
+      // the tree, and a board change mid-drag (e.g. a second finger drawing
+      // over the dragged waste card) can remove it. These two are guaranteed
+      // to report the drag's end either way.
+      onDragCompleted: () => scope?.end(),
+      onDraggableCanceled: (_, _) => scope?.end(),
+      child: locked ? IgnorePointer(child: child) : child,
     );
-  }
-
-  void _onDragStarted() {
-    _claim = widget.dragData;
-    widget.activeDrag?.value = widget.dragData;
-  }
-
-  void _onDragEnd() {
-    _claim = null;
-    widget.activeDrag?.value = null;
   }
 }
 

@@ -112,7 +112,11 @@ class PileView extends StatelessWidget {
     return CardView(
       card: top,
       size: cardSize,
-      dragData: CardDragData(fromPile: pileIndex, cardIndex: topIndex),
+      dragData: CardDragData(
+        fromPile: pileIndex,
+        cardIndex: topIndex,
+        cards: <Card>[top],
+      ),
       onTap: onCardTap == null ? null : () => onCardTap!(topIndex),
       onDoubleTap: onCardDoubleTap == null
           ? null
@@ -168,7 +172,11 @@ class PileView extends StatelessWidget {
     return CardView(
       card: card,
       size: cardSize,
-      dragData: CardDragData(fromPile: pileIndex, cardIndex: cardIndex),
+      dragData: CardDragData(
+        fromPile: pileIndex,
+        cardIndex: cardIndex,
+        cards: <Card>[card],
+      ),
       onTap: onCardTap == null ? null : () => onCardTap!(cardIndex),
       onDoubleTap: onCardDoubleTap == null
           ? null
@@ -192,9 +200,12 @@ class PileView extends StatelessWidget {
             card: card,
             size: cardSize,
             dragData: card.faceUp
-                ? CardDragData(fromPile: pileIndex, cardIndex: i)
+                ? CardDragData(
+                    fromPile: pileIndex,
+                    cardIndex: i,
+                    cards: pile.cards.sublist(i),
+                  )
                 : null,
-            dragStack: card.faceUp ? pile.cards.sublist(i) : null,
             onTap: isTop && card.faceUp && onCardTap != null
                 ? () => onCardTap!(i)
                 : null,

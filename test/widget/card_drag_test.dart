@@ -7,7 +7,6 @@ import 'package:open_patience/core/pile.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
-import 'package:open_patience/presentation/bloc/game_event.dart';
 import 'package:open_patience/presentation/card_view.dart';
 import 'package:open_patience/presentation/slot_placeholder.dart';
 import 'package:open_patience/presentation/sound/sound_cue.dart';
@@ -385,7 +384,7 @@ void main() {
     expect(sound.played, <SoundCue>[SoundCue.foundation]);
   });
 
-  testWidgets('a board change mid-drag does not leave the board locked', (
+  testWidgets('a card buried mid-drag does not leave the board locked', (
     WidgetTester tester,
   ) async {
     final RecordsRepository repo = await _repo();
@@ -395,11 +394,12 @@ void main() {
     );
     addTearDown(bloc.close);
     await _pump(tester, bloc);
+    final Offset stock = _stockCenter(tester);
 
-    // Lift the 5♠ off the waste and hold it over the felt while the board
-    // changes underneath: a draw buries it under the K♥.
+    // Finger A holds the 5♠ over the felt while finger B taps the stock,
+    // drawing the K♥ over it — the dragged card is no longer draggable.
     final TestGesture a = await _liftWasteTop(tester, Suit.spades, 5);
-    bloc.add(const TapMoveRequested(fromPile: 0));
+    await tester.tapAt(stock);
     await tester.pumpAndSettle();
     await a.up();
     await tester.pumpAndSettle();
@@ -426,11 +426,11 @@ void main() {
     expect(bloc.state.state.pileAt(6).cards.single.rank, 13);
   });
 
-  testWidgets('a drag orphaned by a board change does not move cards', (
+  testWidgets('a drop whose cards changed mid-drag moves nothing', (
     WidgetTester tester,
   ) async {
     final RecordsRepository repo = await _repo();
-    // 5♠ then 4♥ would stack on the 6♦ as a run — but only the 5♠ was dragged.
+    // 5♠ then 4♥ would stack on the 6♦ as a run — but only the 5♠ was lifted.
     final GameBloc bloc = _bloc(
       repo,
       _wasteGame(
@@ -440,45 +440,27 @@ void main() {
     );
     addTearDown(bloc.close);
     await _pump(tester, bloc);
+    final Offset stock = _stockCenter(tester);
 
     final TestGesture a = await _liftWasteTop(tester, Suit.spades, 5);
-    bloc.add(const TapMoveRequested(fromPile: 0));
+    await tester.tapAt(stock);
     await tester.pumpAndSettle();
     await a.moveTo(tester.getCenter(_cardFace(Suit.diamonds, 6)));
     await tester.pump();
     await a.up();
     await tester.pumpAndSettle();
 
-    // The stale drop is ignored: nothing left the waste.
+    // Nothing left the waste: the drop named a run that no longer exists.
     expect(bloc.state.state.pileAt(6).length, 1);
     expect(bloc.state.state.pileAt(1).length, 2);
   });
-
-  testWidgets('tapping the stock mid-drag does not draw', (
-    WidgetTester tester,
-  ) async {
-    final RecordsRepository repo = await _repo();
-    final GameBloc bloc = _bloc(
-      repo,
-      _wasteGame(stock: const Card(suit: Suit.hearts, rank: 13)),
-    );
-    addTearDown(bloc.close);
-    await _pump(tester, bloc);
-    final Offset stock = tester.getCenter(
-      find.byWidgetPredicate((Widget w) => w is CardFace && !w.card.faceUp),
-    );
-
-    // A second finger taps the stock while the 5♠ is held in the air.
-    final TestGesture a = await _liftWasteTop(tester, Suit.spades, 5);
-    await tester.tapAt(stock);
-    await tester.pumpAndSettle();
-
-    expect(bloc.state.state.pileAt(0).length, 1);
-    await a.up();
-    await tester.pumpAndSettle();
-    expect(_cardFace(Suit.spades, 5), findsOneWidget);
-  });
 }
+
+/// The center of the stock's face-down top card (the only face-down card on a
+/// [_wasteGame] board).
+Offset _stockCenter(WidgetTester tester) => tester.getCenter(
+  find.byWidgetPredicate((Widget w) => w is CardFace && !w.card.faceUp),
+);
 
 /// A Klondike board whose waste holds a lone 5♠, with one face-down [stock]
 /// card to draw over it and an optional first tableau column [col0].

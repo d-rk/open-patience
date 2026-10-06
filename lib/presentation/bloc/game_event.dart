@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../core/card.dart';
+
 /// Intents dispatched by the widget tree. Every player gesture becomes one of
 /// these; the [GameBloc] is the only thing that turns them into `core/` calls.
 /// Widgets never decide legality — they describe *what was touched*, and the
@@ -11,22 +13,24 @@ sealed class GameEvent extends Equatable {
   List<Object?> get props => const <Object?>[];
 }
 
-/// A drag-and-drop move: take the cards from [cardIndex] to the top of
-/// [fromPile] and drop them on [toPile]. The bloc slices the actual cards out
-/// of the current state and asks the rules whether it is legal.
+/// A drag-and-drop move: drop [cards] — the run the player picked up, which
+/// must still be the top of [fromPile] — on [toPile]. Naming the cards rather
+/// than a position means a drop can never move cards other than the ones
+/// dragged, even if the board changed while they were in the air. The bloc
+/// asks the rules whether the move is legal.
 class MoveRequested extends GameEvent {
   const MoveRequested({
     required this.fromPile,
     required this.toPile,
-    required this.cardIndex,
+    required this.cards,
   });
 
   final int fromPile;
   final int toPile;
-  final int cardIndex;
+  final List<Card> cards;
 
   @override
-  List<Object?> get props => <Object?>[fromPile, toPile, cardIndex];
+  List<Object?> get props => <Object?>[fromPile, toPile, cards];
 }
 
 /// Tap-to-move: send the card (group) at [cardIndex] — the top card when

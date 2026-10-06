@@ -1,5 +1,5 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 import 'card_view.dart';
 
@@ -17,7 +17,9 @@ class DragScopeHost extends StatefulWidget {
 }
 
 class _DragScopeHostState extends State<DragScopeHost> {
-  final ActiveDrag _activeDrag = ActiveDrag();
+  final ValueNotifier<CardDragData?> _activeDrag = ValueNotifier<CardDragData?>(
+    null,
+  );
 
   @override
   void dispose() {
@@ -27,54 +29,59 @@ class _DragScopeHostState extends State<DragScopeHost> {
 
   @override
   Widget build(BuildContext context) {
-    return DragScope(activeDrag: _activeDrag, child: widget.child);
+    return DragScope(
+      activeDrag: _activeDrag,
+      begin: _begin,
+      end: _end,
+      child: widget.child,
+    );
+  }
+
+  void _begin(CardDragData drag) {
+    _activeDrag.value = drag;
+  }
+
+  /// Flutter reports a drag's end even after the dragged card has left the
+  /// tree (see `Draggable.onDraggableCanceled`), so it can also arrive after
+  /// this scope has gone — when there is no board left to unlock.
+  void _end() {
+    if (!mounted) {
+      return;
+    }
+    _activeDrag.value = null;
   }
 }
 
-/// Exposes the board's active-drag notifier to [CardView]s below it.
+/// Exposes the board's active drag to [CardView]s below it.
 class DragScope extends InheritedWidget {
-  const DragScope({required this.activeDrag, required super.child, super.key});
+  const DragScope({
+    required this.activeDrag,
+    required this.begin,
+    required this.end,
+    required super.child,
+    super.key,
+  });
 
   /// The card currently being dragged, or `null` when the board is idle.
-  final ActiveDrag activeDrag;
+  final ValueListenable<CardDragData?> activeDrag;
 
-  /// The notifier for the nearest scope, or `null` when there is none (e.g. a
-  /// [CardView] used outside a board). The notifier identity is stable, so this
-  /// intentionally does not register a rebuild dependency — callers listen via
+  /// Marks [CardDragData] as the board's one in-flight drag.
+  final void Function(CardDragData drag) begin;
+
+  /// Clears the in-flight drag. Must be driven by a drag-end signal Flutter
+  /// guarantees even for a card removed mid-drag (`onDragCompleted` /
+  /// `onDraggableCanceled`, not `onDragEnd`), or the board stays locked.
+  final VoidCallback end;
+
+  /// The nearest scope, or `null` when there is none (e.g. a [CardView] used
+  /// outside a board). The notifier identity is stable, so this intentionally
+  /// does not register a rebuild dependency — callers listen via
   /// [ValueListenableBuilder] instead.
-  static ActiveDrag? maybeOf(BuildContext context) {
-    return context.getInheritedWidgetOfExactType<DragScope>()?.activeDrag;
+  static DragScope? maybeOf(BuildContext context) {
+    return context.getInheritedWidgetOfExactType<DragScope>();
   }
 
   @override
   bool updateShouldNotify(DragScope oldWidget) =>
       oldWidget.activeDrag != activeDrag;
-}
-
-/// The board's single in-flight card drag: the [CardDragData] a [CardView]
-/// claimed when its drag started, or `null` when the board is idle.
-class ActiveDrag extends ValueNotifier<CardDragData?> {
-  ActiveDrag() : super(null);
-
-  bool _disposed = false;
-
-  /// Clears [claim] if it is still the active drag. For a dragged card torn
-  /// down mid-drag (the board changed under the finger): Flutter never reports
-  /// `onDragEnd` to an unmounted `Draggable`, so without this the board would
-  /// stay locked to a drag that no longer exists. Deferred to after the frame
-  /// (it is called from `dispose`, while the tree is locked) and a no-op once
-  /// the scope itself is gone.
-  void releaseOrphan(CardDragData claim) {
-    SchedulerBinding.instance.addPostFrameCallback((Duration _) {
-      if (!_disposed && identical(value, claim)) {
-        value = null;
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 }
