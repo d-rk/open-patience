@@ -106,6 +106,16 @@ GameState _klondikeBoard({
   );
 }
 
+/// A drop of [fromPile]'s cards from [cardIndex] up onto [toPile], naming
+/// them exactly as they sit in [bloc]'s current state (what a drag carries).
+MoveRequested _drop(GameBloc bloc, int fromPile, int toPile, int cardIndex) {
+  return MoveRequested(
+    fromPile: fromPile,
+    toPile: toPile,
+    cards: bloc.state.state.pileAt(fromPile).cards.sublist(cardIndex),
+  );
+}
+
 GameBloc _bloc(
   _FakeRepo repo,
   GameState state, {
@@ -150,13 +160,33 @@ void main() {
           col7: <Card>[_up(Suit.hearts, 8)],
         ),
       ),
-      act: (GameBloc bloc) =>
-          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0)),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, 7, 0)),
       expect: () => <Matcher>[
         isA<GameInProgress>()
             .having((GameBlocState s) => s.state.moveCount, 'moveCount', 1)
             .having((GameBlocState s) => s.state.pileAt(7).length, 'col7', 2),
       ],
+    );
+
+    blocTest<GameBloc, GameBlocState>(
+      'a drop whose cards are no longer the top of the source is ignored',
+      build: () => _bloc(
+        _FakeRepo(),
+        _klondikeBoard(
+          // The 7♠ was picked up alone, but a 6♥ has since landed on it: the
+          // stale drop must not carry the 6♥ along.
+          col6: <Card>[_up(Suit.spades, 7), _up(Suit.hearts, 6)],
+          col7: <Card>[_up(Suit.hearts, 8)],
+        ),
+      ),
+      act: (GameBloc bloc) => bloc.add(
+        MoveRequested(
+          fromPile: 6,
+          toPile: 7,
+          cards: <Card>[_up(Suit.spades, 7)],
+        ),
+      ),
+      expect: () => <Matcher>[],
     );
 
     blocTest<GameBloc, GameBlocState>(
@@ -168,8 +198,7 @@ void main() {
           col7: <Card>[_up(Suit.clubs, 8)],
         ),
       ),
-      act: (GameBloc bloc) =>
-          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0)),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, 7, 0)),
       expect: () => <Matcher>[],
     );
   });
@@ -240,7 +269,7 @@ void main() {
         ),
       ),
       act: (GameBloc bloc) => bloc
-        ..add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0))
+        ..add(_drop(bloc, 6, 7, 0))
         ..add(const UndoRequested())
         ..add(const RedoRequested()),
       expect: () => <Matcher>[
@@ -296,13 +325,7 @@ void main() {
           ),
         );
       },
-      act: (GameBloc bloc) => bloc.add(
-        const MoveRequested(
-          fromPile: 6,
-          toPile: spadesFoundation,
-          cardIndex: 0,
-        ),
-      ),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, spadesFoundation, 0)),
       expect: () => <Matcher>[
         isA<GameWon>()
             .having((GameBlocState s) => (s as GameWon).moves, 'moves', 1)
@@ -333,13 +356,7 @@ void main() {
         ),
       ),
       act: (GameBloc bloc) => bloc
-        ..add(
-          const MoveRequested(
-            fromPile: 6,
-            toPile: spadesFoundation,
-            cardIndex: 0,
-          ),
-        )
+        ..add(_drop(bloc, 6, spadesFoundation, 0))
         ..add(const UndoRequested()),
       // Only the winning move's GameWon emits; the Undo afterwards is a no-op.
       expect: () => <Matcher>[isA<GameWon>()],
@@ -362,8 +379,7 @@ void main() {
           seed: 71,
         );
       },
-      act: (GameBloc bloc) =>
-          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0)),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, 7, 0)),
       verify: (_) {
         expect(repo.calls, contains('save:klondike-draw1:71'));
         expect(repo.savedState!.moveCount, 1);
@@ -398,7 +414,7 @@ void main() {
       );
       addTearDown(bloc.close);
 
-      bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0));
+      bloc.add(_drop(bloc, 6, 7, 0));
       await bloc.stream.firstWhere((GameBlocState s) => s.state.moveCount == 1);
       bloc.add(const UndoRequested());
       await bloc.stream.firstWhere((GameBlocState s) => s.state.moveCount == 0);
@@ -669,8 +685,7 @@ void main() {
           col7: <Card>[_up(Suit.hearts, 8)],
         ),
       ),
-      act: (GameBloc bloc) =>
-          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0)),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, 7, 0)),
       verify: (GameBloc bloc) =>
           expect(_played(bloc), <SoundCue>[SoundCue.place]),
     );
@@ -684,8 +699,7 @@ void main() {
           col7: <Card>[_up(Suit.hearts, 8)],
         ),
       ),
-      act: (GameBloc bloc) =>
-          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 1)),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, 7, 1)),
       verify: (GameBloc bloc) =>
           expect(_played(bloc), <SoundCue>[SoundCue.place, SoundCue.flip]),
     );
@@ -722,8 +736,7 @@ void main() {
           col7: <Card>[_up(Suit.clubs, 8)],
         ),
       ),
-      act: (GameBloc bloc) =>
-          bloc.add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0)),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, 7, 0)),
       verify: (GameBloc bloc) =>
           expect(_played(bloc), <SoundCue>[SoundCue.illegal]),
     );
@@ -732,8 +745,7 @@ void main() {
       'dropping a card back onto its own pile is silent',
       build: () =>
           _bloc(_FakeRepo(), _klondikeBoard(col6: <Card>[_up(Suit.spades, 7)])),
-      act: (GameBloc bloc) =>
-          bloc.add(const MoveRequested(fromPile: 6, toPile: 6, cardIndex: 0)),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, 6, 0)),
       verify: (GameBloc bloc) => expect(_played(bloc), isEmpty),
     );
 
@@ -755,7 +767,7 @@ void main() {
         ),
       ),
       act: (GameBloc bloc) => bloc
-        ..add(const MoveRequested(fromPile: 6, toPile: 7, cardIndex: 0))
+        ..add(_drop(bloc, 6, 7, 0))
         ..add(const UndoRequested())
         ..add(const RedoRequested()),
       verify: (GameBloc bloc) => expect(_played(bloc), <SoundCue>[
@@ -806,13 +818,7 @@ void main() {
     blocTest<GameBloc, GameBlocState>(
       'the winning move plays only win',
       build: () => _bloc(_FakeRepo(), oneMoveFromWin()),
-      act: (GameBloc bloc) => bloc.add(
-        const MoveRequested(
-          fromPile: 6,
-          toPile: spadesFoundation,
-          cardIndex: 0,
-        ),
-      ),
+      act: (GameBloc bloc) => bloc.add(_drop(bloc, 6, spadesFoundation, 0)),
       verify: (GameBloc bloc) =>
           expect(_played(bloc), <SoundCue>[SoundCue.win]),
     );

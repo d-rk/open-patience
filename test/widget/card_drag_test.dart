@@ -383,4 +383,111 @@ void main() {
     expect(bloc.state.state.pileAt(2).length, 2);
     expect(sound.played, <SoundCue>[SoundCue.foundation]);
   });
+
+  testWidgets('a card buried mid-drag does not leave the board locked', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    final GameBloc bloc = _bloc(
+      repo,
+      _wasteGame(stock: const Card(suit: Suit.hearts, rank: 13)),
+    );
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+    final Offset stock = _stockCenter(tester);
+
+    // Finger A holds the 5♠ over the felt while finger B taps the stock,
+    // drawing the K♥ over it — the dragged card is no longer draggable.
+    final TestGesture a = await _liftWasteTop(tester, Suit.spades, 5);
+    await tester.tapAt(stock);
+    await tester.pumpAndSettle();
+    await a.up();
+    await tester.pumpAndSettle();
+
+    // The K♥ is the new waste top: it must be visible and playable.
+    expect(bloc.state.state.pileAt(1).cards.last.rank, 13);
+    expect(_cardFace(Suit.hearts, 13), findsOneWidget);
+    final TestGesture k = await tester.startGesture(
+      tester.getCenter(_cardFace(Suit.hearts, 13)),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    await k.moveTo(
+      tester.getCenter(
+        find
+            .byWidgetPredicate(
+              (Widget w) => w is SlotPlaceholder && w.kind == PileKind.tableau,
+            )
+            .first,
+      ),
+    );
+    await tester.pump();
+    await k.up();
+    await tester.pumpAndSettle();
+    expect(bloc.state.state.pileAt(6).cards.single.rank, 13);
+  });
+
+  testWidgets('a drop whose cards changed mid-drag moves nothing', (
+    WidgetTester tester,
+  ) async {
+    final RecordsRepository repo = await _repo();
+    // 5♠ then 4♥ would stack on the 6♦ as a run — but only the 5♠ was lifted.
+    final GameBloc bloc = _bloc(
+      repo,
+      _wasteGame(
+        stock: const Card(suit: Suit.hearts, rank: 4),
+        col0: <Card>[_up(Suit.diamonds, 6)],
+      ),
+    );
+    addTearDown(bloc.close);
+    await _pump(tester, bloc);
+    final Offset stock = _stockCenter(tester);
+
+    final TestGesture a = await _liftWasteTop(tester, Suit.spades, 5);
+    await tester.tapAt(stock);
+    await tester.pumpAndSettle();
+    await a.moveTo(tester.getCenter(_cardFace(Suit.diamonds, 6)));
+    await tester.pump();
+    await a.up();
+    await tester.pumpAndSettle();
+
+    // Nothing left the waste: the drop named a run that no longer exists.
+    expect(bloc.state.state.pileAt(6).length, 1);
+    expect(bloc.state.state.pileAt(1).length, 2);
+  });
+}
+
+/// The center of the stock's face-down top card (the only face-down card on a
+/// [_wasteGame] board).
+Offset _stockCenter(WidgetTester tester) => tester.getCenter(
+  find.byWidgetPredicate((Widget w) => w is CardFace && !w.card.faceUp),
+);
+
+/// A Klondike board whose waste holds a lone 5♠, with one face-down [stock]
+/// card to draw over it and an optional first tableau column [col0].
+GameState _wasteGame({required Card stock, List<Card> col0 = const <Card>[]}) {
+  return GameState(
+    piles: <Pile>[
+      Pile(kind: PileKind.stock, cards: <Card>[stock]),
+      Pile(kind: PileKind.waste, cards: <Card>[_up(Suit.spades, 5)]),
+      for (int i = 0; i < 4; i++) Pile(kind: PileKind.foundation),
+      Pile(kind: PileKind.tableau, cards: col0),
+      for (int i = 1; i < 7; i++) Pile(kind: PileKind.tableau),
+    ],
+  );
+}
+
+/// Starts dragging the waste top card ([suit] [rank]) and holds it over the
+/// middle of the felt, returning the still-down gesture.
+Future<TestGesture> _liftWasteTop(
+  WidgetTester tester,
+  Suit suit,
+  int rank,
+) async {
+  final TestGesture gesture = await tester.startGesture(
+    tester.getCenter(_cardFace(suit, rank)),
+  );
+  await tester.pump(const Duration(milliseconds: 200));
+  await gesture.moveTo(tester.getCenter(find.byType(GameScreen)));
+  await tester.pump();
+  return gesture;
 }

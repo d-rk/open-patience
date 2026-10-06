@@ -628,7 +628,11 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         return CardView(
           card: placement.card,
           size: cardSize,
-          dragData: CardDragData(fromPile: idx, cardIndex: cardIndex),
+          dragData: CardDragData(
+            fromPile: idx,
+            cardIndex: cardIndex,
+            cards: <Card>[placement.card],
+          ),
           onTap: () => _tap(context, idx, cardIndex),
           onDoubleTap: () => _doubleTap(context, idx, cardIndex),
         );
@@ -644,7 +648,11 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         return CardView(
           card: placement.card,
           size: cardSize,
-          dragData: CardDragData(fromPile: idx, cardIndex: cardIndex),
+          dragData: CardDragData(
+            fromPile: idx,
+            cardIndex: cardIndex,
+            cards: <Card>[placement.card],
+          ),
           onTap: () => _tap(context, idx, cardIndex),
           onDoubleTap: () => _doubleTap(context, idx, cardIndex),
         );
@@ -655,8 +663,11 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
         return CardView(
           card: placement.card,
           size: cardSize,
-          dragData: CardDragData(fromPile: idx, cardIndex: cardIndex),
-          dragStack: pile.cards.sublist(cardIndex),
+          dragData: CardDragData(
+            fromPile: idx,
+            cardIndex: cardIndex,
+            cards: pile.cards.sublist(cardIndex),
+          ),
           onTap: placement.isTop ? () => _tap(context, idx, cardIndex) : null,
           onDoubleTap: placement.isTop
               ? () => _doubleTap(context, idx, cardIndex)
@@ -697,36 +708,28 @@ class _BoardState extends State<Board> with TickerProviderStateMixin {
     Offset globalDrop,
     int toPile,
   ) {
-    final GameBloc bloc = context.read<GameBloc>();
     if (!MediaQuery.of(context).disableAnimations) {
-      final Pile pile = bloc.state.state.pileAt(data.fromPile);
-      if (data.cardIndex >= 0 && data.cardIndex < pile.length) {
-        final RenderBox? box =
-            _stackKey.currentContext?.findRenderObject() as RenderBox?;
-        if (box != null) {
-          // The whole grabbed run rode in the drag feedback, fanned by
-          // [CardView.dragFanGapFactor]. Seed every card in it at that same
-          // fanned offset from the release point, so the run settles from where
-          // it was let go as one piece — seeding only the grabbed card would
-          // leave the cards below it flying back from the source (a split
-          // flicker on a multi-card drop).
-          final Offset local = box.globalToLocal(globalDrop);
-          final double gap = _cardSize.height * CardView.dragFanGapFactor;
-          setState(() {
-            for (int i = data.cardIndex; i < pile.length; i++) {
-              final CardKey key = CardKey.of(pile.cards[i]);
-              _settleFrom[key] = local.translate(0, gap * (i - data.cardIndex));
-            }
-          });
-        }
+      final RenderBox? box =
+          _stackKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null) {
+        // The whole grabbed run rode in the drag feedback, fanned by
+        // [CardView.dragFanGapFactor]. Seed every card in it at that same
+        // fanned offset from the release point, so the run settles from where
+        // it was let go as one piece — seeding only the grabbed card would
+        // leave the cards below it flying back from the source (a split
+        // flicker on a multi-card drop).
+        final Offset local = box.globalToLocal(globalDrop);
+        final double gap = _cardSize.height * CardView.dragFanGapFactor;
+        setState(() {
+          for (int i = 0; i < data.cards.length; i++) {
+            final CardKey key = CardKey.of(data.cards[i]);
+            _settleFrom[key] = local.translate(0, gap * i);
+          }
+        });
       }
     }
-    bloc.add(
-      MoveRequested(
-        fromPile: data.fromPile,
-        toPile: toPile,
-        cardIndex: data.cardIndex,
-      ),
+    context.read<GameBloc>().add(
+      MoveRequested(fromPile: data.fromPile, toPile: toPile, cards: data.cards),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'card_view.dart';
@@ -28,23 +29,56 @@ class _DragScopeHostState extends State<DragScopeHost> {
 
   @override
   Widget build(BuildContext context) {
-    return DragScope(activeDrag: _activeDrag, child: widget.child);
+    return DragScope(
+      activeDrag: _activeDrag,
+      begin: _begin,
+      end: _end,
+      child: widget.child,
+    );
+  }
+
+  void _begin(CardDragData drag) {
+    _activeDrag.value = drag;
+  }
+
+  /// Flutter reports a drag's end even after the dragged card has left the
+  /// tree (see `Draggable.onDraggableCanceled`), so it can also arrive after
+  /// this scope has gone — when there is no board left to unlock.
+  void _end() {
+    if (!mounted) {
+      return;
+    }
+    _activeDrag.value = null;
   }
 }
 
-/// Exposes the board's active-drag notifier to [CardView]s below it.
+/// Exposes the board's active drag to [CardView]s below it.
 class DragScope extends InheritedWidget {
-  const DragScope({required this.activeDrag, required super.child, super.key});
+  const DragScope({
+    required this.activeDrag,
+    required this.begin,
+    required this.end,
+    required super.child,
+    super.key,
+  });
 
   /// The card currently being dragged, or `null` when the board is idle.
-  final ValueNotifier<CardDragData?> activeDrag;
+  final ValueListenable<CardDragData?> activeDrag;
 
-  /// The notifier for the nearest scope, or `null` when there is none (e.g. a
-  /// [CardView] used outside a board). The notifier identity is stable, so this
-  /// intentionally does not register a rebuild dependency — callers listen via
+  /// Marks [CardDragData] as the board's one in-flight drag.
+  final void Function(CardDragData drag) begin;
+
+  /// Clears the in-flight drag. Must be driven by a drag-end signal Flutter
+  /// guarantees even for a card removed mid-drag (`onDragCompleted` /
+  /// `onDraggableCanceled`, not `onDragEnd`), or the board stays locked.
+  final VoidCallback end;
+
+  /// The nearest scope, or `null` when there is none (e.g. a [CardView] used
+  /// outside a board). The notifier identity is stable, so this intentionally
+  /// does not register a rebuild dependency — callers listen via
   /// [ValueListenableBuilder] instead.
-  static ValueNotifier<CardDragData?>? maybeOf(BuildContext context) {
-    return context.getInheritedWidgetOfExactType<DragScope>()?.activeDrag;
+  static DragScope? maybeOf(BuildContext context) {
+    return context.getInheritedWidgetOfExactType<DragScope>();
   }
 
   @override

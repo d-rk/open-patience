@@ -10,13 +10,19 @@ import 'card_back_pattern.dart';
 import 'drag_scope.dart';
 
 /// The payload a dragged card carries: enough for a drop target to describe the
-/// intended move (`from` pile + the index of the grabbed card) without the
+/// intended move (`from` pile, the index of the grabbed card, and the exact
+/// [cards] picked up — the grabbed card and everything above it) without the
 /// widget ever deciding legality.
 class CardDragData {
-  const CardDragData({required this.fromPile, required this.cardIndex});
+  const CardDragData({
+    required this.fromPile,
+    required this.cardIndex,
+    required this.cards,
+  });
 
   final int fromPile;
   final int cardIndex;
+  final List<Card> cards;
 }
 
 /// A single, purely-presentational playing card. Renders [card]'s face (or back
@@ -28,7 +34,6 @@ class CardView extends StatelessWidget {
     required this.card,
     required this.size,
     this.dragData,
-    this.dragStack,
     this.onTap,
     this.onDoubleTap,
     super.key,
@@ -44,12 +49,9 @@ class CardView extends StatelessWidget {
   final Card card;
   final Size size;
 
-  /// When non-null and [card] is face up, the card can be dragged.
+  /// When non-null and [card] is face up, the card can be dragged, carrying
+  /// [CardDragData.cards] along as one stacked piece.
   final CardDragData? dragData;
-
-  /// The whole face-up group being dragged, for stacked drag feedback. Defaults
-  /// to just this card.
-  final List<Card>? dragStack;
 
   final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
@@ -69,17 +71,15 @@ class CardView extends StatelessWidget {
     }
 
     if (card.faceUp && dragData != null) {
-      final List<Card> stack = dragStack ?? <Card>[card];
-      final ValueNotifier<CardDragData?>? activeDrag = DragScope.maybeOf(
-        context,
-      );
-      if (activeDrag == null) {
+      final List<Card> stack = dragData!.cards;
+      final DragScope? scope = DragScope.maybeOf(context);
+      if (scope == null) {
         return _draggable(stack, child, null);
       }
       return ValueListenableBuilder<CardDragData?>(
-        valueListenable: activeDrag,
+        valueListenable: scope.activeDrag,
         builder: (BuildContext context, CardDragData? active, _) =>
-            _draggable(stack, child, activeDrag, active),
+            _draggable(stack, child, scope, active),
       );
     }
     return child;
@@ -91,7 +91,7 @@ class CardView extends StatelessWidget {
   Widget _draggable(
     List<Card> stack,
     Widget child,
-    ValueNotifier<CardDragData?>? activeDrag, [
+    DragScope? scope, [
     CardDragData? active,
   ]) {
     // While dragging, the moving cards ride in the floating feedback and leave
@@ -130,8 +130,13 @@ class CardView extends StatelessWidget {
           ) => Offset(size.width / 2, size.height / 2),
       feedback: _DragFeedback(cards: stack, size: size),
       childWhenDragging: placeholder,
-      onDragStarted: () => activeDrag?.value = dragData,
-      onDragEnd: (_) => activeDrag?.value = null,
+      onDragStarted: () => scope?.begin(dragData!),
+      // Not `onDragEnd`: Flutter only calls that while this card is still in
+      // the tree, and a board change mid-drag (e.g. a second finger drawing
+      // over the dragged waste card) can remove it. These two are guaranteed
+      // to report the drag's end either way.
+      onDragCompleted: () => scope?.end(),
+      onDraggableCanceled: (_, _) => scope?.end(),
       child: locked ? IgnorePointer(child: child) : child,
     );
   }

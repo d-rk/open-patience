@@ -31,6 +31,13 @@ Cross-platform (mobile/tablet) solitaire game built in **Flutter** with
    enforces it with a `commit-msg` hook (`git config core.hooksPath
    .githooks`, one-time per clone) that rejects such commits — don't try to
    work around it.
+7. **Fix root causes — no monkey patching.** Before fixing a bug, find *why*
+   it happens and fix it where it originates: the misused API, the broken
+   invariant, the data that can go stale. Never paper over a symptom with
+   guards, post-frame clean-up hacks or one-off special cases at each place
+   it surfaces. If the proper fix is bigger than
+   expected, say so and propose it instead of shipping a workaround. Prove
+   the fix: revert just the fix and watch the regression test fail again.
 
 ## Architecture
 
@@ -249,6 +256,7 @@ release process in `RELEASING.md`, both at the repo root.
 ## Pre-commit checklist
 
 - [ ] A test was written first and drove the change (RED → GREEN → REFACTOR).
+- [ ] A bug fix removes the root cause, not a symptom (no workaround guards).
 - [ ] `flutter analyze` and `flutter test` both pass.
 - [ ] `dart format` has been run; no formatting diffs.
 - [ ] New/changed code has explicit static types and follows the style guide.

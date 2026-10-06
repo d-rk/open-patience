@@ -1,8 +1,8 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/card.dart';
 import '../../core/game_registry.dart';
 import '../../core/game_rules.dart';
 import '../../core/game_state.dart';
@@ -121,15 +121,19 @@ class GameBloc extends Bloc<GameEvent, GameBlocState> {
     if (_solving || state is GameWon) {
       return;
     }
+    // The dropped cards must still be exactly the top of their source pile:
+    // if the board changed while they were in the air, the drop is stale.
     final Pile source = _state.pileAt(event.fromPile);
-    if (event.cardIndex < 0 || event.cardIndex >= source.length) {
+    final int cardIndex = source.length - event.cards.length;
+    if (event.cards.isEmpty ||
+        cardIndex < 0 ||
+        !listEquals(source.cards.sublist(cardIndex), event.cards)) {
       return;
     }
-    final List<Card> cards = source.cards.sublist(event.cardIndex);
     final Move move = Move(
       fromPile: event.fromPile,
       toPile: event.toPile,
-      cards: cards,
+      cards: event.cards,
     );
     if (_state.tryMove(move, rules)) {
       _playMoveCue();
