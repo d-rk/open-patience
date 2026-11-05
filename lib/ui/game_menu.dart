@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../l10n/app_localizations.dart';
 import '../persistence/settings_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
 import '../presentation/bloc/game_event.dart';
-import 'theme/game_fonts.dart';
 import 'theme/game_palette.dart';
 import 'theme/widgets.dart';
 import 'variant_labels.dart';
@@ -20,6 +20,7 @@ Future<void> showGameMenu(
   return showDialog<void>(
     context: context,
     builder: (BuildContext dialogContext) {
+      final l10n = AppLocalizations.of(context)!;
       return MenuWidthLimit(
         maxWidth: 380,
         child: Dialog(
@@ -48,7 +49,7 @@ Future<void> showGameMenu(
                             Expanded(
                               child: GameActionTile(
                                 icon: Icons.replay,
-                                label: 'Restart Deal',
+                                label: l10n.pauseMenuRestartDeal,
                                 background: GamePalette.feltGreenMid,
                                 foreground: GamePalette.cardFace,
                                 onPressed: () {
@@ -61,7 +62,7 @@ Future<void> showGameMenu(
                             Expanded(
                               child: GameActionTile(
                                 icon: Icons.shuffle,
-                                label: 'New Deal',
+                                label: l10n.pauseMenuNewDeal,
                                 background: GamePalette.feltGreenMid,
                                 foreground: GamePalette.cardFace,
                                 onPressed: () {
@@ -86,7 +87,7 @@ Future<void> showGameMenu(
                           width: double.infinity,
                           child: GameActionTile(
                             icon: Icons.logout,
-                            label: 'Exit to menu',
+                            label: l10n.pauseMenuLeave,
                             background: GamePalette.feltGreenDark,
                             foreground: GamePalette.gold,
                             onPressed: () {
@@ -117,6 +118,7 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -128,12 +130,10 @@ class _Banner extends StatelessWidget {
       child: Column(
         children: <Widget>[
           Text(
-            variantTitle(bloc.variant),
-            style: const TextStyle(
-              fontFamily: GameFonts.display,
-              color: GamePalette.gold,
-              fontSize: 20,
-            ),
+            variantTitle(l10n, bloc.variant),
+            style: TextTheme.of(
+              context,
+            ).titleLarge!.copyWith(color: GamePalette.gold, fontSize: 20),
           ),
           const SizedBox(height: 2),
           BlocBuilder<GameBloc, GameBlocState>(
@@ -141,7 +141,7 @@ class _Banner extends StatelessWidget {
             builder: (BuildContext context, GameBlocState state) {
               return Text(
                 '${formatDuration(state.state.elapsedSeconds)} · '
-                '${formatMoves(state.state.moveCount)}',
+                '${l10n.moveCount(state.state.moveCount)}',
                 style: TextStyle(
                   color: GamePalette.cardFace.withValues(alpha: 0.85),
                   fontSize: 12,
@@ -170,9 +170,10 @@ class _SoundTileState extends State<_SoundTile> {
   @override
   Widget build(BuildContext context) {
     final bool on = widget.settings.soundEnabled;
+    final l10n = AppLocalizations.of(context)!;
     return GameActionTile(
       icon: on ? Icons.volume_up : Icons.volume_off,
-      label: on ? 'Sound: On' : 'Sound: Off',
+      label: on ? l10n.pauseMenuSoundEnabled : l10n.pauseMenuSoundDisabled,
       background: GamePalette.feltGreenMid,
       foreground: GamePalette.cardFace,
       onPressed: () async {

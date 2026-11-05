@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show appFlavor;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/game_catalog.dart';
+import '../l10n/app_localizations.dart';
 import '../persistence/records_repository.dart';
 import '../persistence/settings_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
@@ -147,6 +148,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     // shrinks to a compact variant there.
     final bool isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: FeltBackground(
         child: SafeArea(
@@ -171,14 +173,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
-                          'Games',
+                          l10n.gamesSectionTitle,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
                       for (final Game game in GameCatalog.games)
                         Card(
                           child: ListTile(
-                            title: Text(gameTitle(game.id)),
+                            title: Text(gameTitle(l10n, game.id)),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => _openGame(context, game.id),
                           ),
@@ -216,13 +218,14 @@ class _ContinueSection extends StatelessWidget {
     if (saves.isEmpty) {
       return const SizedBox.shrink();
     }
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            'Continue playing',
+            l10n.continuePlayingSectionTitle,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
@@ -241,15 +244,15 @@ class _ContinueSection extends StatelessWidget {
             ),
             child: Card(
               child: ListTile(
-                title: Text(variantTitle(saved.variant)),
+                title: Text(variantTitle(l10n, saved.variant)),
                 subtitle: Text(
                   '${formatDuration(saved.state.elapsedSeconds)} · '
-                  '${formatMoves(saved.state.moveCount)}',
+                  '${l10n.moveCount(saved.state.moveCount)}',
                 ),
                 trailing: TextButton.icon(
                   onPressed: () => onResume(saved),
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('Resume'),
+                  label: Text(l10n.resume),
                 ),
                 onTap: () => onResume(saved),
               ),

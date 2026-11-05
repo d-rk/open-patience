@@ -5,6 +5,7 @@
 // lib/ui/game_options_screen.dart, which forward both through.
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/settings_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
@@ -54,6 +55,7 @@ void main() {
             disableAnimations: true,
           ),
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: MainMenuScreen(
               repository: repo,
               settings: settings,

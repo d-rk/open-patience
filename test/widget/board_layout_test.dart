@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
 import 'package:open_patience/core/game_state.dart';
 import 'package:open_patience/core/pile.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
@@ -106,6 +107,7 @@ Future<GameBloc> _pumpBoard(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: Scaffold(
         body: BlocProvider<GameBloc>.value(value: bloc, child: const Board()),
       ),

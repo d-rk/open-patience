@@ -8,20 +8,25 @@ import 'game_palette.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get themeData {
+  static ThemeData themeData(Locale locale) {
     final ColorScheme scheme = ColorScheme.fromSeed(
       seedColor: GamePalette.feltGreenLight,
       primary: GamePalette.feltGreenMid,
       secondary: GamePalette.gold,
     );
+    final useSystemFonts = shouldUseSystemFonts(locale);
+    final bodyFont = useSystemFonts ? GameFonts.system : GameFonts.body;
+    final textTheme = useSystemFonts
+        ? _textTheme(GameFonts.systemCondensed, fontWeight: FontWeight.w700)
+        : _textTheme(GameFonts.display);
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: GamePalette.feltGreenDark,
       // Quicksand is the app-wide default; the display styles used for large
       // headings switch to the characterful Lilita One face.
-      fontFamily: GameFonts.body,
-      textTheme: _textTheme,
+      fontFamily: bodyFont,
+      textTheme: textTheme,
       cardTheme: CardThemeData(
         color: GamePalette.cardFace,
         elevation: 4,
@@ -51,15 +56,24 @@ class AppTheme {
     );
   }
 
+  static bool shouldUseSystemFonts(Locale locale) =>
+      locale.languageCode == 'ru';
+
   /// Body text stays on [GameFonts.body]; the display/headline/title tiers use
   /// [GameFonts.display] so large headings pick up the playful face.
-  static const TextTheme _textTheme = TextTheme(
-    displayLarge: TextStyle(fontFamily: GameFonts.display),
-    displayMedium: TextStyle(fontFamily: GameFonts.display),
-    displaySmall: TextStyle(fontFamily: GameFonts.display),
-    headlineLarge: TextStyle(fontFamily: GameFonts.display),
-    headlineMedium: TextStyle(fontFamily: GameFonts.display),
-    headlineSmall: TextStyle(fontFamily: GameFonts.display),
-    titleLarge: TextStyle(fontFamily: GameFonts.display),
-  );
+  static TextTheme _textTheme(String fontFamily, {FontWeight? fontWeight}) {
+    final headingStyle = TextStyle(
+      fontFamily: fontFamily,
+      fontWeight: fontWeight,
+    );
+    return TextTheme(
+      displayLarge: headingStyle,
+      displayMedium: headingStyle,
+      displaySmall: headingStyle,
+      headlineLarge: headingStyle,
+      headlineMedium: headingStyle,
+      headlineSmall: headingStyle,
+      titleLarge: headingStyle,
+    );
+  }
 }

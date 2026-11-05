@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/game_catalog.dart';
 import '../core/seed.dart';
+import '../l10n/app_localizations.dart';
 import '../persistence/records_repository.dart';
 import '../persistence/settings_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
@@ -107,7 +108,7 @@ class GameOptionsScreen extends StatelessWidget {
         builder: (BuildContext context) => RecordsScreen(
           repository: repository,
           variant: variant,
-          title: variantTitle(variant),
+          title: variantTitle(AppLocalizations.of(context)!, variant),
         ),
       ),
     );
@@ -123,7 +124,7 @@ class GameOptionsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               FeltHeader(
-                title: gameTitle(gameId),
+                title: gameTitle(AppLocalizations.of(context)!, gameId),
                 onBack: () => Navigator.of(context).pop(),
               ),
               Expanded(
@@ -175,6 +176,7 @@ class _VariantRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -182,10 +184,10 @@ class _VariantRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              variantShortLabel(variant),
+              variantShortLabel(l10n, variant),
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            Text(variantDescriptor(variant)),
+            Text(variantDescriptor(l10n, variant)),
             const SizedBox(height: 12),
             FutureBuilder<bool>(
               future: hasSave,
@@ -201,18 +203,18 @@ class _VariantRow extends StatelessWidget {
                         FilledButton.icon(
                           onPressed: onPlay,
                           icon: const Icon(Icons.play_arrow),
-                          label: const Text('Play'),
+                          label: Text(l10n.play),
                         ),
                         if (saved)
                           OutlinedButton.icon(
                             onPressed: onResume,
                             icon: const Icon(Icons.restore),
-                            label: const Text('Resume'),
+                            label: Text(l10n.resume),
                           ),
                         TextButton.icon(
                           onPressed: onRecords,
                           icon: const Icon(Icons.leaderboard),
-                          label: const Text('Records'),
+                          label: Text(l10n.records),
                         ),
                       ],
                     ),

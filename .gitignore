@@ -56,3 +56,7 @@ __pycache__/
 
 # tools/sfx download cache
 tools/sfx/.cache/
+
+# Flutter-generated localization classes
+/lib/l10n/app_localizations.dart
+/lib/l10n/app_localizations_*.dart

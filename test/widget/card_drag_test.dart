@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
 import 'package:open_patience/core/game_state.dart';
 import 'package:open_patience/core/pile.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
@@ -53,6 +54,7 @@ GameBloc _bloc(RecordsRepository repo, GameState state) {
 Future<void> _pump(WidgetTester tester, GameBloc bloc) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: BlocProvider<GameBloc>.value(
         value: bloc,
         child: const GameScreen(),
