@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../l10n/app_localizations.dart';
 
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
@@ -37,6 +38,7 @@ class TopBar extends StatelessWidget {
             // A won game keeps its undo/redo history, but neither action
             // should be available once play is over.
             final bool won = state is GameWon;
+            final l10n = AppLocalizations.of(context)!;
             return Row(
               children: <Widget>[
                 // Always mounted so its animation state survives the
@@ -45,14 +47,14 @@ class TopBar extends StatelessWidget {
                 SolveReveal(
                   visible: _canSolve(state),
                   child: IconButton(
-                    tooltip: 'Solve',
+                    tooltip: l10n.tooltipSolve,
                     color: GamePalette.gold,
                     icon: const Icon(Icons.auto_fix_high),
                     onPressed: () => bloc.add(const AutoSolveRequested()),
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Undo',
+                  tooltip: l10n.tooltipUndo,
                   color: GamePalette.gold,
                   icon: const Icon(Icons.undo),
                   onPressed: !won && state.state.canUndo
@@ -60,7 +62,7 @@ class TopBar extends StatelessWidget {
                       : null,
                 ),
                 IconButton(
-                  tooltip: 'Redo',
+                  tooltip: l10n.tooltipRedo,
                   color: GamePalette.gold,
                   icon: const Icon(Icons.redo),
                   onPressed: !won && state.state.canRedo
@@ -101,9 +103,9 @@ class _MenuButton extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onMenu,
-        child: const Tooltip(
-          message: 'Menu',
-          child: SizedBox(
+        child: Tooltip(
+          message: AppLocalizations.of(context)!.tooltipMenu,
+          child: const SizedBox(
             width: 40,
             height: 40,
             child: Icon(Icons.menu, color: GamePalette.feltGreenDark),

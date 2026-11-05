@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/persistence/stats.dart';
 import 'package:open_patience/ui/records_screen.dart';
@@ -27,6 +28,7 @@ Future<void> _pump(
   final SharedPrefsRecordsRepository repo = await _repoWith(stats);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: RecordsScreen(
         repository: repo,
         variant: 'klondike-draw1',

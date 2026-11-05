@@ -1,0 +1,97 @@
+{
+    "@@locale": "en",
+    "today": "Today",
+    "klondike": "Klondike",
+    "freecell": "FreeCell",
+    "winMessage": "You Win!",
+    "play": "Play",
+    "records": "Records",
+    "resume": "Resume",
+    "newRecordTag": "NEW",
+
+    "fullKlondikeDraw1": "Klondike (Draw 1)",
+    "fullKlondikeDraw3": "Klondike (Draw 3)",
+    "fullFreecell": "FreeCell",
+    "fullFreecellCells2": "FreeCell (2 cells)",
+    "fullFreecellCells6": "FreeCell (6 cells)",
+
+    "descriptorKlondikeDraw1": "Turn one card at a time",
+    "descriptorKlondikeDraw3": "Turn three at a time",
+    "descriptorFreecell": "Standard FreeCell",
+    "descriptorFreecellCells2": "Fewer cells, tighter play",
+    "descriptorFreecellCells6": "Extra room, easier",
+
+    "shortKlondikeDraw1": "Draw 1",
+    "shortKlondikeDraw3": "Draw 3",
+    "shortFreecell": "Classic · 4 cells",
+    "shortFreecellCells2": "2 cells · hard",
+    "shortFreecellCells6": "6 cells · relaxed",
+
+    "gamesSectionTitle": "Games",
+    "continuePlayingSectionTitle": "Continue playing",
+    "emptyLeaderboardPlaceholder": "Win a game to start your leaderboard.",
+    "totalWins": "Total wins",
+    "bestWinPlaceholder": "Best win",
+    "bestWinSuffix": "best",
+
+    "winResultPrefix": "You won in ",
+    "winLeaderboardRank": "#{rank} BEST",
+    "@winLeaderboardRank":{
+        "placeholders": {
+            "rank": {
+                "type": "int"
+            }
+        }
+    },
+
+    "pauseMenuRestartDeal": "Restart Deal",
+    "pauseMenuNewDeal": "New Deal",
+    "pauseMenuLeave": "Exit to menu",
+    "pauseMenuSoundEnabled": "Sound: On",
+    "pauseMenuSoundDisabled": "Sound: Off",
+
+    "moveCount": "{count, plural, other{{count} moves} one{{count} move}}",
+    "@moveCount": {
+        "placeholders": {
+            "count": {
+              "type": "int"
+            }
+        }
+    },
+
+    "tooltipSolve": "Solve",
+    "tooltipUndo": "Undo",
+    "tooltipRedo": "Redo",
+    "tooltipMenu": "Menu",
+    "tooltipBack": "Back",
+
+    "ace": "ace",
+    "two": "two",
+    "three": "three",
+    "four": "four",
+    "five": "five",
+    "six": "six",
+    "seven": "seven",
+    "eight": "eight",
+    "nine": "nine",
+    "ten": "ten",
+    "jack": "jack",
+    "queen": "queen",
+    "king": "king",
+    "clubsInCardName": "clubs",
+    "diamondsInCardName": "diamonds",
+    "heartsInCardName": "hearts",
+    "spadesInCardName": "spades",
+    "cardSemanticLabel": "{rank} of {suit}",
+    "@cardSemanticLabel": {
+        "placeholders": {
+            "rank": {
+                "type": "String"
+            },
+            "suit": {
+                "type": "String"
+            }
+        }
+    },
+    "downCardSemanticLabel": "face-down card"
+}

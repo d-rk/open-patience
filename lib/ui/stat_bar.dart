@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../l10n/app_localizations.dart';
 
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
@@ -33,7 +34,7 @@ class StatBar extends StatelessWidget {
             const SizedBox(width: 12),
             GamePill(
               icon: Icons.swap_vert,
-              label: formatMoves(state.state.moveCount),
+              label: AppLocalizations.of(context)!.moveCount(state.state.moveCount),
             ),
           ],
         );

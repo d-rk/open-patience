@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/ui/theme/game_fonts.dart';
 import 'package:open_patience/ui/theme/widgets.dart';
 
 Future<void> _pump(WidgetTester tester, Widget child) {
-  return tester.pumpWidget(MaterialApp(home: Scaffold(body: child)));
+  return tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: Scaffold(body: child),
+    ),
+  );
 }
 
 void main() {

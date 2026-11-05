@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'l10n/app_localizations.dart';
 import 'persistence/records_repository.dart';
 import 'persistence/settings_repository.dart';
 import 'persistence/shared_prefs_records_repository.dart';
@@ -53,7 +54,12 @@ class OpenPatienceApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Open Patience',
-      theme: AppTheme.themeData,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) {
+        final locale = Localizations.localeOf(context);
+        return Theme(data: AppTheme.themeData(locale), child: child!);
+      },
       home: MainMenuScreen(
         repository: repository,
         autoTick: const Duration(seconds: 1),

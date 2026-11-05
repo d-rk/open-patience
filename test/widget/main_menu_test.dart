@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/game_registry.dart';
 import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/board.dart';
@@ -17,7 +18,10 @@ Future<RecordsRepository> _repo() async {
 
 Widget _host(Widget child) => MediaQuery(
   data: const MediaQueryData(disableAnimations: true),
-  child: MaterialApp(home: child),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    home: child,
+  ),
 );
 
 void main() {
@@ -60,7 +64,10 @@ void main() {
           size: Size(1200, 800),
           disableAnimations: true,
         ),
-        child: MaterialApp(home: MainMenuScreen(repository: repo)),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: MainMenuScreen(repository: repo),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -87,7 +94,10 @@ void main() {
           size: Size(1200, 800),
           disableAnimations: true,
         ),
-        child: MaterialApp(home: MainMenuScreen(repository: repo)),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: MainMenuScreen(repository: repo),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -161,7 +171,10 @@ void main() {
           size: Size(720, 360),
           disableAnimations: true,
         ),
-        child: MaterialApp(home: MainMenuScreen(repository: repo)),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: MainMenuScreen(repository: repo),
+        ),
       ),
     );
     await tester.pumpAndSettle();

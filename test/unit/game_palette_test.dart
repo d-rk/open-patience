@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_patience/l10n/app_localizations_en.dart';
 import 'package:open_patience/ui/theme/game_palette.dart';
 
 void main() {
@@ -13,14 +14,15 @@ void main() {
   });
 
   group('formatMoves', () {
+    final localizations = AppLocalizationsEn();
     test('uses the singular for exactly one move', () {
-      expect(formatMoves(1), '1 move');
+      expect(localizations.moveCount(1), '1 move');
     });
 
     test('uses the plural for zero and many moves', () {
-      expect(formatMoves(0), '0 moves');
-      expect(formatMoves(2), '2 moves');
-      expect(formatMoves(147), '147 moves');
+      expect(localizations.moveCount(0), '0 moves');
+      expect(localizations.moveCount(2), '2 moves');
+      expect(localizations.moveCount(147), '147 moves');
     });
   });
 

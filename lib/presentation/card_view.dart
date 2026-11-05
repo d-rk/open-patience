@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart' hide Card;
 
 import '../core/card.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/theme/game_fonts.dart';
 import '../ui/theme/game_motion.dart';
 import '../ui/theme/game_palette.dart';
@@ -284,42 +285,42 @@ class CardFace extends StatelessWidget {
     Suit.spades: '♠',
   };
 
-  static const Map<Suit, String> _suitNames = <Suit, String>{
-    Suit.clubs: 'clubs',
-    Suit.diamonds: 'diamonds',
-    Suit.hearts: 'hearts',
-    Suit.spades: 'spades',
-  };
-
-  static const List<String> _rankNames = <String>[
-    '',
-    'ace',
-    'two',
-    'three',
-    'four',
-    'five',
-    'six',
-    'seven',
-    'eight',
-    'nine',
-    'ten',
-    'jack',
-    'queen',
-    'king',
-  ];
-
-  String get _semanticLabel => card.faceUp
-      ? '${_rankNames[card.rank]} of ${_suitNames[card.suit]}'
-      : 'face-down card';
+  String _semanticLabel(AppLocalizations l10n) {
+    if (!card.faceUp) return l10n.downCardSemanticLabel;
+    final rank = switch (card.rank) {
+      1 => l10n.ace,
+      2 => l10n.two,
+      3 => l10n.three,
+      4 => l10n.four,
+      5 => l10n.five,
+      6 => l10n.six,
+      7 => l10n.seven,
+      8 => l10n.eight,
+      9 => l10n.nine,
+      10 => l10n.ten,
+      11 => l10n.jack,
+      12 => l10n.queen,
+      13 => l10n.king,
+      _ => '',
+    };
+    final suit = switch (card.suit) {
+      Suit.clubs => l10n.clubsInCardName,
+      Suit.diamonds => l10n.diamondsInCardName,
+      Suit.hearts => l10n.heartsInCardName,
+      Suit.spades => l10n.spadesInCardName,
+    };
+    return l10n.cardSemanticLabel(rank, suit);
+  }
 
   @override
   Widget build(BuildContext context) {
     final double radius = size.width * 0.12;
+    final l10n = AppLocalizations.of(context)!;
     if (!card.faceUp) {
       final double innerInset = size.width * 0.05;
       final double patternInset = size.width * 0.085;
       return Semantics(
-        label: _semanticLabel,
+        label: _semanticLabel(l10n),
         child: Container(
           width: size.width,
           height: size.height,
@@ -408,7 +409,7 @@ class CardFace extends StatelessWidget {
     );
 
     return Semantics(
-      label: _semanticLabel,
+      label: _semanticLabel(l10n),
       child: Container(
         width: size.width,
         height: size.height,

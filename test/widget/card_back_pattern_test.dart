@@ -3,12 +3,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/presentation/card_back_pattern.dart';
 import 'package:open_patience/presentation/card_view.dart';
 
 Future<void> _pumpFace(WidgetTester tester, Card card) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: Scaffold(
         body: Center(
           child: CardFace(card: card, size: const Size(60, 84)),
@@ -72,6 +74,7 @@ void main() {
     const Size size = Size(60, 84);
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Scaffold(
           body: Row(
             children: <Widget>[

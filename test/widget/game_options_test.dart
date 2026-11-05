@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/game_registry.dart';
 import 'package:open_patience/core/game_state.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
@@ -22,7 +23,10 @@ Future<RecordsRepository> _repo() async {
 // row overflows at the real render width.
 Widget _host(Widget child) => MediaQuery(
   data: const MediaQueryData(size: Size(1200, 800), disableAnimations: true),
-  child: MaterialApp(home: child),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    home: child,
+  ),
 );
 
 void main() {

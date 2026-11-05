@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../l10n/app_localizations.dart';
 import '../persistence/settings_repository.dart';
 import '../presentation/bloc/game_bloc.dart';
 import '../presentation/bloc/game_bloc_state.dart';
@@ -12,7 +13,6 @@ import '../presentation/board.dart';
 import 'game_menu.dart';
 import 'records_screen.dart';
 import 'stat_bar.dart';
-import 'theme/game_fonts.dart';
 import 'theme/game_motion.dart';
 import 'theme/game_palette.dart';
 import 'theme/widgets.dart';
@@ -202,7 +202,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         builder: (BuildContext context) => RecordsScreen(
           repository: bloc.repository,
           variant: bloc.variant,
-          title: variantTitle(bloc.variant),
+          title: variantTitle(AppLocalizations.of(context)!, bloc.variant),
           justWonTimeSeconds: won.elapsed,
           justWonMoves: won.moves,
         ),
@@ -234,10 +234,9 @@ class _WinBanner extends StatelessWidget {
           child: Transform.scale(scale: 0.7 + 0.3 * t, child: child),
         );
       },
-      child: const Text(
-        'You Win!',
-        style: TextStyle(
-          fontFamily: GameFonts.display,
+      child: Text(
+        AppLocalizations.of(context)!.winMessage,
+        style: TextTheme.of(context).displayMedium!.copyWith(
           color: GamePalette.gold,
           fontSize: 48,
           letterSpacing: 1,

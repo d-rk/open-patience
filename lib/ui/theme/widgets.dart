@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 
 import 'game_fonts.dart';
 import 'game_palette.dart';
@@ -42,7 +43,7 @@ class FeltHeader extends StatelessWidget {
         children: <Widget>[
           if (onBack != null)
             IconButton(
-              tooltip: 'Back',
+              tooltip: AppLocalizations.of(context)!.tooltipBack,
               icon: const Icon(Icons.arrow_back, color: GamePalette.gold),
               onPressed: onBack,
             ),
@@ -52,18 +53,15 @@ class FeltHeader extends StatelessWidget {
             children: <Widget>[
               Text(
                 title,
-                style: const TextStyle(
-                  fontFamily: GameFonts.display,
+                style: TextTheme.of(context).headlineSmall!.copyWith(
                   color: GamePalette.gold,
-                  fontSize: 24,
                   letterSpacing: 0.5,
                 ),
               ),
               if (subtitle != null)
                 Text(
                   subtitle!,
-                  style: TextStyle(
-                    fontFamily: GameFonts.body,
+                  style: TextTheme.of(context).bodyMedium!.copyWith(
                     color: GamePalette.cardFace.withValues(alpha: 0.7),
                     fontSize: 13,
                   ),

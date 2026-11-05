@@ -20,6 +20,9 @@ dependencies:
   equatable: ^2.0.7
   shared_preferences: ^2.5.3
   audioplayers: ^6.8.1
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
 dev_dependencies:
   flutter_test:
@@ -34,7 +37,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
+  generate: true
   # Bundled Blender-rendered art (splash + main-menu banner). Rendered from
   # tools/art/*.blend via tools/art/build_art.py — never fetched at runtime.
   assets:

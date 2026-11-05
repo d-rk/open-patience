@@ -7,6 +7,7 @@ import 'package:open_patience/core/card.dart';
 import 'package:open_patience/core/game_registry.dart';
 import 'package:open_patience/core/game_state.dart';
 import 'package:open_patience/core/pile.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/bloc/game_bloc.dart';
@@ -128,6 +129,7 @@ Future<GameBloc> _pump(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: MediaQuery(
         data: MediaQueryData(size: size, disableAnimations: disableAnimations),
         child: Scaffold(
@@ -166,6 +168,7 @@ Future<GameBloc> _startDeal(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: MediaQuery(
         data: MediaQueryData(size: size),
         child: Scaffold(

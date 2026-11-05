@@ -16,4 +16,10 @@ class GameFonts {
 
   /// Handwritten script face for the author's signature credit (Satisfy).
   static const String signature = 'Satisfy';
+
+  /// Android system font for locales that don't support Quicksand.
+  static const String system = 'sans-serif-light';
+
+  /// Android system condensed font; headings select bold through their style.
+  static const String systemCondensed = 'sans-serif-condensed';
 }

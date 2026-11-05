@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_patience/core/card.dart';
+import 'package:open_patience/l10n/app_localizations.dart';
 import 'package:open_patience/persistence/records_repository.dart';
 import 'package:open_patience/persistence/shared_prefs_records_repository.dart';
 import 'package:open_patience/presentation/board.dart';
@@ -47,7 +48,12 @@ Future<void> _openGameOneKingFromWinning(WidgetTester tester) async {
   addTearDown(tester.view.resetDevicePixelRatio);
 
   final RecordsRepository repo = await _repo();
-  await tester.pumpWidget(MaterialApp(home: MainMenuScreen(repository: repo)));
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: MainMenuScreen(repository: repo),
+    ),
+  );
   await tester.pump(const Duration(milliseconds: 500));
 
   await tester.tap(find.text('Klondike'));
@@ -87,7 +93,10 @@ void main() {
             size: Size(1200, 800),
             disableAnimations: true,
           ),
-          child: MaterialApp(home: MainMenuScreen(repository: repo)),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: MainMenuScreen(repository: repo),
+          ),
         ),
       );
       await tester.pumpAndSettle();
