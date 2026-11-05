@@ -55,6 +55,25 @@ Before committing, run through the pre-commit checklist in `CLAUDE.md`
 (test-first, `flutter analyze`/`flutter test` clean, `dart format`, no
 Flutter imports leaking into `core`/`persistence`, etc.).
 
+## Adding a locale
+
+1. Create `lib/l10n/app_<locale>.arb` with `@@locale` and all message
+   entries from `app_en.arb`; omit the `@key` metadata entries.
+   Translate the messages, preserving message keys and placeholder names.
+   For plural messages, use the plural categories required by the
+   target language. Suit names such as `clubsInCardName` are inserted into
+   `cardSemanticLabel`; translate them in the grammatical form needed for
+   the complete card name, rather than as standalone suit names.
+2. Run `flutter gen-l10n`. Do not edit generated Dart files;
+   `supportedLocales` is generated automatically.
+3. If the bundled fonts lack the required characters, add the language
+   code to `AppTheme.shouldUseSystemFonts` in
+   `lib/ui/theme/app_theme.dart`. This selects system fonts for body
+   text and bold condensed system fonts for headings. Font family
+   names are defined in `lib/ui/theme/game_fonts.dart`.
+4. Verify text rendering and layout on a device or emulator using
+   the new locale.
+
 ## Generated assets
 
 Icons, splash/banner art and F-Droid store screenshots are produced by
